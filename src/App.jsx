@@ -5,6 +5,7 @@ import CVEFeed from './components/CVEFeed';
 export default function App() {
   const [activeTab, setActiveTab] = useState('explore');
   const [searchQuery, setSearchQuery] = useState('');
+  const [jsonLocalDataUploaded, setJsonLocalDataUploaded] = useState(null);
 
   // Placeholder CVE data -------------------------------------------------------
   const placeholderCVEs = [
@@ -49,6 +50,29 @@ export default function App() {
       published: 'XXXX-XX-XX'
     }
   ];
+
+  // a function to upload a local json file:
+  const uploadJSONFile = (event) => {
+    const jsonFile = event.target.files[0];
+    if (!jsonFile)
+    {
+      return;
+    }
+    const fileReader = new FileReader();
+    fileReader.onload = () => {
+      try 
+      {
+        const jsonParsedResult = JSON.parse(fileReader.result);
+        setJsonLocalDataUploaded(jsonParsedResult);
+      }
+      catch 
+      {
+        console.log("Error - bad JSON upload")
+      }
+    };
+    fileReader.readAsText(jsonFile);
+  }
+
 
   // --------------------------------------------------------------------------------------
 
@@ -146,15 +170,32 @@ export default function App() {
                 <p className="text-gray-600 mb-4">
                   Drag and drop your package.json file here, or click to choose file
                 </p>
-                <button className="px-6 py-2 bg-red-400 text-white rounded-lg hover:bg-red-800 transition-colors">
+                {/* <button className="px-6 py-2 bg-red-400 text-white rounded-lg hover:bg-red-800 transition-colors">
                   Choose File
-                </button>
+                </button> */}
+                <label className="inline-block">
+                  <input
+                    type="file"
+                    accept=".json,application/json"
+                    onChange={uploadJSONFile}
+                    className="hidden"
+                  />
+                  <span className="px-6 py-2 bg-red-400 text-white rounded-lg hover:bg-red-800 transition-colors cursor-pointer inline-block">
+                    Choose File
+                  </span>
+                </label>
               </div>
             </div>
 
             {/* Placeholder for results */}
             <div className="bg-white rounded-lg shadow-sm p-8 text-center text-gray-500">
-              <p>Upload a package.json file to see vulnerability analysis</p>
+              {jsonLocalDataUploaded ? (
+                // display the result if something was uploaded
+                <pre>{JSON.stringify(jsonLocalDataUploaded, null, 2)}</pre>
+              ) : (
+                <p>Upload a package.json file to see vulnerability analysis</p>
+              )
+              }
             </div>
             
           </div>
