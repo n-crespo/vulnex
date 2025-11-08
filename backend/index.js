@@ -1,12 +1,19 @@
 const express = require("express");
 const mongoose = require("mongoose");
-
 const app = express();
+
+// middleware to support sending json
+app.use(express.json());
 
 const port = 3000;
 
 app.get("/", (req, res) => {
   res.send("hello from node API");
+});
+
+app.post("/api/cves", (req, res) => {
+  console.log(req.body);
+  res.send(req.body);
 });
 
 mongoose
