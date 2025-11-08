@@ -2,84 +2,18 @@ const express = require("express");
 const mongoose = require("mongoose");
 const CVE = require("./models/cve.model.js");
 const app = express();
+const cveRoute = require("./routes/cve.route.js");
+const port = 3000;
 
 // middleware to support sending json
 app.use(express.json());
 
-const port = 3000;
+// routes
+app.use("/api/cves", cveRoute);
 
 // visible at root
 app.get("/", (req, res) => {
   res.send("hello from node API");
-});
-
-// get all CVEs in database
-app.get("/api/cves", async (req, res) => {
-  try {
-    const cves = await CVE.find({});
-    res.status(200).json(cves);
-  } catch {
-    res.status(500).json({ message: error.message });
-  }
-});
-
-// allow searching for a CVE with some id
-app.get("/api/cve/:id", async (req, res) => {
-  try {
-    const { id } = req.params;
-    const cve = await CVE.findById(id);
-    console.log(req.body);
-    res.status(200).json(cve);
-  } catch (error) {
-    return res.status(500).json({ message: error.message });
-  }
-});
-
-// add to the database some arbitrary CVE
-app.post("/api/cves", async (req, res) => {
-  try {
-    const cve = await CVE.create(req.body);
-    console.log(req.body);
-    res.status(200).json(cve);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-});
-
-// update a CVE record with some id
-app.put("/api/cve/:id", async (req, res) => {
-  try {
-    const { id } = req.params;
-    const cve = await CVE.findByIdAndUpdate(id, req.body);
-
-    // error if trying to update non existent CVE
-    if (!cve) {
-      return res.status(404).json({ message: "CVE not found" });
-    }
-
-    // check for the updated CVE
-    const updatedCVE = await CVE.findById(id);
-    res.status(200).json(updatedCVE);
-  } catch (error) {
-    return res.status(500).json({ message: error.message });
-  }
-});
-
-// delete a CVE
-app.delete("/api/cve/:id", async (req, res) => {
-  try {
-    const { id } = req.params;
-    const cve = await CVE.findByIdAndDelete(id);
-
-    if (!cve) {
-      // cve doesn't exist
-      return res.status(404).json({ message: "Product not found" });
-    }
-
-    res.status(200).json({ message: "CVE deleted successfully" });
-  } catch (error) {
-    return res.status(500).json({ message: error.message });
-  }
 });
 
 // connection to real database
