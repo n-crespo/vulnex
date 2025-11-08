@@ -1,6 +1,3 @@
-
-
-
 import express from 'express';
 import mongoose from 'mongoose';
 import cors from 'cors';
@@ -48,7 +45,7 @@ const User = mongoose.model("User", userAuthenticationSchema); // "User" is the 
 
 
 
-// a simple route to test the server
+// a simple route to test the server // TODO: Delete after testing
 app.get('/', (req, res) => {
     res.send("The VulnEx Backend MongoDB Server is running!");
 });
@@ -56,6 +53,6 @@ app.get('/', (req, res) => {
 
 
 
-// start the server (open the door to connection linking traffic):
+// start the server (final process -- keep this at the end of this file) (open the door to connection linking traffic):
 const PORT = process.env.PORT || 5000; // NOT 27017!!! 27017 is used by MongoDB!!! -- not for html traffic!
 app.listen(PORT, () => console.log(`Server is running on http://localhost:${PORT}`));
