@@ -21,6 +21,20 @@ app.get("/api/cves", async (req, res) => {
   }
 });
 
+// allow searching for a CVE with some id
+app.get("/api/cve/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const cve = await CVE.findById(id);
+    res.status(200).json(cve);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+  console.log(req.body);
+  res.send(req.body);
+});
+
+// add to the database
 app.post("/api/cves", async (req, res) => {
   try {
     const cve = await CVE.create(req.body);
