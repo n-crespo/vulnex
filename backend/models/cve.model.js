@@ -1,6 +1,6 @@
-const mongoose = require("mongoose");
+import { Schema, model } from "mongoose";
 
-const CVESchema = mongoose.Schema(
+const CVESchema = Schema(
   {
     name: {
       type: String,
@@ -23,6 +23,6 @@ const CVESchema = mongoose.Schema(
   },
 );
 
-const CVE = mongoose.model("CVE", CVESchema);
+const CVE = model("CVE", CVESchema);
 
-module.exports = CVE;
+export default CVE;

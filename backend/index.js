@@ -1,12 +1,12 @@
-const express = require("express");
-const mongoose = require("mongoose");
-const CVE = require("./models/cve.model.js");
+import express, { json } from "express";
+import { connect } from "mongoose";
+import CVE from "./models/cve.model.js";
 const app = express();
-const cveRoute = require("./routes/cve.route.js");
+import cveRoute from "./routes/cve.route.js";
 const port = 3000;
 
 // middleware to support sending json
-app.use(express.json());
+app.use(json());
 
 // routes
 app.use("/api/cves", cveRoute);
@@ -17,10 +17,9 @@ app.get("/", (req, res) => {
 });
 
 // connection to real database
-mongoose
-  .connect(
-    "***REMOVED***",
-  )
+connect(
+  "***REMOVED***",
+)
   .then(() => {
     console.log("connected to the db!");
     app.listen(port, () => {

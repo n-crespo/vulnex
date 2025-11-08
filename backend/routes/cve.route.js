@@ -1,12 +1,13 @@
-const express = require("express");
-const router = express.Router();
-const {
+import { Router } from "express";
+import {
   getCVEs,
   getCVE,
   createCVE,
   updateCVE,
   deleteCVE,
-} = require("../controllers/cve.controller.js");
+} from "../controllers/cve.controller.js";
+
+const router = Router();
 
 // note: root URL ("/") = /api/cves
 
@@ -23,4 +24,4 @@ router.put("/:id", updateCVE);
 // delete a CVE by ID
 router.delete("/:id", deleteCVE);
 
-module.exports = router;
+export default router;

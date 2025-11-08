@@ -1,11 +1,10 @@
-const { get } = require("mongoose");
-const CVE = require("../models/cve.model.js");
+import CVE from "../models/cve.model.js";
 
 // add some arbitrary CVE to the database
-const createCVE = async (req, res) => {
+export const createCVE = async (req, res) => {
+  console.log(`Creating CVE: ${JSON.stringify(req.body)}`);
   try {
     const cve = await CVE.create(req.body);
-    console.log(req.body);
     res.status(200).json(cve);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -13,7 +12,8 @@ const createCVE = async (req, res) => {
 };
 
 // get all CVEs
-const getCVEs = async (req, res) => {
+export const getCVEs = async (req, res) => {
+  console.log(`Getting all CVEs`);
   try {
     const cves = await CVE.find({});
     res.status(200).json(cves);
@@ -23,25 +23,34 @@ const getCVEs = async (req, res) => {
 };
 
 // get a CVE by its ID
-const getCVE = async (req, res) => {
+export const getCVE = async (req, res) => {
+  console.log(`Getting CVE: ${JSON.stringify(req.params)}`);
   try {
     const { id } = req.params;
     const cve = await CVE.findById(id);
-    console.log(req.body);
+
+    if (!cve) {
+      console.log("Failed");
+      return res.status(404).json({ message: "CVE not found" });
+    }
+
     res.status(200).json(cve);
   } catch (error) {
+    console.log("failed");
     return res.status(500).json({ message: error.message });
   }
 };
 
 // update a CVE by
-const updateCVE = async (req, res) => {
+export const updateCVE = async (req, res) => {
+  console.log(`Updating CVE: ${JSON.stringify(req.body)}`);
   try {
     const { id } = req.params;
     const cve = await CVE.findByIdAndUpdate(id, req.body);
 
     // error if trying to update non existent CVE
     if (!cve) {
+      console.log("Failed");
       return res.status(404).json({ message: "CVE not found" });
     }
 
@@ -54,26 +63,20 @@ const updateCVE = async (req, res) => {
 };
 
 // delete a CVE by its ID
-const deleteCVE = async (req, res) => {
+export const deleteCVE = async (req, res) => {
+  console.log(`Deleting CVE: ${JSON.stringify(req.params)}`);
   try {
     const { id } = req.params;
     const cve = await CVE.findByIdAndDelete(id);
 
     if (!cve) {
       // cve doesn't exist
-      return res.status(404).json({ message: "Product not found" });
+      console.log("Failed");
+      return res.status(404).json({ message: "CVE not found" });
     }
 
     res.status(200).json({ message: "CVE deleted successfully" });
   } catch (error) {
     return res.status(500).json({ message: error.message });
   }
-};
-
-module.exports = {
-  getCVEs,
-  getCVE,
-  deleteCVE,
-  createCVE,
-  updateCVE,
 };
