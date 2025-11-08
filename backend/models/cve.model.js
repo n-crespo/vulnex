@@ -7,12 +7,6 @@ const CVESchema = mongoose.Schema(
       required: [true, "Please enter product name"],
     },
 
-    quantity: {
-      type: Number,
-      required: true,
-      default: 0,
-    },
-
     date: {
       type: Number,
       required: true,
