@@ -28,24 +28,22 @@ app.get("/api/cve/:id", async (req, res) => {
   try {
     const { id } = req.params;
     const cve = await CVE.findById(id);
+    console.log(req.body);
     res.status(200).json(cve);
   } catch (error) {
     return res.status(500).json({ message: error.message });
   }
-  console.log(req.body);
-  res.send(req.body);
 });
 
 // add to the database some arbitrary CVE
 app.post("/api/cves", async (req, res) => {
   try {
     const cve = await CVE.create(req.body);
+    console.log(req.body);
     res.status(200).json(cve);
   } catch (error) {
-    return res.status(500).json({ message: error.message });
+    res.status(500).json({ message: error.message });
   }
-  console.log(req.body);
-  res.send(req.body);
 });
 
 // update a CVE record with some id
