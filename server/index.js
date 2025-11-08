@@ -47,10 +47,12 @@ const User = mongoose.model("User", userAuthenticationSchema); // "User" is the 
 
 // a simple route to test the server // TODO: Delete after testing
 app.get('/', (req, res) => {
+    // Enter http://localhost:5000/ in your browser search bar to connect
     res.send("The VulnEx Backend MongoDB Server is running!");
 });
 
 
+// run npm run start to start the server from the vulnex/server folder!
 
 
 // start the server (final process -- keep this at the end of this file) (open the door to connection linking traffic):
