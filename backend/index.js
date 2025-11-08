@@ -36,7 +36,7 @@ app.get("/api/cve/:id", async (req, res) => {
   res.send(req.body);
 });
 
-// add to the database
+// add to the database some arbitrary CVE
 app.post("/api/cves", async (req, res) => {
   try {
     const cve = await CVE.create(req.body);
@@ -48,6 +48,26 @@ app.post("/api/cves", async (req, res) => {
   res.send(req.body);
 });
 
+// update a CVE record with some id
+app.put("/api/cve/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const cve = await CVE.findByIdAndUpdate(id, req.body);
+
+    // error if trying to update non existent CVE
+    if (!cve) {
+      return res.status(404).json({ message: "CVE not found" });
+    }
+
+    // check for the updated CVE
+    const updatedCVE = await CVE.findById(id);
+    res.status(200).json(updatedCVE);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// connection to real database
 mongoose
   .connect(
     "mongodb+srv://ncrespo:nYeImnG0mGZqgfcg@db.0nxw0db.mongodb.net/Node-API?appName=db",
