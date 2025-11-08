@@ -8,7 +8,8 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "node --watch-path=./ index.js"
+    "dev": "node --watch-path=./ index.js",
+    "start": "node index.js"
   },
   "dependencies": {
     "express": "^5.1.0",
