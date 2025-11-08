@@ -3,7 +3,7 @@ import { connect } from "mongoose";
 import CVE from "./models/cve.model.js";
 const app = express();
 import cveRoute from "./routes/cve.route.js";
-const port = 3000;
+const port = process.env.PORT || 4000;
 
 // middleware to support sending json
 app.use(json());
