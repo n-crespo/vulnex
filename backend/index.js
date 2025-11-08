@@ -8,10 +8,12 @@ app.use(express.json());
 
 const port = 3000;
 
+// visible at root
 app.get("/", (req, res) => {
   res.send("hello from node API");
 });
 
+// get all CVEs in database
 app.get("/api/cves", async (req, res) => {
   try {
     const cves = await CVE.find({});
