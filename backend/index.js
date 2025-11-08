@@ -1,5 +1,6 @@
 const express = require("express");
 const mongoose = require("mongoose");
+const CVE = require("./models/cve.model.js");
 const app = express();
 
 // middleware to support sending json
@@ -11,7 +12,22 @@ app.get("/", (req, res) => {
   res.send("hello from node API");
 });
 
-app.post("/api/cves", (req, res) => {
+app.get("/api/cves", async (req, res) => {
+  try {
+    const cves = await CVE.find({});
+    res.status(200).json(cves);
+  } catch {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+app.post("/api/cves", async (req, res) => {
+  try {
+    const cve = await CVE.create(req.body);
+    res.status(200).json(cve);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
   console.log(req.body);
   res.send(req.body);
 });
