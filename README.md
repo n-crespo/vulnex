@@ -1,8 +1,10 @@
-# VulnEx (Vulnerability Explorer)
+# [VulnEx (Vulnerability Explorer)](https://n-crespo.github.io/vulnex)
 
 [![deploy](https://github.com/n-crespo/vulnex/actions/workflows/deploy.yaml/badge.svg)](https://github.com/n-crespo/vulnex/actions/workflows/deploy.yaml)
 
 [Project Plan and Proposal](https://docs.google.com/document/d/1iviznrFmZiiG2GUe3oLPzbtLUC5X77XqRDzyYNCOCEE/edit?usp=sharing)
+
+Live at <https://n-crespo.github.io/vulnex>
 
 ## Development Setup
 
@@ -50,11 +52,13 @@ Must have features:
 4. Filtering by CVSS Score/Severity info
 
 Should have features:
+
 1. Filter CVE’s by topic/area/recency
 2. Select a CVE to view general information about it and see a link to the
    original report
 
 "Cool" features:
+
 1. Provide comprehensive vulnerability report
 2. User auth/login
 3. Personalized interest tags (associated with user account)
