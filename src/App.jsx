@@ -1,11 +1,14 @@
 import { useState } from 'react';
-import { ShieldAlert, Upload } from 'lucide-react';
+import { ShieldAlert, Upload, User } from 'lucide-react';
 import CVEFeed from './components/CVEFeed';
+import LoginModule from './components/LoginModule';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('explore');
   const [searchQuery, setSearchQuery] = useState('');
   const [jsonLocalDataUploaded, setJsonLocalDataUploaded] = useState(null);
+  const [isLoginModuleOpen, setIsLoginModuleOpen] = useState(false);
+  const [user, setUser] = useState(null); // null = not logged in
 
   // Placeholder CVE data -------------------------------------------------------
   const placeholderCVEs = [
@@ -20,7 +23,7 @@ export default function App() {
       published: 'XXXX-XX-XX'
     },
     {
-      id: 'CVE-0000-0000',
+      id: 'CVE-0000-0001',
       title: 'Title Placeholder',
       severity: 'High',
       score: 8,
@@ -30,7 +33,7 @@ export default function App() {
       published: 'XXXX-XX-XX'
     },
     {
-      id: 'CVE-0000-0000',
+      id: 'CVE-0000-0002',
       title: 'Title Placeholder',
       severity: 'Medium',
       score: 6,
@@ -40,7 +43,7 @@ export default function App() {
       published: 'XXXX-XX-XX'
     },
     {
-      id: 'CVE-0000-0000',
+      id: 'CVE-0000-0003',
       title: 'Title Placeholder',
       severity: 'Low',
       score: 2,
@@ -72,6 +75,20 @@ export default function App() {
     };
     fileReader.readAsText(jsonFile);
   }
+
+    // Login Handler
+
+    // Handle successful login
+    const handleLogin = (userData) => {
+      setUser(userData);
+      console.log('User logged in:', userData);
+    };
+
+    // Handle logout
+    const handleLogout = () => {
+      setUser(null);
+      console.log('User logged out');
+    };
 
 
   // --------------------------------------------------------------------------------------
@@ -114,7 +131,31 @@ export default function App() {
               </button>
             </nav>
 
-
+              {/* User Section - Top Right */}
+            <div className="absolute right-0">
+              {user ? (
+                // Logged in - show username and logout
+                <div className="flex items-center space-x-3">
+                  <span className="text-white text-sm">
+                    Welcome, <span className="font-semibold">{user.username}</span>
+                  </span>
+                  <button
+                    onClick={handleLogout}
+                    className="text-gray-300 hover:text-white transition-colors text-sm"
+                  >
+                    Logout
+                  </button>
+                </div>
+              ) : (
+                // Not logged in - show user icon button
+                <button
+                  onClick={() => setIsLoginModuleOpen(true)}
+                  className="flex items-center space-x-2 text-white hover:text-red-300 transition-colors"
+                >
+                  <User className="w-6 h-6" />
+                </button>
+              )}
+            </div>
 
           </div>
         </div>
@@ -183,6 +224,14 @@ export default function App() {
           </div>
         )}
       </main>
+
+      {/* Login Module */}
+      <LoginModule 
+        isOpen={isLoginModuleOpen}
+        onClose={() => setIsLoginModuleOpen(false)}
+        onLogin={handleLogin}
+      />
+
     </div>
   );
 }
