@@ -1,0 +1,13 @@
+{
+  "name": "data-sync",
+  "version": "1.0.0",
+  "description": "",
+  "license": "ISC",
+  "author": "",
+  "type": "module",
+  "main": "sync_data.js",
+  "scripts": {
+    "dev": "node --env-file=.env sync_data.js",
+    "test": "node --env-file=.env sync_data.js"
+  }
+}
