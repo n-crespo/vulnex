@@ -17,50 +17,40 @@ npm run dev
 
 ## Milestones
 
-1. Basic front end interface (\~1.5 weeks)
-   1. Feed of (placeholder) CVE’s
-   2. Search bar above feed
-   3. Separate page or popup for file upload
-2. Figuring out the API/database (\~2 weeks)
-   1. Determine with api to use to collect all CVEs
-   2. Properly use it to render a full feed
-   3. Do we want to fetch all the CVE’s every time the page loads?
-      Or make one huge api call once and store everything in the database?
-      (the answer is probably a combination, after some period of time ex.
-      1 day we should update the database of CVE’s with a new api call, but not
-      make the call on page load)
-   4. Are there tags/topics attached to each CVE that contain what the CVE is
-      about?
-      (if not we can do some string parsing)
-   5. How much filtering is possible?
-3. Actual Functionality (\~2 weeks)
-   1. Implement searching and filtering functionality through collected CVE’s
-      (filters by package and package version, tags for user interest, general
-      areas ex.
-      web dev)
-   2. User uploaded files need to be stored in database and parsed (then result
-      in a filtered CVE list like in (a)
-   3. More if we have time\!
+1. [x] Basic front end interface (\~1.5 weeks)
+   1. [x] Feed of (placeholder) CVE’s
+   2. [x] Search bar above feed
+   3. [x] Separate page or popup for file upload
+2. [x] Figure out the API/database (\~2 weeks)
+   1. [x] Determine with api to use to collect all CVEs
+   2. [x] Do we want to fetch all the CVE’s every time the page loads?
+   3. [x] How much filtering is possible?
+   - [ ] Properly use API to render a feed
+3. [ ] Implement user auth/login
+   - [ ] Personalized interest tags (associated with user account)
+   - [ ] bookmarking feature (attach certain CVEs (by ID) to a user account)
+   - [ ] save CVEs found in file upload to user account
+4. [ ] Put it all together (\~2 weeks)
+   - [ ] Proper Filtering
+   - [ ] Store CVEs found in uploaded file in auth db
 
-## Feature Priorities
-
-Must have features:
+## Core Features
 
 1. File uploads (specifically .json)
-2. List of recent CVE’s
-3. Search through CVE’s by keyword
-4. Filtering by CVSS Score/Severity info
+2. File Parsing
+3. List of recent CVE’s
+4. Advanced CVE filtering
+   - searching for CVEs with severity > some number
+   - searching for CVEs published after some date
+   - searching for CVEs with for a particular product (comes from CPE id)
+   - searching for CVEs with for a particular product version (comes from CPE id)
+   - searching for CVEs of a particular vulnerability type (comes from CWE id)
+5. CVE keyword search
+   - **searching for one cveID (these are unique)**
+   - **searching for keyword within summarySnippet**
 
-Should have features:
+## "Nice to have" Features
 
-1. Filter CVE’s by topic/area/recency
-2. Select a CVE to view general information about it and see a link to the
-   original report
-
-"Cool" features:
-
-1. Provide comprehensive vulnerability report
-2. User auth/login
-3. Personalized interest tags (associated with user account)
-4. Nice UI
-5. Scrape a user’s public repositories for packages,
+1. comprehensive vulnerability report (as pdf or html)
+2. Select CVE to view general information + link to the original report
+3. Scrape a user’s public repositories for packages.json/other dependencies
