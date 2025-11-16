@@ -1,5 +1,4 @@
 import { createWriteStream } from "fs";
-import { start } from "repl";
 
 const NVD_API_KEY = process.env.NVD_API_KEY;
 const OUTPUT_FILE = "output.json";
