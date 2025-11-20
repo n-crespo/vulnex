@@ -1,11 +1,11 @@
 import express, { json } from "express";
+const app = express();
+
 import { connect } from "mongoose";
 import cveRoute from "./routes/cve.route.js";
 
-const app = express();
-
 const port = process.env.PORT || 3000;
-const API_SECRET_KEY = process.env.API_SECRET_KEY || null;
+const MONGO_DB_URI = process.env.MONGO_DB_URI;
 
 // middleware to support sending json
 app.use(json());
@@ -19,9 +19,7 @@ app.get("/", (req, res) => {
 });
 
 // connection to real database
-connect(
-  "mongodb+srv://ncrespo:nYeImnG0mGZqgfcg@db.0nxw0db.mongodb.net/Node-API?appName=db",
-)
+connect(MONGO_DB_URI)
   .then(() => {
     console.log("connected to the db!");
     app.listen(port, () => {
