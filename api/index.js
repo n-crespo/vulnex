@@ -15,6 +15,7 @@ app.use("/api/cves", cveRoute);
 
 // visible at root
 app.get("/", (req, res) => {
+  console.log("Fetching root /\n--------------------");
   res.send("hello from node API");
 });
 
@@ -23,7 +24,7 @@ connect(MONGO_DB_URI)
   .then(() => {
     console.log("connected to the db!");
     app.listen(port, () => {
-      console.log(`Server running on port ${port}`);
+      console.log(`Server running on port ${port}\n--------------------`);
     });
   })
   .catch(() => {
