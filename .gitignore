@@ -22,7 +22,8 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
-backend/.venv
-server/.env
-data-sync/.env
-api/.env
+
+# .env files
+.env
+*/.env
+*/*/.env
