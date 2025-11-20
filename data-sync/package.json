@@ -7,7 +7,7 @@
   "type": "module",
   "main": "sync_data.js",
   "scripts": {
-    "dev": "node --env-file=.env sync_data.js",
-    "test": "node --env-file=.env sync_data.js"
+    "dev": "node --env-file=../.env sync_data.js",
+    "test": "node --env-file=../.env sync_data.js"
   }
 }
