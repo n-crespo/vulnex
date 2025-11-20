@@ -13,7 +13,8 @@ const CVESchema = Schema(
       unique: true, // prevent duplicates
       index: true,
     },
-    // maybe turn this and lastModified into Date objects?
+    // TODO: turn these dates from ISO time stamp format into Date objects for
+    // proper indexing.
     published: {
       type: String,
       required: true,
@@ -40,7 +41,7 @@ const CVESchema = Schema(
       type: Boolean,
       index: true,
     },
-    // todo: possibly split up cpeId into product/version. currently not indexed.
+    // TODO: split up cpeId into product/version. currently not indexed.
     cpeId: {
       type: String,
     },
