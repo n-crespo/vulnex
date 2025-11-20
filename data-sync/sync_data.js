@@ -10,7 +10,6 @@ async function fetchRecentCves() {
   const stream = createWriteStream("output.json", { flags: "a" }); // "a" = append
 
   while (startIndex <= totalResults) {
-    console.log("starting loop!", startIndex, totalResults);
     // example: https://services.nvd.nist.gov/rest/json/cves/2.0/?resultsPerPage=20&startIndex=0
     const API_URL = `https://services.nvd.nist.gov/rest/json/cves/2.0/?resultsPerPage=${resultsPerPage}&startIndex=${startIndex}`;
 
@@ -22,8 +21,10 @@ async function fetchRecentCves() {
       },
     };
 
+    console.log("starting fetch!", startIndex, totalResults);
     fetch(API_URL, requestOptions)
       .then((response) => {
+        console.log("fetching");
         if (response.status === 200) {
           console.log("Status: 200 OK. Request successful.");
         } else if (response.status === 403) {
@@ -42,7 +43,7 @@ async function fetchRecentCves() {
       .then(async (rawData) => {
         console.log("fetching...");
         totalResults = rawData.totalResults;
-        startIndex += rawData.resultsPerPage;
+        startIndex += 300;
         const extractedData = rawData.vulnerabilities.map((v) => {
           const cve = v.cve;
           const id = cve.id;
@@ -84,6 +85,7 @@ async function fetchRecentCves() {
       .catch((error) => {
         console.log("Fetch error:", error);
       });
+    console.log("done");
   }
   stream.end();
 }
