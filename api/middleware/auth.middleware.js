@@ -4,6 +4,7 @@ const API_SECRET_KEY = process.env.API_SECRET_KEY;
 const authenticateWriteAccess = (req, res, next) => {
   // check for api key in 'x-api-key'
   const apiKey = req.header("x-api-key");
+  console.log(`checking for api key: ${apiKey}`);
 
   if (!apiKey) {
     return res.status(401).json({
