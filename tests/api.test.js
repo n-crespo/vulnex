@@ -1,5 +1,6 @@
 import { expect } from "chai";
 import axios from "axios";
+import net from "net";
 
 const PORT = process.env.PORT || 3000;
 const LOCAL_URL_BASE = `http://localhost:${PORT}`;
@@ -164,7 +165,44 @@ const runSecurityTests = (baseUrl, environmentName) => {
   });
 };
 
+/**
+ * Checks if a given port is currently in use (a server is running on it).
+ * @param {number} port The port number to check.
+ * @returns {Promise<boolean>} Resolves to true if the port is in use, false otherwise.
+ */
+function isPortInUse(port) {
+  return new Promise((resolve) => {
+    const server = net.createServer();
+
+    // triggered if the port is ALREADY BOUND (in use).
+    server.once("error", (err) => {
+      if (err.code === "EADDRINUSE") {
+        // port already in use
+        resolve(true);
+      } else {
+        resolve(false); // Other errors treated as not-confirmed-in-use
+      }
+    });
+
+    server.once("listening", () => {
+      // port is open, close and return false
+      server.close(() => resolve(false));
+    });
+
+    // attempt to connect to the port
+    server.listen(port);
+  });
+}
+
 describe("Full Security and CRUD Workflow Tests", function () {
-  runSecurityTests(LOCAL_URL_BASE, "LOCAL");
+  isPortInUse(PORT).then((inUse) => {
+    if (inUse) {
+      runSecurityTests(LOCAL_URL_BASE, "LOCAL");
+    } else {
+      console.log(
+        `[WARNING]: Skipping tests on local server, port ${PORT} doesn't seem to be in use.`,
+      );
+    }
+  });
   runSecurityTests(REMOTE_URL_BASE, "REMOTE");
 });
