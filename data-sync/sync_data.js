@@ -50,6 +50,7 @@ async function fetchRecentCves() {
         const id = cve.id;
 
         const record = {
+          cveId: id,
           published: cve.published,
           lastModified: cve.lastModified,
           status: cve.vulnStatus,
