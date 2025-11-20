@@ -8,3 +8,5 @@
 [api workflow](https://nvd.nist.gov/developers/api-workflows)
 
 [best practices](https://nvd.nist.gov/developers/start-here)
+
+[Info on CVE Status Data](https://nvd.nist.gov/vuln/vulnerability-status#divNvdStatus)
