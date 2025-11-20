@@ -1,0 +1,17 @@
+{
+  "name": "tests",
+  "version": "1.0.0",
+  "description": "Tests all API endpoints by authorized and unauthorized users.",
+  "license": "ISC",
+  "author": "",
+  "type": "module",
+  "main": "api.test.js",
+  "scripts": {
+    "test": "node --env-file=../.env node_modules/.bin/mocha *.test.js"
+  },
+  "dependencies": {
+    "axios": "^1.13.2",
+    "chai": "^6.2.1",
+    "mocha": "^11.7.5"
+  }
+}
