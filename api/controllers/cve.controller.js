@@ -6,12 +6,12 @@ function finish() {
 
 // add some arbitrary CVE to the database
 export const createCVE = async (req, res) => {
-  console.log(`Creating CVE: ${JSON.stringify(req.body)}`);
+  console.log(`Creating CVE: ${JSON.stringify(req.body, null, 2)}`);
   try {
     const cve = await CVE.create(req.body);
     res.status(200).json(cve);
   } catch (error) {
-    console.log(error.message);
+    console.log("failed: ", error.message);
     res.status(500).json({ message: error.message });
   }
   finish();
@@ -24,6 +24,7 @@ export const getCVEs = async (req, res) => {
     const cves = await CVE.find({});
     res.status(200).json(cves);
   } catch {
+    console.log("failed: ", error.message);
     res.status(500).json({ message: error.message });
   }
   finish();
@@ -37,13 +38,14 @@ export const getCVE = async (req, res) => {
     const cve = await CVE.findById(id);
 
     if (!cve) {
-      console.log("Failed");
+      console.log("Failed, CVE not found");
       return res.status(404).json({ message: "CVE not found" });
     }
 
+    console.log(cve);
     res.status(200).json(cve);
   } catch (error) {
-    console.log("failed");
+    console.log("failed: ", error.message);
     return res.status(500).json({ message: error.message });
   }
   finish();
@@ -58,7 +60,7 @@ export const updateCVE = async (req, res) => {
 
     // error if trying to update non existent CVE
     if (!cve) {
-      console.log("Failed");
+      console.log("Failed, CVE not found");
       return res.status(404).json({ message: "CVE not found" });
     }
 
@@ -66,6 +68,7 @@ export const updateCVE = async (req, res) => {
     const updatedCVE = await CVE.findById(id);
     res.status(200).json(updatedCVE);
   } catch (error) {
+    console.log("failed: ", error.message);
     return res.status(500).json({ message: error.message });
   }
   finish();
@@ -80,12 +83,13 @@ export const deleteCVE = async (req, res) => {
 
     if (!cve) {
       // cve doesn't exist
-      console.log("Failed");
+      console.log("Failed, CVE not found");
       return res.status(404).json({ message: "CVE not found" });
     }
 
     res.status(200).json({ message: "CVE deleted successfully" });
   } catch (error) {
+    console.log("failed: ", error.message);
     return res.status(500).json({ message: error.message });
   }
   finish();
