@@ -12,9 +12,12 @@ if (!VALID_API_KEY) {
   );
 }
 
+// create a string based on timestamp to use as primary key (must be unique)
+const uniqueTimestampString = new Date().getTime().toString(36);
+
 // Sample data for the test record
 const testCveData = {
-  cveId: "CVE-1999-0095",
+  cveId: uniqueTimestampString,
   published: "2025-11-20T02:20:46",
   lastModified: "2025-11-20T02:20:50",
   status: "Deferred",
