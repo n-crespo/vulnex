@@ -1,12 +1,12 @@
 // CVE Feed Component (displays feed of CVE cards, receives CVE objects as props)
 import CVECard from './CVECard';
-import SearchBar from './SearchBar';
+import FilterPanel from './FilterPanel';
 
-function CVEFeed({ cves, searchQuery, setSearchQuery }) {
+function CVEFeed({ cves, onApplyFilters }) {
   return (
     <div className="space-y-8">
-      {/* Search Bar Component */}
-      <SearchBar searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
+      {/* Filter Panel */}
+      <FilterPanel onApplyFilters={onApplyFilters} />
 
       {/* CVE Cards */}    
     <div className="space-y-4">
