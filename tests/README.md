@@ -1,19 +1,52 @@
 # Tests
 
+## Usage
+
+(optional) Start the server locally from `api/`:
+
+If you skip this step the tests will detect it and won't try to make requests to
+the local server, only the remote (<https://vulnex-api.onrender.com/>). Be aware
+that the remote server does go to sleep after inactivity and can take about a
+minute to boot back up after it receives a request.
+
+```sh
+~/dev/vulnex main ❯ pwd
+/home/nicolas/dev/vulnex
+~/dev/vulnex main ❯ cd api
+~/dev/vulnex/api main ❯ npm run dev
+
+> backend@1.0.0 dev
+> node --env-file=../.env --watch-path=./ index.js
+
+connected to the db!
+Server running on port 3000
+--------------------
+```
+
+Then, run the tests in another terminal from `tests/`:
+
+```sh
+~/dev/vulnex main ❯ pwd
+/home/nicolas/dev/vulnex
+~/dev/vulnex main ❯ cd tests
+~/dev/vulnex/tests main ❯ npm run test
+
+> tests@1.0.0 test
+> node --env-file=../.env node_modules/.bin/mocha *.test.js
+```
+
+> [!NOTE]
+> The following two variables are needed for full functionality. They should be
+> specified in a file called `.env` in the root directory of this repository.
+> `MONGO_DB_URI`: Needed to connect to MongoDB with local server. Only needed if you are using the locally hosted API.
+> `API_SECRET_KEY`: Needed to complete write actions on the database (POST/PUT/DELETE). Tests will fail without this.
+
 ## API Tests
 
 Here is what these tests do:
 
-```js
-const PORT = process.env.PORT || 3000;
-const LOCAL_URL = `http://localhost:${PORT}`;
-const REMOTE_URL = `https://vulnex-api.onrender.com/api/cves`;
-const VALID_API_KEY = process.env.API_SECRET_KEY;
-```
-
-The tests into are in two sections: requests to the LOCAL server (at local_url)
-and REMOTE server (at vulnex-api.onrender... URL). For each section, we send the
-following requests:
+The tests into are in two sections: requests to the LOCAL server and REMOTE
+server. For each section, we send the following requests:
 
 - GET at `/`
 - GET at `/api/cves` (this gets all CVEs)
