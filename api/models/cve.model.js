@@ -7,7 +7,7 @@ import { Schema, model } from "mongoose";
 const CVESchema = Schema(
   {
     // primary unique key
-    id: {
+    cveId: {
       type: String,
       required: true,
       unique: true, // prevent duplicates
