@@ -5,7 +5,6 @@ import LoginModule from './components/LoginModule';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState("explore");
-  const [searchQuery, setSearchQuery] = useState("");
   const [jsonLocalDataUploaded, setJsonLocalDataUploaded] = useState(null);
   const [isLoginModuleOpen, setIsLoginModuleOpen] = useState(false);
   const [user, setUser] = useState(null); // null = not logged in
@@ -87,6 +86,13 @@ export default function App() {
     };
 
 
+    // Handle Filter Application
+    const handleApplyFilters = (filters) => {
+      console.log('Filters received in App.jsx:', filters);
+      // TODO: Implement API calls with these filters to backend
+      // FOR NOW: Logging to console
+    }
+
   // --------------------------------------------------------------------------------------
 
   return (
@@ -165,8 +171,7 @@ export default function App() {
             {/* CVE Feed */}
             <CVEFeed 
               cves={placeholderCVEs}
-              searchQuery={searchQuery}
-              setSearchQuery={setSearchQuery} 
+              onApplyFilters={handleApplyFilters}
             />
 
 
