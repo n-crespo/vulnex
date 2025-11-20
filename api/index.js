@@ -1,9 +1,11 @@
 import express, { json } from "express";
 import { connect } from "mongoose";
-import CVE from "./models/cve.model.js";
-const app = express();
 import cveRoute from "./routes/cve.route.js";
+
+const app = express();
+
 const port = process.env.PORT || 3000;
+const API_SECRET_KEY = process.env.API_SECRET_KEY || null;
 
 // middleware to support sending json
 app.use(json());
