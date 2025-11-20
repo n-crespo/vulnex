@@ -39,11 +39,10 @@ const updateCveData = {
  * @param {string} environmentName - A friendly name for the test block (e.g., 'LOCAL')
  */
 const runSecurityTests = (baseUrl, environmentName) => {
-  // The specific API endpoint used for CVE operations
   const apiEndpoint = `${baseUrl}/api/cves`;
   let createdCveId = null; // will use in tests later to verify cve creation
 
-  // Axios clients scoped to the API endpoint (e.g., http://localhost:3000/api/cves)
+  // this is a public user (without an API key)
   const publicClient = axios.create({
     baseURL: apiEndpoint,
     "Content-Type": "application/json",
@@ -91,7 +90,7 @@ const runSecurityTests = (baseUrl, environmentName) => {
       // NOTE: Expecting 200 based on your controller implementation
       expect(response.status).to.equal(200);
       expect(response.data).to.have.property("_id");
-      createdCveId = response.data._id; // Store ID for subsequent tests
+      createdCveId = response.data._id; // Store ID for later tests
     });
 
     it(`GET /api/cves/:id should allow PUBLIC access to the newly created CVE (200 OK)`, async () => {
@@ -120,7 +119,7 @@ const runSecurityTests = (baseUrl, environmentName) => {
       );
       // NOTE: Expecting 200, and the controller returns the updated CVE body
       expect(response.status).to.equal(200);
-      // Check that the returned object contains the update
+      // Check that returned object contains the update
       expect(response.data.isVulnerable).to.equal(false);
     });
 
@@ -129,8 +128,6 @@ const runSecurityTests = (baseUrl, environmentName) => {
       expect(response.status).to.equal(200);
       expect(response.data.isVulnerable).to.equal(false);
     });
-
-    // ABOVE IS PASSING!
 
     // --- PROTECTED DELETE TESTS ---
 
@@ -141,14 +138,14 @@ const runSecurityTests = (baseUrl, environmentName) => {
       } catch (error) {
         errorStatus = error.response.status;
       }
-      // Verify security failure
+      // verify security failure
       expect([401, 403]).to.include(errorStatus);
     });
 
     it(`DELETE /api/cves/:id should PASS WITH API Key (200 OK)`, async () => {
       const response = await protectedClient.delete(`/${createdCveId}`);
       expect(response.status).to.equal(200);
-      // Check the message from the delete controller
+      // check message from delete controller
       expect(response.data.message).to.equal("CVE deleted successfully");
     });
 
@@ -159,7 +156,7 @@ const runSecurityTests = (baseUrl, environmentName) => {
       } catch (error) {
         errorStatus = error.response.status;
       }
-      // Verification: The controller should return 404 when not found
+      // should return 404 when not found
       expect(errorStatus).to.equal(404);
     });
   });
