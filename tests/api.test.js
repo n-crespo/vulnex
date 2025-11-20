@@ -88,89 +88,83 @@ const runSecurityTests = (baseUrl, environmentName) => {
       const response = await protectedClient.post("/", testCveData);
 
       // NOTE: Expecting 200 based on your controller implementation
-      console.log("response: ", response);
       expect(response.status).to.equal(200);
       expect(response.data).to.have.property("_id");
-
       createdCveId = response.data._id; // Store ID for subsequent tests
     });
 
-    // it(`GET /api/cves/:id should allow PUBLIC access to the newly created CVE (200 OK)`, async () => {
-    //   const response = await publicClient.get(`/${createdCveId}`);
-    //   expect(response.status).to.equal(200);
-    //   expect(response.data.cveId).to.equal(testCveData.cveId);
-    // });
-    //
-    // // --- PROTECTED PUT (UPDATE) TESTS ---
-    //
-    // it(`PUT /api/cves/:id should FAIL without API Key (401/403 Forbidden)`, async () => {
-    //   let errorStatus;
-    //   try {
-    //     await publicClient.put(`/${createdCveId}`, updateCveData);
-    //   } catch (error) {
-    //     errorStatus = error.response.status;
-    //   }
-    //   // Verify security failure
-    //   expect([401, 403]).to.include(errorStatus);
-    // });
-    //
-    // it(`PUT /api/cves/:id should PASS WITH API Key and update the CVE (200 OK)`, async () => {
-    //   const response = await protectedClient.put(
-    //     `/${createdCveId}`,
-    //     updateCveData,
-    //   );
-    //
-    //   // NOTE: Expecting 200, and the controller returns the updated CVE body
-    //   expect(response.status).to.equal(200);
-    //   // Check that the returned object contains the update
-    //   expect(response.data.severity).to.equal("CRITICAL");
-    // });
-    //
-    // it(`GET /api/cves/:id should verify the update ("CRITICAL") (200 OK)`, async () => {
-    //   const response = await publicClient.get(`/${createdCveId}`);
-    //   expect(response.status).to.equal(200);
-    //   expect(response.data.severity).to.equal("CRITICAL");
-    // });
-    //
-    // // --- PROTECTED DELETE TESTS ---
-    //
-    // it(`DELETE /api/cves/:id should FAIL without API Key (401/403 Forbidden)`, async () => {
-    //   let errorStatus;
-    //   try {
-    //     await publicClient.delete(`/${createdCveId}`);
-    //   } catch (error) {
-    //     errorStatus = error.response.status;
-    //   }
-    //   // Verify security failure
-    //   expect([401, 403]).to.include(errorStatus);
-    // });
-    //
-    // it(`DELETE /api/cves/:id should PASS WITH API Key (200 OK)`, async () => {
-    //   const response = await protectedClient.delete(`/${createdCveId}`);
-    //   expect(response.status).to.equal(200);
-    //   // Check the message from the delete controller
-    //   expect(response.data.message).to.equal("CVE deleted successfully");
-    // });
-    //
-    // it(`GET /api/cves/:id should FAIL after deletion (404 Not Found)`, async () => {
-    //   let errorStatus;
-    //   try {
-    //     await publicClient.get(`/${createdCveId}`);
-    //   } catch (error) {
-    //     errorStatus = error.response.status;
-    //   }
-    //   // Verification: The controller should return 404 when not found
-    //   expect(errorStatus).to.equal(404);
-    // });
+    it(`GET /api/cves/:id should allow PUBLIC access to the newly created CVE (200 OK)`, async () => {
+      const response = await publicClient.get(`/${createdCveId}`);
+      expect(response.status).to.equal(200);
+      expect(response.data.cveId).to.equal(testCveData.cveId);
+    });
+
+    // --- PROTECTED PUT (UPDATE) TESTS ---
+
+    it(`PUT /api/cves/:id should FAIL without API Key (401/403 Forbidden)`, async () => {
+      let errorStatus;
+      try {
+        await publicClient.put(`/${createdCveId}`, updateCveData);
+      } catch (error) {
+        errorStatus = error.response.status;
+      }
+      // Verify security failure
+      expect([401, 403]).to.include(errorStatus);
+    });
+
+    it(`PUT /api/cves/:id should PASS WITH API Key and update the CVE (200 OK)`, async () => {
+      const response = await protectedClient.put(
+        `/${createdCveId}`,
+        updateCveData,
+      );
+      // NOTE: Expecting 200, and the controller returns the updated CVE body
+      expect(response.status).to.equal(200);
+      // Check that the returned object contains the update
+      expect(response.data.isVulnerable).to.equal(false);
+    });
+
+    it(`GET /api/cves/:id should verify the update ("CRITICAL") (200 OK)`, async () => {
+      const response = await publicClient.get(`/${createdCveId}`);
+      expect(response.status).to.equal(200);
+      expect(response.data.isVulnerable).to.equal(false);
+    });
+
+    // ABOVE IS PASSING!
+
+    // --- PROTECTED DELETE TESTS ---
+
+    it(`DELETE /api/cves/:id should FAIL without API Key (401/403 Forbidden)`, async () => {
+      let errorStatus;
+      try {
+        await publicClient.delete(`/${createdCveId}`);
+      } catch (error) {
+        errorStatus = error.response.status;
+      }
+      // Verify security failure
+      expect([401, 403]).to.include(errorStatus);
+    });
+
+    it(`DELETE /api/cves/:id should PASS WITH API Key (200 OK)`, async () => {
+      const response = await protectedClient.delete(`/${createdCveId}`);
+      expect(response.status).to.equal(200);
+      // Check the message from the delete controller
+      expect(response.data.message).to.equal("CVE deleted successfully");
+    });
+
+    it(`GET /api/cves/:id should FAIL after deletion (404 Not Found)`, async () => {
+      let errorStatus;
+      try {
+        await publicClient.get(`/${createdCveId}`);
+      } catch (error) {
+        errorStatus = error.response.status;
+      }
+      // Verification: The controller should return 404 when not found
+      expect(errorStatus).to.equal(404);
+    });
   });
 };
 
-// --- TEST EXECUTION ---
-
 describe("Full Security and CRUD Workflow Tests", function () {
-  // 1. Run tests against the local server
   runSecurityTests(LOCAL_URL_BASE, "LOCAL");
-
-  // 2. Run tests against the remote server
-  // runSecurityTests(REMOTE_URL_BASE, "REMOTE");
+  runSecurityTests(REMOTE_URL_BASE, "REMOTE");
 });
