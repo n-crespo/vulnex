@@ -34,8 +34,8 @@ export const getCVEs = async (req, res) => {
 export const getCVE = async (req, res) => {
   console.log(`Getting CVE: ${JSON.stringify(req.params)}`);
   try {
-    const { id } = req.params;
-    const cve = await CVE.findById(id);
+    const { cveId } = req.params;
+    const cve = await CVE.findOne({ cveId: cveId });
 
     if (!cve) {
       console.log("Failed, CVE not found");
@@ -78,8 +78,9 @@ export const updateCVE = async (req, res) => {
 export const deleteCVE = async (req, res) => {
   console.log(`Deleting CVE: ${JSON.stringify(req.params)}`);
   try {
-    const { id } = req.params;
-    const cve = await CVE.findByIdAndDelete(id);
+    const { cveId } = req.params;
+    // const cve = await CVE.findByIdAndDelete(id);
+    const cve = await CVE.findOneAndDelete({ cveId: cveId });
 
     if (!cve) {
       // cve doesn't exist
