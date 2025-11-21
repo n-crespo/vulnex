@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test:api": "node --env-file=.env ./tests/node_modules/.bin/mocha ./tests/*.test.js"
   },
   "dependencies": {
     "lucide-react": "^0.546.0",
