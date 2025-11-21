@@ -86,8 +86,6 @@ const runSecurityTests = (baseUrl, environmentName) => {
 
     it(`POST /api/cves should PASS WITH API Key and return the created CVE (200 OK)`, async () => {
       const response = await protectedClient.post("/", testCveData);
-
-      // NOTE: Expecting 200 based on your controller implementation
       expect(response.status).to.equal(200);
       expect(response.data).to.have.property("cveId");
       createdCveId = response.data.cveId; // Store ID for later tests
@@ -201,5 +199,5 @@ describe("Full Security and CRUD Workflow Tests", function () {
       );
     }
   });
-  // runSecurityTests(REMOTE_URL_BASE, "REMOTE");
+  runSecurityTests(REMOTE_URL_BASE, "REMOTE");
 });
