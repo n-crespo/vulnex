@@ -8,7 +8,7 @@ function CVEFeed({ cves }) {
       <h2 className="text-2xl font-bold text-gray-900">Recent Vulnerabilities</h2>
       
       {/* Map through CVEs and render a CVECard for each one */}
-      {cves.map((cve) => (
+      {cves.slice(0,4).map((cve) => (
         <CVECard key={cve.id} cve={cve} />
       ))}
     </div>
