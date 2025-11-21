@@ -18,7 +18,7 @@ const router = Router();
 
 // read CVEs from the db
 router.get("/", getCVEs); // all CVEs
-router.get("/:id", getCVE); // read by ID
+router.get("/:cveId", getCVE); // read by ID
 
 // --- protected write access (post/put/delete) ---
 
@@ -26,9 +26,9 @@ router.get("/:id", getCVE); // read by ID
 router.post("/", authenticateWriteAccess, createCVE);
 
 // update a CVE by ID
-router.put("/:id", authenticateWriteAccess, updateCVE);
+router.put("/:cveId", authenticateWriteAccess, updateCVE);
 
 // delete a CVE by ID
-router.delete("/:id", authenticateWriteAccess, deleteCVE);
+router.delete("/:cveId", authenticateWriteAccess, deleteCVE);
 
 export default router;

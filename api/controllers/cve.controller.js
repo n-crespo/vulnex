@@ -6,7 +6,8 @@ function finish() {
 
 // add some arbitrary CVE to the database
 export const createCVE = async (req, res) => {
-  console.log(`Creating CVE: ${JSON.stringify(req.body, null, 2)}`);
+  console.log("Creating CVE: ");
+  console.log(req.body);
   try {
     const cve = await CVE.create(req.body);
     res.status(200).json(cve);
@@ -32,16 +33,16 @@ export const getCVEs = async (req, res) => {
 
 // get a CVE by its ID
 export const getCVE = async (req, res) => {
-  console.log(`Getting CVE: ${JSON.stringify(req.params)}`);
   try {
-    const { id } = req.params;
-    const cve = await CVE.findById(id);
+    const { cveId } = req.params;
+    const cve = await CVE.findOne({ cveId: cveId });
 
     if (!cve) {
       console.log("Failed, CVE not found");
       return res.status(404).json({ message: "CVE not found" });
     }
 
+    console.log("Getting CVE", cveId);
     console.log(cve);
     res.status(200).json(cve);
   } catch (error) {
@@ -53,10 +54,10 @@ export const getCVE = async (req, res) => {
 
 // update a CVE by
 export const updateCVE = async (req, res) => {
-  console.log(`Updating CVE: ${JSON.stringify(req.body)}`);
   try {
-    const { id } = req.params;
-    const cve = await CVE.findByIdAndUpdate(id, req.body);
+    const { cveId } = req.params;
+    console.log(`Updating CVE ${cveId} with ${JSON.stringify(req.body)}`);
+    const cve = await CVE.findOneAndUpdate({ cveId: cveId }, req.body);
 
     // error if trying to update non existent CVE
     if (!cve) {
@@ -65,7 +66,7 @@ export const updateCVE = async (req, res) => {
     }
 
     // check for the updated CVE
-    const updatedCVE = await CVE.findById(id);
+    const updatedCVE = await CVE.findOne({ cveId: cveId });
     res.status(200).json(updatedCVE);
   } catch (error) {
     console.log("failed: ", error.message);
@@ -78,8 +79,8 @@ export const updateCVE = async (req, res) => {
 export const deleteCVE = async (req, res) => {
   console.log(`Deleting CVE: ${JSON.stringify(req.params)}`);
   try {
-    const { id } = req.params;
-    const cve = await CVE.findByIdAndDelete(id);
+    const { cveId } = req.params;
+    const cve = await CVE.findOneAndDelete({ cveId: cveId });
 
     if (!cve) {
       // cve doesn't exist
