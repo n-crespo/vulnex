@@ -27,3 +27,6 @@ dist-ssr
 .env
 */.env
 */*/.env
+
+# new updates to vite.config.js
+vite.config.js
