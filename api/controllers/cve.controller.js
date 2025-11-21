@@ -6,7 +6,7 @@ function finish() {
 
 // add some arbitrary CVE to the database
 export const createCVE = async (req, res) => {
-  console.log("Creating CVE: ");
+  console.log("[POST] Creating CVE: ");
   console.log(req.body);
   try {
     const cve = await CVE.create(req.body);
@@ -20,7 +20,7 @@ export const createCVE = async (req, res) => {
 
 // get all CVEs
 export const getCVEs = async (req, res) => {
-  console.log(`Getting all CVEs`);
+  console.log(`[GET] Getting all CVEs`);
   try {
     const cves = await CVE.find({});
     res.status(200).json(cves);
@@ -35,6 +35,7 @@ export const getCVEs = async (req, res) => {
 export const getCVE = async (req, res) => {
   try {
     const { cveId } = req.params;
+    console.log("[GET] Getting CVE: ", cveId);
     const cve = await CVE.findOne({ cveId: cveId });
 
     if (!cve) {
@@ -56,7 +57,7 @@ export const getCVE = async (req, res) => {
 export const updateCVE = async (req, res) => {
   try {
     const { cveId } = req.params;
-    console.log(`Updating CVE ${cveId} with ${JSON.stringify(req.body)}`);
+    console.log(`[PUT] Updating CVE ${cveId} with ${JSON.stringify(req.body)}`);
     const cve = await CVE.findOneAndUpdate({ cveId: cveId }, req.body);
 
     // error if trying to update non existent CVE
@@ -77,7 +78,7 @@ export const updateCVE = async (req, res) => {
 
 // delete a CVE by its ID
 export const deleteCVE = async (req, res) => {
-  console.log(`Deleting CVE: ${JSON.stringify(req.params)}`);
+  console.log(`[DELETE] Deleting CVE: ${JSON.stringify(req.params)}`);
   try {
     const { cveId } = req.params;
     const cve = await CVE.findOneAndDelete({ cveId: cveId });
