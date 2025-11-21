@@ -15,7 +15,7 @@ app.use("/api/cves", cveRoute);
 
 // visible at root
 app.get("/", (req, res) => {
-  console.log("Fetching root /\n--------------------");
+  console.log("[GET] Fetching root /\n--------------------");
   res.send("hello from node API");
 });
 
