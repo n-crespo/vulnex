@@ -186,7 +186,7 @@ export const deleteCVE = async (req, res) => {
 export const bulkDeleteCVEs = async (req, res) => {
   // expects req.body to contain { "cveIds": ["CVE-ID-1", "CVE-ID-2", ...] }
   const { cveIds } = req.body;
-  console.log(req.body);
+  console.log(cveIds);
   console.log(`[DELETE] Bulk Deleting CVEs: ${cveIds ? cveIds.length : 0} IDs`);
 
   if (!Array.isArray(cveIds) || cveIds.length === 0) {
