@@ -173,7 +173,7 @@ export const deleteCVE = async (req, res) => {
 };
 
 /** Bulk delete CVEs via DELETE /api/cves/
- * Request body: `{ cveIds: [array of CVE IDs] }`
+ * Request body: `{ "cveIds": ["CVE-ID-1", "CVE-ID-2", ...] }`
  * Response JSON:
  * ```
  *   {
@@ -184,7 +184,6 @@ export const deleteCVE = async (req, res) => {
  * ```
  */
 export const bulkDeleteCVEs = async (req, res) => {
-  // expects req.body to contain { "cveIds": ["CVE-ID-1", "CVE-ID-2", ...] }
   const { cveIds } = req.body;
   console.log(cveIds);
   console.log(`[DELETE] Bulk Deleting CVEs: ${cveIds ? cveIds.length : 0} IDs`);
