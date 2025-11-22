@@ -101,6 +101,7 @@ export const getCVE = async (req, res) => {
 
     if (!cve) {
       console.log("Failed, CVE not found");
+      finish();
       return res.status(404).json({ message: "CVE not found" });
     }
 
@@ -109,6 +110,7 @@ export const getCVE = async (req, res) => {
     res.status(200).json(cve);
   } catch (error) {
     console.log("Failed: ", error.message);
+    finish();
     return res.status(500).json({ message: error.message });
   }
   finish();
@@ -129,6 +131,7 @@ export const updateCVE = async (req, res) => {
     // error if trying to update non existent CVE
     if (!cve) {
       console.log("Failed, CVE not found");
+      finish();
       return res.status(404).json({ message: "CVE not found" });
     }
 
@@ -137,6 +140,7 @@ export const updateCVE = async (req, res) => {
     res.status(200).json(updatedCVE);
   } catch (error) {
     console.log("Failed: ", error.message);
+    finish();
     return res.status(500).json({ message: error.message });
   }
   finish();
@@ -155,12 +159,14 @@ export const deleteCVE = async (req, res) => {
     if (!cve) {
       // cve doesn't exist
       console.log("Failed, CVE not found");
+      finish();
       return res.status(404).json({ message: "CVE not found" });
     }
 
     res.status(200).json({ message: "CVE deleted successfully" });
   } catch (error) {
     console.log("Failed: ", error.message);
+    finish();
     return res.status(500).json({ message: error.message });
   }
   finish();
@@ -177,3 +183,45 @@ export const deleteCVE = async (req, res) => {
  *   }
  * ```
  */
+export const bulkDeleteCVEs = async (req, res) => {
+  // expects req.body to contain { "cveIds": ["CVE-ID-1", "CVE-ID-2", ...] }
+  const { cveIds } = req.body;
+  console.log(req.body);
+  console.log(`[DELETE] Bulk Deleting CVEs: ${cveIds ? cveIds.length : 0} IDs`);
+
+  if (!Array.isArray(cveIds) || cveIds.length === 0) {
+    finish();
+    return res.status(400).json({
+      message: "Request body must contain a non-empty array of 'cveIds'.",
+    });
+  }
+
+  try {
+    // use $in to match all provided IDs
+    const result = await CVE.deleteMany({
+      cveId: { $in: cveIds },
+    });
+
+    if (result.deletedCount === 0) {
+      console.log("No matching CVEs found for deletion.");
+      finish();
+      return res
+        .status(404)
+        .json({ message: "No matching CVEs found for deletion." });
+    }
+
+    res.status(200).json({
+      message: `${result.deletedCount} CVEs deleted successfully.`,
+      deletedCount: result.deletedCount,
+      requestedCount: cveIds.length,
+    });
+  } catch (error) {
+    console.log("Failed to bulk delete CVEs: ", error.message);
+    finish();
+    return res.status(500).json({
+      message: "Internal server error during bulk deletion.",
+      error: error.message,
+    });
+  }
+  finish();
+};

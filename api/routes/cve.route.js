@@ -5,6 +5,7 @@ import {
   createCVE,
   updateCVE,
   deleteCVE,
+  bulkDeleteCVEs,
 } from "../controllers/cve.controller.js";
 
 // import auth middleware
@@ -28,6 +29,9 @@ router.post("/", authenticateWriteAccess, createCVE);
 
 // update a CVE by ID
 router.put("/:cveId", authenticateWriteAccess, updateCVE);
+
+// bulk delete CVEs
+router.delete("/bulk-delete", authenticateWriteAccess, bulkDeleteCVEs);
 
 // delete a CVE by ID
 router.delete("/:cveId", authenticateWriteAccess, deleteCVE);
