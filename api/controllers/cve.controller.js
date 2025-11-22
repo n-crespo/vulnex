@@ -4,7 +4,26 @@ function finish() {
   console.log("--------------------");
 }
 
-// add some arbitrary CVE to the database
+/**
+ * Create a CVE(s) via POST /api/cves/
+ * Request Body:
+ *   `{ ... } // one CVE record`
+ * Response JSON:
+ *   `{ ... } // the newly created CVE record`
+ *
+ * OR
+ *
+ * Request Body:
+ *   `[ { ... } { ... } ] // an array of CVEs to add`
+ * Response JSON:
+ * ```
+ *   {
+ *     message: // success message
+ *     count: // number of records created
+ *     data: [ { ... }, { ... } ] // array of newly created CVE records
+ *   }
+ *```
+ */
 export const createCVE = async (req, res) => {
   console.log("[POST] Creating CVE: ");
   console.log(req.body);
@@ -31,7 +50,14 @@ export const createCVE = async (req, res) => {
   finish();
 };
 
-// get all CVEs with optional pagination using 'limit' and 'skip' query parameters
+/**
+ * Fetch paginated CVEs via GET /api/cves/
+ * Query Params:
+ *   limit: max number of CVEs to return
+ *   skip:  offset from CVE 0 in db to start returning
+ * Response JSON:
+ * `[ { ... }, { ... } ] // array of requested CVEs`
+ */
 export const getCVEs = async (req, res) => {
   console.log(`[GET] Getting CVEs`);
   try {
@@ -50,6 +76,7 @@ export const getCVEs = async (req, res) => {
     // send the total count for easier pagination
     const totalCount = await CVE.countDocuments({});
     res.header("X-Total-Count", totalCount);
+    res.header("X-Initial-Offset", skip);
     res.status(200).json(cves);
   } catch (error) {
     console.log("failed: ", error.message);
@@ -58,7 +85,10 @@ export const getCVEs = async (req, res) => {
   finish();
 };
 
-// get a CVE by its ID
+/** Fetch one CVE by ID via GET /api/cves/:id
+ * Response JSON:
+ * `{ ... } // the requested CVE`
+ */
 export const getCVE = async (req, res) => {
   try {
     const { cveId } = req.params;
@@ -80,7 +110,12 @@ export const getCVE = async (req, res) => {
   finish();
 };
 
-// update a CVE by
+/** Update one CVE by ID via POST /api/cves/:id
+ * Request Body:
+ * `{ ... } // CVE info to update`
+ * Response JSON:
+ * `{ ... } // the state of the updated CVE`
+ */
 export const updateCVE = async (req, res) => {
   try {
     const { cveId } = req.params;
@@ -103,7 +138,10 @@ export const updateCVE = async (req, res) => {
   finish();
 };
 
-// delete a CVE by its ID
+/** Delete one CVE by ID via DELETE /api/cves/:id
+ * Response JSON:
+ * `{ message: "Success message" }`
+ */
 export const deleteCVE = async (req, res) => {
   console.log(`[DELETE] Deleting CVE: ${JSON.stringify(req.params)}`);
   try {
@@ -123,3 +161,15 @@ export const deleteCVE = async (req, res) => {
   }
   finish();
 };
+
+/** Bulk delete CVEs via DELETE /api/cves/
+ * Request body: `{ cveIds: [array of CVE IDs] }`
+ * Response JSON:
+ * ```
+ *   {
+ *     message: "Success Message"
+ *     deletedCount: 2 // Number of CVEs successfully deleted
+ *     requestedCount: 2 // Number of CVEs requested for deletion
+ *   }
+ * ```
+ */
