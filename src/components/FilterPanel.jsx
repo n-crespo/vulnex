@@ -8,19 +8,22 @@ function FilterPanel({ onApplyFilters }) {
   // Individual filter states
   const [cveId, setCveId] = useState('');
   const [severityRange, setSeverityRange] = useState([0, 10]); // [min, max]
-  const [publishedDateIndex, setPublishedDateIndex] = useState([0, 5]); // [min, max] indices
+  const [publishedDateOption, setPublishedDateOption] = useState('all'); // Dropdown selection
+  const [customStartDate, setCustomStartDate] = useState('');
+  const [customEndDate, setCustomEndDate] = useState('');
   const [product, setProduct] = useState('');
   const [keyword, setKeyword] = useState('');
   const [vulnerabilityType, setVulnerabilityType] = useState('');
 
-  // Date range options 
+  // Date range options
   const dateOptions = [
     { label: 'Past Hour', value: 'hour' },
     { label: 'Past 24 Hours', value: 'day' },
     { label: 'Past Week', value: 'week' },
     { label: 'Past Month', value: 'month' },
     { label: 'Past Year', value: 'year' },
-    { label: 'All Time', value: 'all' }
+    { label: 'All Time', value: 'all' },
+    { label: 'Custom Range', value: 'custom' }
   ];
 
   // Handle Apply button click
@@ -29,10 +32,9 @@ function FilterPanel({ onApplyFilters }) {
       cveId: cveId.trim(),
       severityMin: severityRange[0],
       severityMax: severityRange[1],
-      publishedDateRange: {
-        start: dateOptions[publishedDateIndex[0]].value,
-        end: dateOptions[publishedDateIndex[1]].value
-      },
+      publishedDate: publishedDateOption === 'custom' 
+        ? { type: 'custom', startDate: customStartDate, endDate: customEndDate }
+        : { type: 'preset', value: publishedDateOption },
       product: product.trim(),
       keyword: keyword.trim(),
       vulnerabilityType: vulnerabilityType.trim()
@@ -49,7 +51,9 @@ function FilterPanel({ onApplyFilters }) {
   const handleClearAll = () => {
     setCveId('');
     setSeverityRange([0, 10]);
-    setPublishedDateIndex([0, 5]);
+    setPublishedDateOption('all');
+    setCustomStartDate('');
+    setCustomEndDate('');
     setProduct('');
     setKeyword('');
     setVulnerabilityType('');
@@ -208,89 +212,52 @@ function FilterPanel({ onApplyFilters }) {
           </div>
         </div>
 
-        {/* Published Date Range Slider */}
+        {/* Published Date Filter */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Published Date Range
+            Published Date
           </label>
-          <div className="px-2">
-            {/* Dual Range Slider */}
-            <div className="relative h-2 bg-gray-200 rounded-full mt-8">
-              {/* Colored range between handles */}
-              <div 
-                className="absolute h-2 bg-blue-600 rounded-full"
-                style={{
-                  left: `${(publishedDateIndex[0] / 5) * 100}%`,
-                  right: `${100 - (publishedDateIndex[1] / 5) * 100}%`
-                }}
-              />
-              
-              {/* Floating label for Start date */}
-              <div 
-                className="absolute -top-10 transform -translate-x-1/2"
-                style={{ left: `${(publishedDateIndex[0] / 5) * 100}%` }}
-              >
-                <div className="bg-blue-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap shadow-lg">
-                  {dateOptions[publishedDateIndex[0]].label}
-                  {/* Tooltip arrow */}
-                  <div className="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0 border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent border-t-blue-700"></div>
-                </div>
+          
+          {/* Dropdown for date options */}
+          <select
+            value={publishedDateOption}
+            onChange={(e) => setPublishedDateOption(e.target.value)}
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-600 focus:border-transparent text-sm"
+          >
+            {dateOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+
+          {/* Custom date range pickers - only show when "Custom Range" is selected */}
+          {publishedDateOption === 'custom' && (
+            <div className="mt-4 grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">
+                  Start Date
+                </label>
+                <input
+                  type="date"
+                  value={customStartDate}
+                  onChange={(e) => setCustomStartDate(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-600 focus:border-transparent text-sm"
+                />
               </div>
-              
-              {/* Floating label for End date */}
-              <div 
-                className="absolute -top-10 transform -translate-x-1/2"
-                style={{ left: `${(publishedDateIndex[1] / 5) * 100}%` }}
-              >
-                <div className="bg-blue-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap shadow-lg">
-                  {dateOptions[publishedDateIndex[1]].label}
-                  {/* Tooltip arrow */}
-                  <div className="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0 border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent border-t-blue-700"></div>
-                </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">
+                  End Date
+                </label>
+                <input
+                  type="date"
+                  value={customEndDate}
+                  onChange={(e) => setCustomEndDate(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-600 focus:border-transparent text-sm"
+                />
               </div>
-              
-              {/* Min slider (most recent) */}
-              <input
-                type="range"
-                min="0"
-                max="5"
-                step="1"
-                value={publishedDateIndex[0]}
-                onChange={(e) => {
-                  const newMin = parseInt(e.target.value);
-                  if (newMin <= publishedDateIndex[1]) {
-                    setPublishedDateIndex([newMin, publishedDateIndex[1]]);
-                  }
-                }}
-                className="absolute w-full h-2 appearance-none bg-transparent pointer-events-none [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-blue-700 [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white [&::-webkit-slider-thumb]:shadow-md [&::-moz-range-thumb]:pointer-events-auto [&::-moz-range-thumb]:appearance-none [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-blue-700 [&::-moz-range-thumb]:cursor-pointer [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-white [&::-moz-range-thumb]:shadow-md"
-              />
-              
-              {/* Max slider (oldest) */}
-              <input
-                type="range"
-                min="0"
-                max="5"
-                step="1"
-                value={publishedDateIndex[1]}
-                onChange={(e) => {
-                  const newMax = parseInt(e.target.value);
-                  if (newMax >= publishedDateIndex[0]) {
-                    setPublishedDateIndex([publishedDateIndex[0], newMax]);
-                  }
-                }}
-                className="absolute w-full h-2 appearance-none bg-transparent pointer-events-none [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-blue-700 [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white [&::-webkit-slider-thumb]:shadow-md [&::-moz-range-thumb]:pointer-events-auto [&::-moz-range-thumb]:appearance-none [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-blue-700 [&::-moz-range-thumb]:cursor-pointer [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-white [&::-moz-range-thumb]:shadow-md"
-              />
             </div>
-            
-            {/* Date range labels */}
-            <div className="flex justify-between mt-2 text-xs text-gray-500">
-              {dateOptions.map((option, idx) => (
-                <span key={idx} className={idx % 2 === 1 ? 'hidden md:inline' : ''}>
-                  {option.label.split(' ')[1] || option.label}
-                </span>
-              ))}
-            </div>
-          </div>
+          )}
         </div>
 
         {/* Row 2: Keyword and Vulnerability Type */}
