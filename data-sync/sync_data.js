@@ -3,6 +3,8 @@ import { createWriteStream } from "fs";
 const NVD_API_KEY = process.env.NVD_API_KEY;
 const OUTPUT_FILE = "output.jsonl";
 const API_SECRET_KEY = process.env.API_SECRET_KEY;
+const API_BASE_URL = "http://localhost:3000/api/cves";
+const NVD_BASE_URL = "https://services.nvd.nist.gov/rest/json/cves/2.0";
 
 async function fetchRecentCves() {
   let totalResults = Infinity;
@@ -12,7 +14,7 @@ async function fetchRecentCves() {
 
   while (startIndex <= totalResults) {
     // example: https://services.nvd.nist.gov/rest/json/cves/2.0/?resultsPerPage=20&startIndex=0
-    const API_URL = `https://services.nvd.nist.gov/rest/json/cves/2.0/?resultsPerPage=${resultsPerPage}&startIndex=${startIndex}`;
+    const API_URL = `${NVD_BASE_URL}/?resultsPerPage=${resultsPerPage}&startIndex=${startIndex}`;
 
     let requestOptions = {
       method: "GET",
@@ -71,17 +73,14 @@ async function fetchRecentCves() {
         (async () => {
           console.log("sending request...");
           try {
-            const postResponse = await fetch(
-              "https://vulnex-api.onrender.com/api/cves",
-              {
-                method: "POST",
-                headers: {
-                  "x-api-key": API_SECRET_KEY,
-                  "Content-Type": "application/json",
-                },
-                body: JSON.stringify(record),
+            const postResponse = await fetch(`${API_BASE_URL}`, {
+              method: "POST",
+              headers: {
+                "x-api-key": API_SECRET_KEY,
+                "Content-Type": "application/json",
               },
-            );
+              body: JSON.stringify(record),
+            });
             if (!postResponse.ok) {
               console.error(
                 `Failed to post CVE ${id}: ${postResponse.status} ${postResponse.statusText}`,
