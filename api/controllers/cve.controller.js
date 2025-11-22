@@ -31,13 +31,27 @@ export const createCVE = async (req, res) => {
   finish();
 };
 
-// get all CVEs
+// get all CVEs with optional pagination using 'limit' and 'skip' query parameters
 export const getCVEs = async (req, res) => {
-  console.log(`[GET] Getting all CVEs`);
+  console.log(`[GET] Getting CVEs`);
   try {
-    const cves = await CVE.find({});
+    // extract params from query string
+    const limit = parseInt(req.query.limit) || 100; // Default limit to 100 records
+    const skip = parseInt(req.query.skip) || 0; // Default skip to 0 (start from the beginning)
+
+    // ensure non-negative parameters
+    const safeLimit = Math.max(1, limit);
+    const safeSkip = Math.max(0, skip);
+
+    console.log(`Fetching CVEs: Limit=${safeLimit}, Skip=${safeSkip}`);
+    // skip: offset, limit: page size
+    const cves = await CVE.find({}).skip(safeSkip).limit(safeLimit);
+
+    // send the total count for easier pagination
+    const totalCount = await CVE.countDocuments({});
+    res.header("X-Total-Count", totalCount);
     res.status(200).json(cves);
-  } catch {
+  } catch (error) {
     console.log("failed: ", error.message);
     res.status(500).json({ message: error.message });
   }
@@ -60,7 +74,7 @@ export const getCVE = async (req, res) => {
     console.log(cve);
     res.status(200).json(cve);
   } catch (error) {
-    console.log("failed: ", error.message);
+    console.log("Failed: ", error.message);
     return res.status(500).json({ message: error.message });
   }
   finish();

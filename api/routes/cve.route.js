@@ -16,7 +16,8 @@ const router = Router();
 
 // --- public read access (get) ---
 
-// read CVEs from the db
+// GET /api/cves/?limit=X&skip=Y
+// Allows fetching a limited, paginated list of CVEs.
 router.get("/", getCVEs); // all CVEs
 router.get("/:cveId", getCVE); // read by ID
 
