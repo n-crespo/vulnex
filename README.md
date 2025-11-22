@@ -83,3 +83,7 @@ npm run test:api
 1. comprehensive vulnerability report (as pdf or html)
 2. Select CVE to view general information + link to the original report
 3. Scrape a user’s public repositories for packages.json/other dependencies
+
+## Disclaimer
+
+This product uses data from the NVD API but is not endorsed or certified by the NVD.
