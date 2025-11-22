@@ -25,7 +25,8 @@ export const createCVE = async (req, res) => {
       });
     }
 
-    res.status(500).json({ message: error.message });
+    const errorMessage = `${error.code}: ${error.message}`;
+    res.status(500).json({ message: errorMessage });
   }
   finish();
 };
