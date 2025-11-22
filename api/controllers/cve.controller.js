@@ -132,7 +132,7 @@ export const updateCVE = async (req, res) => {
     const updatedCVE = await CVE.findOne({ cveId: cveId });
     res.status(200).json(updatedCVE);
   } catch (error) {
-    console.log("failed: ", error.message);
+    console.log("Failed: ", error.message);
     return res.status(500).json({ message: error.message });
   }
   finish();
@@ -156,7 +156,7 @@ export const deleteCVE = async (req, res) => {
 
     res.status(200).json({ message: "CVE deleted successfully" });
   } catch (error) {
-    console.log("failed: ", error.message);
+    console.log("Failed: ", error.message);
     return res.status(500).json({ message: error.message });
   }
   finish();
