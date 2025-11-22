@@ -2,6 +2,7 @@ import { createWriteStream } from "fs";
 
 const NVD_API_KEY = process.env.NVD_API_KEY;
 const OUTPUT_FILE = "output.jsonl";
+const API_SECRET_KEY = process.env.API_SECRET_KEY;
 
 async function fetchRecentCves() {
   let totalResults = Infinity;
@@ -24,6 +25,8 @@ async function fetchRecentCves() {
     console.log("starting fetch!", startIndex, totalResults);
 
     try {
+      console.log(API_URL);
+      console.log(requestOptions);
       const response = await fetch(API_URL, requestOptions);
       console.log("fetching...");
       if (response.status === 200) {
@@ -64,22 +67,43 @@ async function fetchRecentCves() {
 
         stream.write(JSON.stringify(record) + "\n");
 
-        // stream.write(`"${cve.id}":`);
-        // stream.write(JSON.stringify(record) + ",\n");
-        // console.log(JSON.stringify(record));
+        // this writes CVEs to the database
+        (async () => {
+          console.log("sending request...");
+          try {
+            const postResponse = await fetch(
+              "https://vulnex-api.onrender.com/api/cves",
+              {
+                method: "POST",
+                headers: {
+                  "x-api-key": API_SECRET_KEY,
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify(record),
+              },
+            );
+            if (!postResponse.ok) {
+              console.error(
+                `Failed to post CVE ${id}: ${postResponse.status} ${postResponse.statusText}`,
+              );
+              console.log(postResponse);
+            } else {
+              console.log(`Successfully posted CVE ${id}`);
+            }
+          } catch (postError) {
+            console.error(
+              `Network error posting CVE ${id}:`,
+              postError.message,
+            );
+          }
+        })();
       });
-
       // respect NVD API rate limits
       // await new Promise((resolve) => setTimeout(resolve, 6000));
 
       // stringify with only 1 arg returns minified json.
       // const jsonString = JSON.stringify(extractedData);
       // const jsonString = JSON.stringify(extractedData, null, 2);
-
-      // for (const item of extractedData) {
-      //   stream.write(JSON.stringify(item) + ",\n");
-      // }
-      // console.log(`Successfully wrote response to ${OUTPUT_FILE}`);
     } catch (error) {
       console.log("Fetch/Processing error: ", error);
       break;
