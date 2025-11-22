@@ -1,5 +1,5 @@
 {
-  "name": "backend",
+  "name": "vulnex-api",
   "version": "1.0.0",
   "description": "",
   "license": "ISC",
@@ -7,8 +7,7 @@
   "type": "module",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "node --env-file=../.env --watch-path=./ index.js",
+    "dev": "node --watch-path=./ index.js",
     "start": "node index.js"
   },
   "dependencies": {
