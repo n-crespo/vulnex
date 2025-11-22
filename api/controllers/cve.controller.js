@@ -25,27 +25,31 @@ function finish() {
  *```
  */
 export const createCVE = async (req, res) => {
-  console.log("[POST] Creating CVE: ");
-  console.log(req.body);
+  console.log("[POST] Creating CVE(s): ");
+  const records = req.body;
+  console.log(records);
   try {
-    const cve = await CVE.create(req.body);
-    res.status(200).json(cve);
-  } catch (error) {
-    console.log("failed: ", error.message);
-
-    // Check for MongoDB Duplicate Key Error (Code 11000)
-    if (error.code === 11000) {
-      // NOTE: this assumes that the cveId is the only unique key of a CVE record
-      const value = Object.keys(error.keyValue)[0];
-      const duplicateValue = error.keyValue[value];
-      const message = `A CVE with the ID: '${duplicateValue}' already exists. ${error.message}`;
-      return res.status(409).json({
-        message: message,
+    let result;
+    if (Array.isArray(records)) {
+      console.log(`Attempting bulk insert of ${records.length} records.`);
+      // NOTE: using `ordered: true` here will stop insertion if any document fails
+      result = await CVE.insertMany(records, { ordered: true });
+      res.status(200).json({
+        message: `${result.length} CVE records created successfully (bulk operation).`,
+        count: result.length,
+        data: result,
       });
+    } else {
+      console.log("Attempting single record insert.");
+      result = await CVE.create(records);
+      res.status(200).json(result);
     }
-
-    const errorMessage = `${error.code}: ${error.message}`;
-    res.status(500).json({ message: errorMessage });
+  } catch (error) {
+    console.log("Failed to create CVE(s): ", error.message);
+    res.status(500).json({
+      message: "Failed to process CVE creation(s)",
+      error: error.message,
+    });
   }
   finish();
 };
