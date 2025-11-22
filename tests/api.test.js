@@ -7,15 +7,6 @@ const LOCAL_URL_BASE = `http://localhost:${PORT}`;
 const REMOTE_URL_BASE = `https://vulnex-api.onrender.com`;
 const VALID_API_KEY = process.env.API_SECRET_KEY;
 
-if (!VALID_API_KEY) {
-  console.error(
-    "CRITICAL ERROR: API_SECRET_KEY is not defined in process.env. Tests requiring authentication will fail.",
-  );
-}
-
-// create a string based on timestamp to use as primary key (must be unique)
-// const uniqueTimestampString = new Date().getTime().toString(36);
-
 // Sample data for the test record
 const testCveData = {
   cveId: "CVE-2029-2029",
@@ -45,7 +36,9 @@ const runSecurityTests = (baseUrl, environmentName) => {
   // this is a public user (without an API key)
   const publicClient = axios.create({
     baseURL: apiEndpoint,
-    "Content-Type": "application/json",
+    headers: {
+      "Content-Type": "application/json",
+    },
   });
 
   // this is an admin user (with an API key)
@@ -146,17 +139,17 @@ const runSecurityTests = (baseUrl, environmentName) => {
       // check message from delete controller
       expect(response.data.message).to.equal("CVE deleted successfully");
     });
-    //
-    // it(`GET /api/cves/:id should FAIL after deletion (404 Not Found)`, async () => {
-    //   let errorStatus;
-    //   try {
-    //     await publicClient.get(`/${createdCveId}`);
-    //   } catch (error) {
-    //     errorStatus = error.response.status;
-    //   }
-    //   // should return 404 when not found
-    //   expect(errorStatus).to.equal(404);
-    // });
+
+    it(`GET /api/cves/:id should FAIL after deletion (404 Not Found)`, async () => {
+      let errorStatus;
+      try {
+        await publicClient.get(`/${createdCveId}`);
+      } catch (error) {
+        errorStatus = error.response.status;
+      }
+      // should return 404 when not found
+      expect(errorStatus).to.equal(404);
+    });
   });
 };
 
@@ -190,13 +183,19 @@ function isPortInUse(port) {
 }
 
 describe("Full Security and CRUD Workflow Tests", function () {
+  // skip tests if api key isn't set
+  if (!VALID_API_KEY) {
+    console.log(`[ERROR]: Skipping tests, invalid API KEY: ${VALID_API_KEY}`);
+    return;
+  }
+  console.log("[INFO] Received a valid API key!");
   isPortInUse(PORT).then((inUse) => {
-    if (inUse) {
-      runSecurityTests(LOCAL_URL_BASE, "LOCAL");
-    } else {
+    if (!inUse) {
       console.log(
         `[WARNING]: Skipping tests on local server, port ${PORT} doesn't seem to be in use.`,
       );
+    } else {
+      runSecurityTests(LOCAL_URL_BASE, "LOCAL");
     }
   });
   runSecurityTests(REMOTE_URL_BASE, "REMOTE");
