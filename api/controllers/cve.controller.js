@@ -146,6 +146,88 @@ export const updateCVE = async (req, res) => {
   finish();
 };
 
+/** Bulk update CVEs via PUT /api/cves/
+ * Request body: `[ { cveId: "ID-1", update: { status: "Published" } }, { cveId: "ID-2", update: { severity: "LOW" } } ]`
+ * Response JSON:
+ * ```
+ * {
+ *   message: "Success Message",
+ *   matchedCount: 2, // Number of CVEs found and attempted to update
+ *   modifiedCount: 2 // Number of CVEs successfully modified
+ * }
+ * ```
+ */
+export const bulkUpdateCVEs = async (req, res) => {
+  const updates = req.body;
+  console.log(
+    `[PUT] Bulk Updating CVEs: ${updates ? updates.length : 0} records`,
+  );
+  console.log("asking for: ", updates);
+
+  if (!Array.isArray(updates) || updates.length === 0) {
+    console.log(
+      "Request body must contain a non-empty array of update objects.",
+    );
+    finish();
+    return res.status(400).json({
+      message: "Request body must contain a non-empty array of update objects.",
+    });
+  }
+
+  // convert array of updates into an array of mongodb bulkwrite operations
+  const bulkOperations = updates
+    .map((item) => {
+      // both cveId and update fields need to be present
+      if (
+        !item.cveId ||
+        !item.update ||
+        typeof item.update !== "object" ||
+        Object.keys(item.update).length === 0
+      ) {
+        console.warn(
+          `Skipping invalid bulk update item: ${JSON.stringify(item)}`,
+        );
+        return null; // Will be filtered out later
+      }
+
+      return {
+        updateOne: {
+          filter: { cveId: item.cveId },
+          // $set only updates the specified fields, doesn't touch rest
+          update: { $set: item.update },
+        },
+      };
+    })
+    .filter((op) => op !== null); // filter out invalid operations
+
+  if (bulkOperations.length === 0) {
+    console.log("No valid update operations found in the request body.");
+    finish();
+    return res.status(400).json({
+      message: "No valid update operations found in the request body.",
+    });
+  }
+
+  try {
+    // perform the updates in one database command
+    const result = await CVE.bulkWrite(bulkOperations);
+
+    res.status(200).json({
+      message: `${result.matchedCount} CVEs matched, ${result.modifiedCount} CVEs successfully modified.`,
+      matchedCount: result.matchedCount,
+      modifiedCount: result.modifiedCount,
+    });
+  } catch (error) {
+    console.log("Internal server error during bulk update.", error.message);
+    finish();
+    return res.status(500).json({
+      message: "Internal server error during bulk update.",
+      error: error.message,
+    });
+  }
+  finish();
+};
+
 /** Delete one CVE by ID via DELETE /api/cves/:id
  * Response JSON:
  * `{ message: "Success message" }`
