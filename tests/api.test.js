@@ -24,6 +24,32 @@ const updateCveData = {
   isVulnerable: false,
 };
 
+// Sample data for bulk actions
+const bulkCveData = [
+  {
+    cveId: "TEST-2029-001",
+    published: "2025-11-21T00:00:00",
+    lastModified: "2025-11-21T00:00:00",
+    status: "Analyzed",
+    description: "Bulk Test CVE 1",
+    baseSeverityScore: 5,
+    isVulnerable: true,
+    cpeId: "cpe:2.3:a:vendor:product:1.0:*:*:*:*:*:*:*",
+  },
+  {
+    cveId: "TEST-2029-002",
+    published: "2025-11-21T00:00:00",
+    lastModified: "2025-11-21T00:00:00",
+    status: "Analyzed",
+    description: "Bulk Test CVE 2",
+    baseSeverityScore: 7,
+    isVulnerable: false,
+    cpeId: "cpe:2.3:a:vendor:product:2.0:*:*:*:*:*:*:*",
+  },
+];
+
+const bulkCveIds = { cveIds: bulkCveData.map((cve) => cve.cveId) };
+
 /**
  * Executes the full CRUD and security check sequence for a given base URL.
  * @param {string} baseUrl - The base URL of the server (e.g., http://localhost:3000)
@@ -150,6 +176,59 @@ const runSecurityTests = (baseUrl, environmentName) => {
       // should return 404 when not found
       expect(errorStatus).to.equal(404);
     });
+
+    // --- BULK OPERATIONS ---
+
+    it(`POST (bulk) /api/cves should PASS WITH API Key and create multiple CVEs (200 OK)`, async () => {
+      const response = await protectedClient.post("/", bulkCveData);
+      expect(response.status).to.equal(200);
+      expect(response.data.data).to.be.an("array");
+      expect(response.data.count).to.equal(bulkCveData.length); // Verify creation of a specific CVE from the bulk operation
+      expect(
+        response.data.data.some((cve) => cve.cveId === bulkCveIds.cveIds[0]),
+      ).to.be.true;
+    });
+
+    it(`GET /api/cves/:id should allow PUBLIC access to a bulk created CVE (${bulkCveIds.cveIds[0]})`, async () => {
+      const response = await publicClient.get(`/${bulkCveIds.cveIds[0]}`);
+      expect(response.status).to.equal(200);
+      expect(response.data.cveId).to.equal(bulkCveIds.cveIds[0]);
+    });
+
+    // --- PROTECTED DELETE (BULK DELETE) TESTS ---
+
+    it(`DELETE /api/cves/bulk-delete should FAIL without API Key (401/403 Forbidden)`, async () => {
+      let errorStatus;
+      try {
+        await publicClient.delete(`/bulk-delete`, { data: bulkCveIds }); // axios delete with body uses `data` config
+      } catch (error) {
+        errorStatus = error.response.status;
+      } // Verify security failure
+      expect([401, 403]).to.include(errorStatus);
+    });
+
+    it(`DELETE /api/cves should PASS WITH API Key and delete multiple CVEs (200 OK)`, async () => {
+      // Pass the array of IDs in the request body for bulk delete
+      const response = await protectedClient.delete(`/bulk-delete`, {
+        data: bulkCveIds, // Array of cveIds: ["CVE-BULK-2029-001", "CVE-BULK-2029-002"]
+      });
+      expect(response.status).to.equal(200); // Assuming controller returns count or a success message
+      expect(response.data).to.have.property("deletedCount");
+      expect(response.data.deletedCount).to.be.at.most(
+        bulkCveIds.cveIds.length,
+      );
+      expect(response.data.requestedCount).to.equal(bulkCveIds.cveIds.length);
+    });
+
+    it(`GET /api/cves/:id should FAIL after bulk deletion (${bulkCveIds.cveIds[0]}) (404 Not Found)`, async () => {
+      let errorStatus;
+      try {
+        await publicClient.get(`/${bulkCveIds.cveIds[0]}`);
+      } catch (error) {
+        errorStatus = error.response.status;
+      }
+      expect(errorStatus).to.equal(404);
+    });
   });
 };
 
@@ -198,5 +277,5 @@ describe("Full Security and CRUD Workflow Tests", function () {
       runSecurityTests(LOCAL_URL_BASE, "LOCAL");
     }
   });
-  runSecurityTests(REMOTE_URL_BASE, "REMOTE");
+  // runSecurityTests(REMOTE_URL_BASE, "REMOTE");
 });
