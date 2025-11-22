@@ -13,6 +13,18 @@ export const createCVE = async (req, res) => {
     res.status(200).json(cve);
   } catch (error) {
     console.log("failed: ", error.message);
+
+    // Check for MongoDB Duplicate Key Error (Code 11000)
+    if (error.code === 11000) {
+      // NOTE: this assumes that the cveId is the only unique key of a CVE record
+      const value = Object.keys(error.keyValue)[0];
+      const duplicateValue = error.keyValue[value];
+      const message = `A CVE with the ID: '${duplicateValue}' already exists. ${error.message}`;
+      return res.status(409).json({
+        message: message,
+      });
+    }
+
     res.status(500).json({ message: error.message });
   }
   finish();
