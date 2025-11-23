@@ -29,7 +29,7 @@ export default function AuthModel({closeTheAuthForm, whenUserLoginIsSuccessful})
 
             if (!newUserOrLoginResponse.ok)
             {
-                throw new Error(data.message || "Error - await response.json() failed");
+                throw new Error(data.message || "Error - 'await response.json()' or 'await fetch(loggingInOrRegisteringPath' failed");
             }
 
             if (newUserRegistering)
@@ -54,37 +54,53 @@ export default function AuthModel({closeTheAuthForm, whenUserLoginIsSuccessful})
 
     // return the Auth model jsx for button rendering to the UI
     return (
-        <div className="relative p-6 bg-white rounded-lg z-50 w-96">
-            <button onClick={closeTheAuthForm} className="absolute top-4 right-4">
-                <X size={20} />
-            </button>
+        <div className="fixed inset-0 flex items-start justify-end z-50 pr-4 mt-16">
 
-            <h2 className="text-2xl font-bold mb-4">{newUserRegistering ? "Register" : "Login"}</h2>
-
-            {noticeBoardMessage && <div className="rounded mb-4 text-sm text-yellow-800">{noticeBoardMessage}</div>}
-
-            {/* create a basic form for logging in and registering with a submit button*/}
-            <form onSubmit={userButtonSubmit} className="flex">
-                <input 
-                type="email"
-                placeholder="Email"
-                className="w-full mb-4 boarder rounded"
-                value={email}
-                onChange={(err) => setEmail(err.target.value)}
-                required
-                />
-                <input
-                type="password"
-                placeholder="Password"
-                className="w-full mb-4 borader rounded"
-                value={password}
-                onChange={(err) => setPassword(err.target.value)}
-                required
-                />
-                <button type="submit" className="w-full text-white rounded">
-                    {newUserRegistering ? "Register" : "Login"}
+            <div className="relative p-6 bg-white rounded-lg w-96 shadow-xl border border-gray-200 mt-2">
+                <button onClick={closeTheAuthForm} className="absolute top-4 right-4 text-gray-500">
+                    <X size={20} />
                 </button>
-            </form>
+
+                <h2 className="text-2xl font-bold mb-4">{newUserRegistering ? "Register" : "Login"}</h2>
+
+                {noticeBoardMessage && (
+                    <div className="rounded mb-4 text-sm text-yellow-800 p-2">
+                        {noticeBoardMessage}
+                    </div>
+                )}
+
+                {/* create a basic form for logging in and registering with a submit button*/}
+                <form onSubmit={userButtonSubmit} className="flex flex-col space-y-4">
+                    <input 
+                    type="email"
+                    placeholder="Email"
+                    className="w-full p-2 border rounded"
+                    value={email}
+                    onChange={(userInput) => setEmail(userInput.target.value)}
+                    required/>
+                    <input
+                    type="password"
+                    placeholder="Password"
+                    className="w-full p-2 border rounded"
+                    value={password}
+                    onChange={(userInput) => setPassword(userInput.target.value)}
+                    required/>
+                    {/* button for submitting login/register: */}
+                    <button type="submit" className="w-full text-white py-2 rounded bg-blue-600">
+                        {newUserRegistering ? "Register" : "Login"}
+                    </button>
+                </form>
+
+                {/* button to switch between logging in and registering: */}
+                <button
+                onClick={() => {
+                    setNewUserRegistering(!newUserRegistering);
+                    setNoticeBoardMessage("");
+                }}
+                className="w-full mt-4 text-sm">
+                    {newUserRegistering ? "Existing User Login" : "New Users Register"}
+                </button>
+            </div>
         </div>
     );
 }
