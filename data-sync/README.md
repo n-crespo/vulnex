@@ -1,12 +1,25 @@
 # Resources
 
-<https://nvd.nist.gov/developers/vulnerabilities>
+- NVD CVE API JSON Schema
+  - <https://nvd.nist.gov/vuln/data-feeds#:~:text=Schema%20Version%202.0%20%3A%C2%A0%20NVD%20JSON%202.0%20Schema)>
+  - <https://csrc.nist.gov/schema/nvd/api/2.0/cve_api_json_2.0.schema>
+  - [./schema/nvd-api-2.0.json](./schema/nvd-api-2.0.json)
 
-[cpe api](https://nvd.nist.gov/developers/products)
-[cpe info](https://cpe.mitre.org/specification/)
+- CVSS v4.0
+  - <https://csrc.nist.gov/schema/nvd/api/2.0/external/cvss-v4.0.json>
+  - [./schema/cvss-4.0.json](./schema/cvss-4.0.json)
 
-[api workflow](https://nvd.nist.gov/developers/api-workflows)
+- CVSS v3.1
+  - <https://csrc.nist.gov/schema/nvd/api/2.0/external/cvss-v3.1.json>
+  - [./schema/cvss-3.1.json](./schema/cvss-3.1.json)
 
-[best practices](https://nvd.nist.gov/developers/start-here)
+- CVSS v3.0
+  - <https://csrc.nist.gov/schema/nvd/api/2.0/external/cvss-v3.0.json>
+  - [./schema/cvss-3.0.json](./schema/cvss-3.0.json)
 
-[Info on CVE Status Data](https://nvd.nist.gov/vuln/vulnerability-status#divNvdStatus)
+- CVSS v2.0
+  - <https://csrc.nist.gov/schema/nvd/api/2.0/external/cvss-v2.0.json>
+  - [./schema/cvss-2.0.json](./schema/cvss-2.0.json)
+
+[Suggested API Workflow](https://nvd.nist.gov/developers/api-workflows)
+[Info on CVE Statuses](https://nvd.nist.gov/vuln/vulnerability-status#divNvdStatus)
