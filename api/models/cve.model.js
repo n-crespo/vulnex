@@ -57,6 +57,7 @@ const CVESchema = Schema(
       type: Boolean,
       required: true,
       index: true,
+      cast: false, // don't type cast
     },
     // TODO: split up cpeId into product/version. currently not indexed.
     cpeId: {
