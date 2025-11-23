@@ -50,15 +50,6 @@ const CVESchema = Schema(
       type: Number,
       cast: false, // don't coerce type into a number
       required: true,
-      validate: {
-        validator: function (v) {
-          // mongoose will coerce types AFTER this function passes. this
-          // disallows true --> 1 from working
-          return typeof v === "number" && !isNaN(v);
-        },
-        message: (props) =>
-          `${props.value} is not a valid number for base severity score!`,
-      },
       min: [1, "Base severity score must be at least 1."],
       max: [10, "Base severity score cannot exceed 10."],
     },
