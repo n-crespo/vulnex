@@ -28,3 +28,4 @@ dist-ssr
 */.env
 */*/.env
 
+data-sync/output.jsonl
