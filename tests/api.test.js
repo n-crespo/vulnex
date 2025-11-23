@@ -1,11 +1,18 @@
 import { expect } from "chai";
 import axios from "axios";
 import net from "net";
+import { error } from "console";
 
 const PORT = process.env.PORT || 3000;
 const LOCAL_URL_BASE = `http://localhost:${PORT}`;
 const REMOTE_URL_BASE = `https://vulnex-api.onrender.com`;
 const VALID_API_KEY = process.env.API_SECRET_KEY;
+const REMOTE_TIMEOUT = 15000;
+
+const BAD_REQUEST_STATUS = 400;
+const SUCCESS_STATUS = 200;
+const UNAUTHORIZED_STATUS = 401;
+const NOT_FOUND_STATUS = 404;
 
 // Sample data for the test record
 const singleNewCVE = {
@@ -15,6 +22,17 @@ const singleNewCVE = {
   status: "Deferred",
   description: "TEST CVE",
   baseSeverityScore: 10,
+  isVulnerable: true,
+  cpeId: "cpe:2.3:a:vendor:product:1.0:*:*:*:*:*:*:*",
+};
+
+const singleBadCVE = {
+  cveId: "TEST-2025-0003", // invalid year portion (22025)
+  published: "2025-11-20T02:20:46",
+  lastModified: "2025-11-20T02:20:50",
+  status: "Deferred",
+  description: "TEST CVE",
+  baseSeverityScore: true, // this should be a number!
   isVulnerable: true,
   cpeId: "cpe:2.3:a:vendor:product:1.0:*:*:*:*:*:*:*",
 };
@@ -62,7 +80,7 @@ const bulkUpdatesToCVEs = [
     cveId: "TEST-2025-0001",
     update: {
       isVulnerable: true, // Update 2
-      lastModified: new Date().toISOString(),
+      lastModified: "2025-05-18T08:00:00.000Z",
     },
   },
   {
@@ -97,20 +115,20 @@ const runSecurityTests = (baseUrl, environmentName) => {
   });
 
   describe(`---------------------------------\n${environmentName} SERVER TESTS | (${baseUrl})`, function () {
-    this.timeout(15000); // Extended timeout for remote server
+    this.timeout(REMOTE_TIMEOUT); // Extended timeout for remote server
 
     describe(`PUBLIC READ ACCESS TESTS`, function () {
       // --- PUBLIC READ ACCESS TESTS ---
 
       it(`GET / should allow PUBLIC access to the root ("/") (200 OK)`, async () => {
         const response = await axios.get(baseUrl);
-        expect(response.status).to.equal(200);
+        expect(response.status).to.equal(SUCCESS_STATUS);
         expect(response.data).to.include("hello from node API");
       });
 
       it(`GET /api/cves should allow PUBLIC access to all CVEs (200 OK and array)`, async () => {
         const response = await publicClient.get("/");
-        expect(response.status).to.equal(200);
+        expect(response.status).to.equal(SUCCESS_STATUS);
         expect(response.data).to.be.an("array");
       });
     });
@@ -118,7 +136,7 @@ const runSecurityTests = (baseUrl, environmentName) => {
     // --- PROTECTED POST (CREATE) TESTS ---
 
     describe(`PROTECTED POST (CREATE) ACCESS TESTS`, function () {
-      it(`POST /api/cves should FAIL without API Key (401/403 Forbidden)`, async () => {
+      it(`POST /api/cves should FAIL without API Key (401 Unauthorized)`, async () => {
         let errorStatus;
         try {
           await publicClient.post("/", singleNewCVE);
@@ -126,19 +144,30 @@ const runSecurityTests = (baseUrl, environmentName) => {
           errorStatus = error.response.status;
         }
         // Verify security failure
-        expect([401, 403]).to.include(errorStatus);
+        expect(errorStatus).to.equal(UNAUTHORIZED_STATUS);
+      });
+
+      it(`POST /api/cves should FAIL with API Key + Invalid CVE (400 Bad Request)`, async () => {
+        let errorStatus;
+        try {
+          await protectedClient.post("/", singleBadCVE);
+        } catch (error) {
+          errorStatus = error.response.status;
+        }
+        // Verify security failure
+        expect(errorStatus).to.equal(BAD_REQUEST_STATUS); // bad request
       });
 
       it(`POST /api/cves should PASS WITH API Key and return the created CVE (200 OK)`, async () => {
         const response = await protectedClient.post("/", singleNewCVE);
-        expect(response.status).to.equal(200);
+        expect(response.status).to.equal(SUCCESS_STATUS);
         expect(response.data).to.have.property("cveId");
         createdCveId = response.data.cveId; // Store ID for later tests
       });
 
       it(`GET /api/cves/:id should allow PUBLIC access to the newly created CVE (200 OK)`, async () => {
         const response = await publicClient.get(`/${createdCveId}`);
-        expect(response.status).to.equal(200);
+        expect(response.status).to.equal(SUCCESS_STATUS);
         expect(response.data.cveId).to.equal(singleNewCVE.cveId);
       });
     });
@@ -146,15 +175,14 @@ const runSecurityTests = (baseUrl, environmentName) => {
     // --- PROTECTED PUT (UPDATE) TESTS ---
 
     describe(`PROTECTED PUT (UPDATE) TESTS`, function () {
-      it(`PUT /api/cves/:id should FAIL without API Key (401/403 Forbidden)`, async () => {
+      it(`PUT /api/cves/:id should FAIL without API Key (401 Unauthorized)`, async () => {
         let errorStatus;
         try {
           await publicClient.put(`/${createdCveId}`, singleUpdateToCVE);
         } catch (error) {
           errorStatus = error.response.status;
         }
-        // Verify security failure
-        expect([401, 403]).to.include(errorStatus);
+        expect(errorStatus).to.equal(UNAUTHORIZED_STATUS);
       });
 
       it(`PUT /api/cves/:id should PASS WITH API Key and update the CVE (200 OK)`, async () => {
@@ -163,21 +191,21 @@ const runSecurityTests = (baseUrl, environmentName) => {
           singleUpdateToCVE,
         );
         // NOTE: Expecting 200, and the controller returns the updated CVE body
-        expect(response.status).to.equal(200);
+        expect(response.status).to.equal(SUCCESS_STATUS);
         // Check that returned object contains the update
         expect(response.data.isVulnerable).to.equal(false);
       });
 
       it(`GET /api/cves/:id should verify the update ("CRITICAL") (200 OK)`, async () => {
         const response = await publicClient.get(`/${createdCveId}`);
-        expect(response.status).to.equal(200);
+        expect(response.status).to.equal(SUCCESS_STATUS);
         expect(response.data.isVulnerable).to.equal(false);
       });
     });
 
     // --- PROTECTED DELETE TESTS ---
     describe(`PROTECTED DELETE TESTS`, function () {
-      it(`DELETE /api/cves/:id should FAIL without API Key (401/403 Forbidden)`, async () => {
+      it(`DELETE /api/cves/:id should FAIL without API Key (401 Unauthorized)`, async () => {
         let errorStatus;
         try {
           await publicClient.delete(`/${createdCveId}`);
@@ -185,12 +213,12 @@ const runSecurityTests = (baseUrl, environmentName) => {
           errorStatus = error.response.status;
         }
         // verify security failure
-        expect([401, 403]).to.include(errorStatus);
+        expect(errorStatus).to.equal(UNAUTHORIZED_STATUS);
       });
 
       it(`DELETE /api/cves/:id should PASS WITH API Key (200 OK)`, async () => {
         const response = await protectedClient.delete(`/${singleNewCVE.cveId}`);
-        expect(response.status).to.equal(200);
+        expect(response.status).to.equal(SUCCESS_STATUS);
         // check message from delete controller
         expect(response.data.message).to.equal("CVE deleted successfully");
       });
@@ -203,7 +231,7 @@ const runSecurityTests = (baseUrl, environmentName) => {
           errorStatus = error.response.status;
         }
         // should return 404 when not found
-        expect(errorStatus).to.equal(404);
+        expect(errorStatus).to.equal(NOT_FOUND_STATUS);
       });
     });
 
@@ -212,7 +240,7 @@ const runSecurityTests = (baseUrl, environmentName) => {
     describe(`BULK CREATE (POST) TESTS`, function () {
       it(`POST (bulk) /api/cves should PASS WITH API Key and create multiple CVEs (200 OK)`, async () => {
         const response = await protectedClient.post("/", bulkNewCVEs);
-        expect(response.status).to.equal(200);
+        expect(response.status).to.equal(SUCCESS_STATUS);
         expect(response.data.data).to.be.an("array");
         expect(response.data.count).to.equal(bulkNewCVEs.length); // Verify creation of a specific CVE from the bulk operation
         expect(
@@ -222,27 +250,37 @@ const runSecurityTests = (baseUrl, environmentName) => {
 
       it(`GET /api/cves/:id should allow PUBLIC access to a bulk created CVE (${bulkCveIds.cveIds[0]})`, async () => {
         const response = await publicClient.get(`/${bulkCveIds.cveIds[0]}`);
-        expect(response.status).to.equal(200);
+        expect(response.status).to.equal(SUCCESS_STATUS);
         expect(response.data.cveId).to.equal(bulkCveIds.cveIds[0]);
+      });
+
+      it(`POST /api/cves/ should FAIL with invalid CVEs`, async () => {
+        const bulkCVEsWithInvalidEntry = [...bulkNewCVEs, singleBadCVE];
+        try {
+          await protectedClient.post(`/`, bulkCVEsWithInvalidEntry);
+        } catch (error) {
+          // console.log(error.response);
+          expect(error.response.status).to.equal(BAD_REQUEST_STATUS);
+        }
       });
     });
 
     // --- BULK UPDATE (PUT) TESTS ---
 
     describe(`BULK UPDATE (PUT) TESTS`, function () {
-      it(`PUT /api/cves/ should FAIL without API Key (401/403 Forbidden)`, async () => {
+      it(`PUT /api/cves/ should FAIL without API Key (401 Unauthorized)`, async () => {
         let errorStatus;
         try {
           await publicClient.put(`/`, bulkUpdatesToCVEs);
         } catch (error) {
           errorStatus = error.response.status;
         } // Verify security failure
-        expect([401, 403]).to.include(errorStatus);
+        expect(errorStatus).to.equal(UNAUTHORIZED_STATUS);
       });
 
       it(`PUT /api/cves/ should PASS WITH API Key and update multiple CVEs (200 OK)`, async () => {
         const response = await protectedClient.put(`/`, bulkUpdatesToCVEs);
-        expect(response.status).to.equal(200);
+        expect(response.status).to.equal(SUCCESS_STATUS);
         expect(response.data).to.have.property("matchedCount");
         expect(response.data).to.have.property("modifiedCount");
         expect(response.data.matchedCount).to.equal(
@@ -254,7 +292,7 @@ const runSecurityTests = (baseUrl, environmentName) => {
 
       it(`GET /api/cves/:id should verify the bulk update on ${bulkCveIds.cveIds[0]} (status: Fixed)`, async () => {
         const response = await publicClient.get(`/${bulkCveIds.cveIds[0]}`);
-        expect(response.status).to.equal(200);
+        expect(response.status).to.equal(SUCCESS_STATUS);
         expect(response.data.status).to.equal("Fixed");
         expect(response.data.baseSeverityScore).to.equal(5.5);
       });
@@ -267,7 +305,7 @@ const runSecurityTests = (baseUrl, environmentName) => {
           errorStatus = error.response.status;
           expect(error.response.data.message).to.include("non-empty array");
         }
-        expect(errorStatus).to.equal(400);
+        expect(errorStatus).to.equal(BAD_REQUEST_STATUS);
       });
 
       it(`PUT /api/cves/ should FAIL with 400 Bad Request if all items are invalid/malformed`, async () => {
@@ -284,21 +322,21 @@ const runSecurityTests = (baseUrl, environmentName) => {
             "No valid update operations",
           );
         }
-        expect(errorStatus).to.equal(400);
+        expect(errorStatus).to.equal(BAD_REQUEST_STATUS);
       });
     });
 
     // --- BULK DELETE TESTS ---
 
     describe(`BULK DELETE TESTS`, function () {
-      it(`DELETE /api/cves/bulk-delete should FAIL without API Key (401/403 Forbidden)`, async () => {
+      it(`DELETE /api/cves/bulk-delete should FAIL without API Key (401 Unauthorized)`, async () => {
         let errorStatus;
         try {
           await publicClient.delete(`/bulk-delete`, { data: bulkCveIds }); // axios delete with body uses `data` config
         } catch (error) {
           errorStatus = error.response.status;
         } // Verify security failure
-        expect([401, 403]).to.include(errorStatus);
+        expect(errorStatus).to.equal(UNAUTHORIZED_STATUS);
       });
 
       it(`DELETE /api/cves should PASS WITH API Key and delete multiple CVEs (200 OK)`, async () => {
@@ -306,7 +344,7 @@ const runSecurityTests = (baseUrl, environmentName) => {
         const response = await protectedClient.delete(`/bulk-delete`, {
           data: bulkCveIds, // Array of cveIds: ["CVE-BULK-2029-001", "CVE-BULK-2029-002"]
         });
-        expect(response.status).to.equal(200); // Assuming controller returns count or a success message
+        expect(response.status).to.equal(SUCCESS_STATUS); // Assuming controller returns count or a success message
         expect(response.data).to.have.property("deletedCount");
         expect(response.data.deletedCount).to.be.at.most(
           bulkCveIds.cveIds.length,
@@ -321,7 +359,7 @@ const runSecurityTests = (baseUrl, environmentName) => {
         } catch (error) {
           errorStatus = error.response.status;
         }
-        expect(errorStatus).to.equal(404);
+        expect(errorStatus).to.equal(NOT_FOUND_STATUS);
       });
 
       it(`DELETE /api/cves/bulk-delete should FAIL with 400 Bad Request on empty cveIds array`, async () => {
@@ -334,7 +372,7 @@ const runSecurityTests = (baseUrl, environmentName) => {
           errorStatus = error.response.status;
           expect(error.response.data.message).to.include("non-empty array");
         }
-        expect(errorStatus).to.equal(400);
+        expect(errorStatus).to.equal(BAD_REQUEST_STATUS);
       });
 
       it(`DELETE /api/cves/bulk-delete should FAIL with 400 Bad Request on missing cveIds property`, async () => {
@@ -345,7 +383,7 @@ const runSecurityTests = (baseUrl, environmentName) => {
           errorStatus = error.response.status;
           expect(error.response.data.message).to.include("non-empty array");
         }
-        expect(errorStatus).to.equal(400);
+        expect(errorStatus).to.equal(BAD_REQUEST_STATUS);
       });
 
       it(`DELETE /api/cves/bulk-delete should return 404 Not Found when no matching CVEs are deleted`, async () => {
@@ -364,7 +402,7 @@ const runSecurityTests = (baseUrl, environmentName) => {
             "No matching CVEs found for deletion.",
           );
         }
-        expect(errorStatus).to.equal(404);
+        expect(errorStatus).to.equal(NOT_FOUND_STATUS);
       });
     });
   });
