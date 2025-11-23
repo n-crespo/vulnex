@@ -3,7 +3,6 @@ import { createWriteStream } from "fs";
 const NVD_API_KEY = process.env.NVD_API_KEY;
 const OUTPUT_FILE = "output.jsonl";
 const API_SECRET_KEY = process.env.API_SECRET_KEY;
-const API_BASE_URL = "http://localhost:3000/api/cves";
 const NVD_BASE_URL = "https://services.nvd.nist.gov/rest/json/cves/2.0";
 // const API_BASE_URL = "http://localhost:3000/api/cves";
 
@@ -15,14 +14,13 @@ if (!API_SECRET_KEY) {
 }
 
 async function fetchRecentCves() {
-  let totalResults = Infinity;
   let startIndex = 0;
-  let resultsPerPage = 800;
+  let totalResults = Infinity;
   const stream = createWriteStream(OUTPUT_FILE, { flags: "a" }); // "a" = append
 
   while (startIndex <= totalResults) {
-    // example: https://services.nvd.nist.gov/rest/json/cves/2.0/?resultsPerPage=20&startIndex=0
-    const API_URL = `${NVD_BASE_URL}/?resultsPerPage=${resultsPerPage}&startIndex=${startIndex}`;
+    // example: https://services.nvd.nist.gov/rest/json/cves/2.0/?RESULTS_PER_PAGE=20&startIndex=0
+    const NVD_API_URL = `${NVD_BASE_URL}/?resultsPerPage=${RESULTS_PER_PAGE}&startIndex=${startIndex}`;
 
     let requestOptions = {
       method: "GET",
@@ -32,12 +30,12 @@ async function fetchRecentCves() {
       },
     };
 
-    console.log("starting fetch!", startIndex, totalResults);
+    console.log(
+      `starting fetch! (${((startIndex / totalResults) * 100).toFixed(2)}%) ${startIndex}/${totalResults}`,
+    );
 
     try {
-      console.log(API_URL);
-      console.log(requestOptions);
-      const response = await fetch(API_URL, requestOptions);
+      const response = await fetch(NVD_API_URL, requestOptions);
       console.log("fetching...");
       if (response.status === 200) {
         console.log("Status: 200 OK. Request successful.");
@@ -55,7 +53,7 @@ async function fetchRecentCves() {
 
       // update indices
       totalResults = rawData.totalResults;
-      startIndex += resultsPerPage;
+      startIndex += RESULTS_PER_PAGE;
 
       // parse json
       const extractedData = rawData.vulnerabilities.map((v) => {
@@ -74,43 +72,14 @@ async function fetchRecentCves() {
             cve.configurations?.[0]?.nodes?.[0]?.cpeMatch?.[0]?.vulnerable,
           cpeId: cve.configurations?.[0]?.nodes?.[0]?.cpeMatch?.[0]?.criteria,
         };
-
-        stream.write(JSON.stringify(record) + "\n");
-
-        // this writes CVEs to the database
-        (async () => {
-          console.log("sending request...");
-          try {
-            const postResponse = await fetch(`${API_BASE_URL}`, {
-              method: "POST",
-              headers: {
-                "x-api-key": API_SECRET_KEY,
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify(record),
-            });
-            if (!postResponse.ok) {
-              console.error(
-                `Failed to post CVE ${id}: ${postResponse.status} ${postResponse.statusText}`,
-              );
-              console.log(postResponse);
-            } else {
-              console.log(`Successfully posted CVE ${id}`);
-            }
-          } catch (postError) {
-            console.error(
-              `Network error posting CVE ${id}:`,
-              postError.message,
-            );
-          }
-        })();
+        return record;
       });
+      stream.write(JSON.stringify(extractedData) + "\n");
+      console.log(
+        `Successfully parsed and wrote ${extractedData.length} records in bulk.`,
+      );
       // respect NVD API rate limits
-      // await new Promise((resolve) => setTimeout(resolve, 6000));
-
-      // stringify with only 1 arg returns minified json.
-      // const jsonString = JSON.stringify(extractedData);
-      // const jsonString = JSON.stringify(extractedData, null, 2);
+      // await new Promise((resolve) => setTimeout(resolve, 600)); // lower timeout with API key
     } catch (error) {
       console.log("Fetch/Processing error: ", error);
       break;
