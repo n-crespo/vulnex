@@ -1,6 +1,6 @@
 # [VulnEx (Vulnerability Explorer)](https://n-crespo.github.io/vulnex)
 
-[![deploy](https://github.com/n-crespo/vulnex/actions/workflows/deploy.yaml/badge.svg)](https://github.com/n-crespo/vulnex/actions/workflows/deploy.yaml)
+[![deploy status](https://github.com/n-crespo/vulnex/actions/workflows/deploy.yaml/badge.svg)](https://github.com/n-crespo/vulnex/actions/workflows/deploy.yaml)
 
 [Project Plan and Proposal](https://docs.google.com/document/d/1iviznrFmZiiG2GUe3oLPzbtLUC5X77XqRDzyYNCOCEE/edit?usp=sharing)
 
@@ -8,11 +8,40 @@ Live at <https://n-crespo.github.io/vulnex>
 
 ## Development Setup
 
+First clone the repository:
+
 ```bash
 git clone https://github.com/n-crespo/vulnex
 cd vulnex
+```
+
+> [!NOTE]
+> All of the following commands should be run from the root directory of the
+> repository.
+
+### Install Dependencies
+
+```bash
 npm i
-npm run dev
+```
+
+### Start API on Local Server
+
+```bash
+npm run dev:api
+```
+
+### Start Front End
+
+```bash
+npm run dev:frontend
+```
+
+## Tests
+
+```bash
+# test API functionality (remote AND local) (requires API-SECRET-KEY key)
+npm run test:api
 ```
 
 ## Milestones
@@ -54,3 +83,7 @@ npm run dev
 1. comprehensive vulnerability report (as pdf or html)
 2. Select CVE to view general information + link to the original report
 3. Scrape a user’s public repositories for packages.json/other dependencies
+
+## Disclaimer
+
+This product uses data from the NVD API but is not endorsed or certified by the NVD.

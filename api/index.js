@@ -8,14 +8,14 @@ const port = process.env.PORT || 3000;
 const MONGO_DB_URI = process.env.MONGO_DB_URI;
 
 // middleware to support sending json
-app.use(json());
+app.use(json({ limit: "50mb" }));
 
 // routes
 app.use("/api/cves", cveRoute);
 
 // visible at root
 app.get("/", (req, res) => {
-  console.log("Fetching root /\n--------------------");
+  console.log("[GET] Fetching root /\n--------------------");
   res.send("hello from node API");
 });
 
