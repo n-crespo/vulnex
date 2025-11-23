@@ -27,13 +27,12 @@ function finish() {
 export const createCVE = async (req, res) => {
   console.log("[POST] Creating CVE(s): ");
   const records = req.body;
-  console.log(records);
+  process.env.LOGGING_ENABLED && console.log(records);
   try {
     let result;
     if (Array.isArray(records)) {
       console.log(`Attempting bulk insert of ${records.length} records.`);
-      // NOTE: using `ordered: true` here will stop insertion if any document fails
-      result = await CVE.insertMany(records, { ordered: true });
+      result = await CVE.insertMany(records, { ordered: true }); // ordered: true will stop insertion if any document fails
       res.status(200).json({
         message: `${result.length} CVE records created successfully (bulk operation).`,
         count: result.length,
@@ -42,14 +41,40 @@ export const createCVE = async (req, res) => {
     } else {
       console.log("Attempting single record insert.");
       result = await CVE.create(records);
+      process.env.LOGGING_ENABLED && console.log(result);
       res.status(200).json(result);
     }
   } catch (error) {
     console.log("Failed to create CVE(s): ", error.message);
-    res.status(500).json({
-      message: "Failed to process CVE creation(s)",
-      error: error.message,
-    });
+
+    let statusCode = 500;
+    let errorMessage = "An unexpected server error occurred.";
+
+    if (error.name === "ValidationError") {
+      statusCode = 400; // bad request (wrong type, failed regex)
+      const validationMessages = Object.values(error.errors)
+        .map((err) => `${err.path}: ${err.message}`)
+        .join(", "); // Join them into a single string
+
+      errorMessage = `Validation failed for the following fields: ${validationMessages}`;
+
+      res.status(statusCode).json({
+        message: "Failed to create CVE record due to invalid input data.",
+        error: errorMessage,
+      });
+    } else if (error.code && error.code === 11000) {
+      res.status(409).json({
+        message: "Failed to process CVE creation(s)",
+        error: `A record with a duplicate unique key (e.g., cveId) was found. Details: ${error.message}`,
+      });
+    } else {
+      // other errors
+      errorMessage = error.message;
+      res.status(500).json({
+        message: "Failed to process CVE creation(s)",
+        error: errorMessage,
+      });
+    }
   }
   finish();
 };
@@ -106,7 +131,7 @@ export const getCVE = async (req, res) => {
     }
 
     console.log("Getting CVE", cveId);
-    console.log(cve);
+    process.env.LOGGING_ENABLED && console.log(cve);
     res.status(200).json(cve);
   } catch (error) {
     console.log("Failed: ", error.message);
@@ -162,7 +187,7 @@ export const bulkUpdateCVEs = async (req, res) => {
   console.log(
     `[PUT] Bulk Updating CVEs: ${updates ? updates.length : 0} records`,
   );
-  console.log("asking for: ", updates);
+  process.env.LOGGING_ENABLED && console.log("asking for: ", updates);
 
   if (!Array.isArray(updates) || updates.length === 0) {
     console.log(
