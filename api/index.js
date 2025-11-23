@@ -3,6 +3,7 @@ const app = express();
 
 import { connect } from "mongoose";
 import cveRoute from "./routes/cve.route.js";
+import userRoute from "./routes/userRegisterLogin.route.js";
 
 const port = process.env.PORT || 3000;
 const MONGO_DB_URI = process.env.MONGO_DB_URI;
@@ -12,6 +13,7 @@ app.use(json({ limit: "50mb" }));
 
 // routes
 app.use("/api/cves", cveRoute);
+app.use("/api/users", userRoute);
 
 // visible at root
 app.get("/", (req, res) => {
