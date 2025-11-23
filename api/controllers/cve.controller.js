@@ -27,7 +27,7 @@ function finish() {
 export const createCVE = async (req, res) => {
   console.log("[POST] Creating CVE(s): ");
   const records = req.body;
-  console.log(records);
+  process.env.LOGGING_ENABLED && console.log(records);
   try {
     let result;
     if (Array.isArray(records)) {
@@ -41,7 +41,7 @@ export const createCVE = async (req, res) => {
     } else {
       console.log("Attempting single record insert.");
       result = await CVE.create(records);
-      console.log(result);
+      process.env.LOGGING_ENABLED && console.log(result);
       res.status(200).json(result);
     }
   } catch (error) {
@@ -131,7 +131,7 @@ export const getCVE = async (req, res) => {
     }
 
     console.log("Getting CVE", cveId);
-    console.log(cve);
+    process.env.LOGGING_ENABLED && console.log(cve);
     res.status(200).json(cve);
   } catch (error) {
     console.log("Failed: ", error.message);
@@ -187,7 +187,7 @@ export const bulkUpdateCVEs = async (req, res) => {
   console.log(
     `[PUT] Bulk Updating CVEs: ${updates ? updates.length : 0} records`,
   );
-  console.log("asking for: ", updates);
+  process.env.LOGGING_ENABLED && console.log("asking for: ", updates);
 
   if (!Array.isArray(updates) || updates.length === 0) {
     console.log(
