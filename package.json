@@ -10,6 +10,7 @@
     "data-sync"
   ],
   "scripts": {
+    "dev": "vite",
     "dev:frontend": "vite",
     "build:frontend": "vite build",
     "start:api": "npm run start -w=api",
