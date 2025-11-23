@@ -5,6 +5,14 @@ const OUTPUT_FILE = "output.jsonl";
 const API_SECRET_KEY = process.env.API_SECRET_KEY;
 const API_BASE_URL = "http://localhost:3000/api/cves";
 const NVD_BASE_URL = "https://services.nvd.nist.gov/rest/json/cves/2.0";
+// const API_BASE_URL = "http://localhost:3000/api/cves";
+
+const RESULTS_PER_PAGE = 2000;
+
+if (!API_SECRET_KEY) {
+  console.warn("Warning: API_SECRET_KEY is not set. Execution stopped.");
+  throw new Error("API_SECRET_KEY is required.");
+}
 
 async function fetchRecentCves() {
   let totalResults = Infinity;
