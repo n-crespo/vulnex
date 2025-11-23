@@ -1,4 +1,5 @@
 import { createWriteStream } from "fs";
+import axios from "axios";
 
 const NVD_API_KEY = process.env.NVD_API_KEY;
 const OUTPUT_FILE = "output.jsonl";
@@ -11,6 +12,21 @@ const RESULTS_PER_PAGE = 2000;
 if (!API_SECRET_KEY) {
   console.warn("Warning: API_SECRET_KEY is not set. Execution stopped.");
   throw new Error("API_SECRET_KEY is required.");
+}
+
+const protectedClient = axios.create({
+  baseURL: apiEndpoint,
+  headers: { "x-api-key": API_SECRET_KEY, "Content-Type": "application/json" },
+});
+
+async function postToDatabase(newCVEsArray) {
+  const response = await protectedClient.post("/", newCVEsArray);
+  const status = response.status;
+  console.log("Response status: ", status);
+  if (status !== 200) {
+    // success status
+    throw new Error("Post to database failed: ", status);
+  }
 }
 
 async function fetchRecentCves() {
@@ -29,10 +45,6 @@ async function fetchRecentCves() {
         Accept: "application/json",
       },
     };
-
-    console.log(
-      `starting fetch! (${((startIndex / totalResults) * 100).toFixed(2)}%) ${startIndex}/${totalResults}`,
-    );
 
     try {
       const response = await fetch(NVD_API_URL, requestOptions);
@@ -75,8 +87,12 @@ async function fetchRecentCves() {
         return record;
       });
       stream.write(JSON.stringify(extractedData) + "\n");
+      await postToDatabase(extractedData);
       console.log(
         `Successfully parsed and wrote ${extractedData.length} records in bulk.`,
+      );
+      console.log(
+        `(${((startIndex / totalResults) * 100).toFixed(2)}%) ${startIndex}/${totalResults}`,
       );
       // respect NVD API rate limits
       // await new Promise((resolve) => setTimeout(resolve, 600)); // lower timeout with API key
