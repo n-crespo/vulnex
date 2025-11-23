@@ -1,13 +1,12 @@
 import { expect } from "chai";
 import axios from "axios";
 import net from "net";
-import { error } from "console";
 
 const PORT = process.env.PORT || 3000;
 const LOCAL_URL_BASE = `http://localhost:${PORT}`;
-const REMOTE_URL_BASE = `https://vulnex-api.onrender.com`;
 const VALID_API_KEY = process.env.API_SECRET_KEY;
 const REMOTE_TIMEOUT = 15000;
+// const REMOTE_URL_BASE = `https://vulnex-api.onrender.com`;
 
 const BAD_REQUEST_STATUS = 400;
 const SUCCESS_STATUS = 200;
