@@ -19,7 +19,7 @@ export const newUserRegister = async (req, res) => {
         // if email and password were given, ensure this email isn't already in use:
         const isUserEmailExisting = await newUserLoginModel.findOne({ email });
         if (isUserEmailExisting) {
-            return res.status(409).json({message: "User registered" });
+            return res.status(409).json({message: "User already exists" });
         }
         // if password exists and email is unique, save the new user info the the database
         const newUserReg = new newUserLoginModel({ email, passwordHash: password});
