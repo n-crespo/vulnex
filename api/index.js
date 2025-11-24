@@ -1,5 +1,5 @@
 import express, { json } from "express";
-import cors from "cors"; // needed so the github pages can talk to Azure on the backend
+import cors from "cors"; // needed so the github pages can talk to Azure on the backend 
 import { connect } from "mongoose";
 import cveRoute from "./routes/cve.route.js";
 import userRoute from "./routes/userRegisterLogin.route.js";
@@ -44,5 +44,5 @@ connect(MONGO_DB_URI, stableOptions)
     });
   })
   .catch((err) => {
-    console.log("Connection failed", err);
+    console.log("Connection failed!" + err);
   });

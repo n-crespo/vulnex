@@ -13,6 +13,7 @@
     "dev": "vite",
     "dev:frontend": "vite",
     "build:frontend": "vite build",
+    "start": "node index.js",
     "start:api": "npm run start -w=api",
     "dev:api": "dotenvx run -- npm run dev -w=api",
     "test:api": "dotenvx run -- npm run test:api -w tests",
