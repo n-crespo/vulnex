@@ -1,5 +1,4 @@
 import express, { json } from "express";
-import connect from "mongoose"; // needed to connect to the database
 import cors from "cors"; // needed so the github pages can talk to Azure on the backend
 import { connect } from "mongoose";
 import cveRoute from "./routes/cve.route.js";
