@@ -1,12 +1,23 @@
 import express, { json } from "express";
-const app = express();
-
+import connect from "mongoose"; // needed to connect to the database
+import cors from "cors"; // needed so the github pages can talk to Azure on the backend
 import { connect } from "mongoose";
 import cveRoute from "./routes/cve.route.js";
 import userRoute from "./routes/userRegisterLogin.route.js";
 
+const app = express();
+
 const port = process.env.PORT || 3000;
 const MONGO_DB_URI = process.env.MONGO_DB_URI;
+
+// cors middleware is needed for "cross-origin requests"/frontend-backend comms
+app.use(cors({
+  origin: [
+    "http://localhost:5173",
+    "https://n-crespo.github.io/vulnex/"
+  ],
+  credentials: true
+}));
 
 // middleware to support sending json
 app.use(json({ limit: "50mb" }));
