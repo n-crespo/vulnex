@@ -14,12 +14,15 @@ export default function AuthModel({closeTheAuthForm, whenUserLoginIsSuccessful})
         setNoticeBoardMessage("");
 
         // the API path either has "" in front for local debugging or the Azure path when deployed
-        const LOCAL_VS_AZURE_ONLINE_PATH = import.meta.env.DEV
+        let LOCAL_VS_AZURE_ONLINE_PATH = import.meta.env.DEV
             ? ""
             : "https://vulnex-cpckbefubudnhab6.eastus2-01.azurewebsites.net";
 
+        LOCAL_VS_AZURE_ONLINE_PATH = LOCAL_VS_AZURE_ONLINE_PATH.replace(/\/$/, ""); // ensure / is not trailing
+
+        const trailingEndOfPath = newUserRegistering ? "/api/users/register" : "/api/users/login";
         // this path will be called by the Login or Register button
-        const loggingInOrRegisteringPath = LOCAL_VS_AZURE_ONLINE_PATH + (newUserRegistering ? "/api/users/register" : "/api/users/login");
+        const loggingInOrRegisteringPath = LOCAL_VS_AZURE_ONLINE_PATH + trailingEndOfPath;
         
         try
         {
