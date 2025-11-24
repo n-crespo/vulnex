@@ -31,8 +31,12 @@ app.get("/", (req, res) => {
   res.send("hello from node API");
 });
 
+const stableOptions = {
+  serverApi: {version: '1', strict: true, depreciationErrors: true}
+};
+
 // connection to real database
-connect(MONGO_DB_URI)
+connect(MONGO_DB_URI, stableOptions)
   .then(() => {
     console.log("connected to the db!");
     app.listen(port, () => {
