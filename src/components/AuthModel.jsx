@@ -16,7 +16,7 @@ export default function AuthModel({closeTheAuthForm, whenUserLoginIsSuccessful})
         // the API path either has "" in front for local debugging or the Azure path when deployed
         const LOCAL_VS_AZURE_ONLINE_PATH = import.meta.env.DEV
             ? ""
-            : "https://vulnex-cpckbefubudnhab6.eastus2-01.azurewebsites.net/"
+            : "https://vulnex-cpckbefubudnhab6.eastus2-01.azurewebsites.net";
 
         // this path will be called by the Login or Register button
         const loggingInOrRegisteringPath = LOCAL_VS_AZURE_ONLINE_PATH + (newUserRegistering ? "/api/users/register" : "/api/users/login");
