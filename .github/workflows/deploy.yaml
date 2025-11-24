@@ -5,6 +5,9 @@ on:
     branches: ["main"]
     paths:
       - "src/**"
+      - "index.html"
+      - "vite.config.js"
+      - "package.json"
       - "!README.md"
       - "!LICENSE"
       - "!.gitignore"
@@ -32,20 +35,22 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v4
       - name: Set up Node
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v4
         with:
-          node-version: lts/*
+          node-version: 20
           cache: "npm"
       - name: Install dependencies
         run: npm ci
       - name: Build
+        env:
+          VITE_API_BASE_URL: "https://vulnex-cpckbefubudnhab6.eastus2-01.azurewebsites.net"
         run: npm run build:frontend
       - name: Setup Pages
         uses: actions/configure-pages@v5
       - name: Upload artifact
-        uses: actions/upload-pages-artifact@v4
+        uses: actions/upload-pages-artifact@v3
         with:
           # Upload dist folder
           path: "./dist"
