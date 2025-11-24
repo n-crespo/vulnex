@@ -13,7 +13,7 @@ const MONGO_DB_URI = process.env.MONGO_DB_URI;
 app.use(cors({
   origin: [
     "http://localhost:5173",
-    "https://n-crespo.github.io/vulnex/"
+    "https://n-crespo.github.io"
   ],
   credentials: true
 }));
