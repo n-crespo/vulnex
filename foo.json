@@ -1,0 +1,7 @@
+{
+  "cveId": "CVE-2004-2260",
+  "published": "2004-12-31T05:00:00.000",
+  "lastModified": "2025-04-03T01:03:51.193",
+  "status": "Deferred",
+  "description": "Opera Browser 7.23, and other versions before 7.50, updates the address bar as soon as the user clicks a link, which allows remote attackers to redirect to other sites via the onUnload attribute."
+}
