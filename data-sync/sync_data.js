@@ -243,12 +243,12 @@ const extractStatus = (cve) => {
 };
 
 /**
- * [SECONDARY FIELD EXTRACTOR] Extracts the product name and version from the first
- * available CPE criteria found in the configurations structure.
- * Updates the global counter if the product/version cannot be determined.
+ * [SECONDARY FIELD EXTRACTOR] Extracts the product name and the version status (patch version or affected range).
+ * Prioritizes 'versionEndExcluding' as the definitive patch version.
+ * Updates the global counter if product details cannot be determined.
  * @param {object} cve - The cve object.
- * @returns {{productName: string, productVersion: string}} An object containing the extracted name and version,
- * or an object with "UNKNOWN" values if extraction fails.
+ * @returns {{productName: string, patchedInVersion: string, minAffectedVersion: string, maxAffectedVersion: string}}
+ * An object containing the product name and the version status. Note: 'patchedInVersion' is the primary focus.
  */
 const extractProductDetails = (cve) => {
   const UNKNOWN_PRODUCT_VALUE = "UNKNOWN";
@@ -256,67 +256,105 @@ const extractProductDetails = (cve) => {
 
   const configurations = cve.configurations;
 
-  // 1. Find the first CPE criteria string
-  let cpeCriteria = null;
-  const findFirstCpeCriteria = (nodes) => {
-    if (!nodes) return null;
+  let firstProductName = null;
+  let patchedVersion = null; // NEW: Holds the versionEndExcluding value
+  const specificVersions = new Set();
+
+  const isWildcard = (v) => v === "*" || v === "-" || !v;
+
+  // Recursive helper to traverse all nodes and collect data
+  const traverseAndCollect = (nodes) => {
+    if (!nodes) return;
+
     for (const node of nodes) {
       if (node.cpeMatch && node.cpeMatch.length > 0) {
-        return node.cpeMatch[0].criteria;
+        for (const match of node.cpeMatch) {
+          const parts = match.criteria ? match.criteria.split(":") : [];
+
+          if (parts.length >= 6) {
+            const productName = parts[4];
+            let versionInCriteria = parts[5];
+
+            // 1. Capture the first valid product name found
+            if (
+              !firstProductName &&
+              productName &&
+              productName !== UNKNOWN_PRODUCT_VALUE
+            ) {
+              firstProductName = productName;
+            }
+
+            // 2. Capture the Patch Version (highest priority)
+            if (!patchedVersion && match.versionEndExcluding) {
+              patchedVersion = match.versionEndExcluding;
+            } else if (!patchedVersion && match.versionEndIncluding) {
+              // Sometimes 'versionEndIncluding' is used to define the last vulnerable version
+              // We'll capture it, but 'Excluding' is usually cleaner.
+              patchedVersion = match.versionEndIncluding;
+            }
+
+            // 3. Collect specific version numbers from criteria (as a fallback/range)
+            if (!isWildcard(versionInCriteria)) {
+              specificVersions.add(versionInCriteria);
+            }
+          }
+        }
       }
+
       if (node.nodes && node.nodes.length > 0) {
-        const result = findFirstCpeCriteria(node.nodes);
-        if (result) return result;
+        traverseAndCollect(node.nodes);
       }
     }
-    return null;
   };
 
+  // Start traversal
   if (configurations && configurations.length > 0) {
     for (const config of configurations) {
-      cpeCriteria = findFirstCpeCriteria(config.nodes);
-      if (cpeCriteria) break;
+      traverseAndCollect(config.nodes);
     }
   }
 
-  if (!cpeCriteria) {
+  // --- Determine Final Range and Product Name ---
+
+  if (!firstProductName) {
     totalUnknownProduct++;
     return {
       productName: UNKNOWN_PRODUCT_VALUE,
-      productVersion: UNKNOWN_VERSION_VALUE,
+      patchedInVersion: UNKNOWN_VERSION_VALUE, // Added new field
+      minAffectedVersion: UNKNOWN_VERSION_VALUE,
+      maxAffectedVersion: UNKNOWN_VERSION_VALUE,
     };
   }
 
-  // 2. Split and Extract Product Name and Version (Parts 4 and 5 in CPE 2.3)
-  const parts = cpeCriteria.split(":");
+  // Determine min/max affected versions from the collected criteria list
+  let minVersion = UNKNOWN_VERSION_VALUE;
+  let maxVersion = UNKNOWN_VERSION_VALUE;
 
-  // A valid CPE 2.3 string has 12 parts, but we need at least the first 6 parts.
-  if (parts.length < 6) {
-    totalUnknownProduct++;
-    return {
-      productName: UNKNOWN_PRODUCT_VALUE,
-      productVersion: UNKNOWN_VERSION_VALUE,
-    };
+  if (specificVersions.size > 0) {
+    const sortedVersions = Array.from(specificVersions).sort();
+    minVersion = sortedVersions[0];
+    maxVersion = sortedVersions[sortedVersions.length - 1];
   }
 
-  const productName = parts[4] || UNKNOWN_PRODUCT_VALUE;
-  let productVersion = parts[5] || UNKNOWN_VERSION_VALUE;
+  // If we found a patch version, use it. Otherwise, mark the patch field as UNKNOWN.
+  const finalPatchedVersion = patchedVersion || UNKNOWN_VERSION_VALUE;
 
-  // Check if the version field is a meaningless wildcard or empty placeholder
-  if (productVersion === "*" || productVersion === "-") {
-    productVersion = UNKNOWN_VERSION_VALUE;
-  }
-
-  // Check for partial failures (e.g., product name is missing but version exists, though unlikely)
+  // Final check for unknown status
   if (
-    productName === UNKNOWN_PRODUCT_VALUE ||
-    productVersion === UNKNOWN_VERSION_VALUE
+    finalPatchedVersion === UNKNOWN_VERSION_VALUE &&
+    specificVersions.size === 0
   ) {
-    // If either part is unknown, we count this as a failure point.
+    // We only count as Unknown if we found no patch version AND no criteria versions.
     totalUnknownProduct++;
   }
 
-  return { productName, productVersion };
+  // Success!
+  return {
+    productName: firstProductName,
+    patchedInVersion: finalPatchedVersion, // Primary Field
+    minAffectedVersion: minVersion,
+    maxAffectedVersion: maxVersion,
+  };
 };
 
 // =========================================================================
@@ -345,7 +383,7 @@ const extractCveData = (vulnerability) => {
   const finalStatus = extractStatus(cve);
   const isVulnerableString = extractVulnerability(cve);
   const severityLevel = extractSeverity(cve.metrics);
-  const productAndVersion = extractProductDetails(cve);
+  const productDetails = extractProductDetails(cve); // Returns object with 4 fields
 
   // 4. Build the Final Record
   const record = {
@@ -356,7 +394,10 @@ const extractCveData = (vulnerability) => {
     status: finalStatus,
     isVulnerable: isVulnerableString,
     severityLevel: severityLevel,
-    productAndVersion: productAndVersion,
+    productName: productDetails.productName,
+    patchedInVersion: productDetails.patchedInVersion,
+    minAffectedVersion: productDetails.minAffectedVersion,
+    maxAffectedVersion: productDetails.maxAffectedVersion,
   };
 
   return record;
