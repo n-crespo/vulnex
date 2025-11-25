@@ -288,7 +288,7 @@ async function fetchAndProcessBatch(currentStartIndex, totalResults) {
     },
   };
 
-  let maxRetries = 5;
+  let maxRetries = 6;
   let delay = 2000;
 
   for (let attempt = 0; attempt < maxRetries; attempt++) {
@@ -304,10 +304,19 @@ async function fetchAndProcessBatch(currentStartIndex, totalResults) {
             "Maximum retries reached for rate limiting. Aborting.",
           );
         }
-        // Rate limit detected, must wait for the delay before retrying
-        await new Promise((resolve) => setTimeout(resolve, delay));
+
+        // --- JITTER IMPLEMENTATION ---
+        // Calculate a random waiting time between 50% and 100% of the current delay
+        const minDelay = delay / 2;
+        const jitterDelay =
+          Math.floor(Math.random() * (delay - minDelay + 1)) + minDelay;
+
+        // Wait for the randomized delay
+        await new Promise((resolve) => setTimeout(resolve, jitterDelay));
+
+        // Exponential backoff, capping at 60 seconds
         delay = Math.min(delay * 2, 60000);
-        continue;
+        continue; // Go to the next attempt
       }
 
       if (!response.ok) {
