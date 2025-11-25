@@ -1,22 +1,27 @@
 import { promises as fs } from "fs";
-import axios from "axios";
+import { createWriteStream } from "fs"; // NEW: Import createWriteStream for stream management
+// import axios from "axios";
 
 // --- Configuration ---
 const NVD_API_KEY = process.env.NVD_API_KEY;
 const API_SECRET_KEY = process.env.API_SECRET_KEY;
 const NVD_BASE_URL = "https://services.nvd.nist.gov/rest/json/cves/2.0";
-const API_BASE_URL = "http://localhost:3000/api/cves";
+// const API_BASE_URL = "http://localhost:3000/api/cves";
 
 const RESULTS_PER_PAGE = 2000;
 const BAD_CVES_FILE = "badCVEs.jsonl";
-const API_RATE_LIMIT_MS = 0; // THROTTLE REMOVED: Set to 0 to run as fast as possible
-const MAX_CONCURRENT_FETCHES = 10; // Max number of simultaneous NVD API requests
+const OUTPUT_FILE = "output.jsonl";
+// const API_RATE_LIMIT_MS = 0;
+const MAX_CONCURRENT_FETCHES = 10;
 
 // --- Global Counters for Total Reporting ---
 let totalProcessed = 0;
 let totalSuccessful = 0;
 let totalRejected = 0;
 let totalFailed = 0;
+
+// --- Global Stream Handle ---
+let outputStream = null; // New global variable for the Writable Stream
 
 // --- Initial Checks ---
 if (!API_SECRET_KEY) {
@@ -31,7 +36,8 @@ if (!API_SECRET_KEY) {
 
 /**
  * Helper function to append a failed CVE record to the log file.
- * NOTE: The JSON object only includes cveId and reason as requested.
+ * We stick to fs.appendFile here as writes are infrequent and synchronous
+ * streaming is overkill for a failure log.
  * @param {object} cveRecord - The raw CVE object that failed.
  * @param {string} reason - The reason for failure (e.g., missing field).
  */
@@ -48,6 +54,31 @@ async function logBadCve(cveRecord, reason) {
   } catch (err) {
     console.error(`FATAL: Could not write to ${BAD_CVES_FILE}: ${err.message}`);
   }
+}
+
+/**
+ * Helper function to write the entire batch of successful CVEs to the output file stream.
+ * This is now the dedicated stream write function.
+ * @param {Array<object>} cvesArray - The array of successfully extracted CVE records.
+ * @returns {Promise<void>} Resolves when the write is complete, handling backpressure.
+ */
+function writeBatchToOutput(cvesArray) {
+  if (cvesArray.length === 0 || !outputStream) return;
+
+  const data = JSON.stringify(cvesArray) + "\n";
+
+  // Attempt to write the data
+  const canWrite = outputStream.write(data, "utf8");
+
+  // Check for backpressure
+  if (!canWrite) {
+    // If the buffer is full, return a promise that resolves when the 'drain' event fires
+    return new Promise((resolve) => {
+      outputStream.once("drain", resolve);
+    });
+  }
+  // Otherwise, the write was immediate, resolve immediately
+  return Promise.resolve();
 }
 
 async function postToDatabase(newCVEsArray) {
@@ -73,7 +104,7 @@ async function postToDatabase(newCVEsArray) {
  * Extracts and validates all required fields from a single NVD vulnerability record.
  * Throws an Error if any mandatory field is missing, allowing the calling function
  * to log the bad CVE.
- * * Required fields: cveId, published, lastModified, description (English)
+ * * Required fields: cveId, published, lastModified, status, description (English)
  * * @param {object} vulnerability - A single item from the NVD 'vulnerabilities' array.
  * @returns {object} The standardized and validated CVE record.
  */
@@ -102,14 +133,16 @@ const extractCveData = (vulnerability) => {
   if (!published) throw new Error(`Missing cve.published for CVE ID: ${id}`);
   if (!lastModified)
     throw new Error(`Missing cve.lastModified for CVE ID: ${id}`);
+  if (!status) throw new Error(`Missing cve.vulnStatus for CVE ID: ${id}`); // NEW: Status check
   if (!description)
     throw new Error(`Missing English description for CVE ID: ${id}`);
 
-  // 3. Build the Final Record with only the simplified fields
+  // 3. Build the Final Record with all required fields
   const record = {
     cveId: id,
     published: published,
     lastModified: lastModified,
+    status: status, // Status field added
     description: description,
   };
 
@@ -128,8 +161,6 @@ async function processCveBatch(vulnerabilities) {
 
   const batchProcessed = vulnerabilities.length;
   // Update global processed count at the start of the batch
-  // Note: We update totalProcessed here which might lead to non-sequential
-  // logs in the console due to concurrency, but the final total will be correct.
   totalProcessed += batchProcessed;
 
   for (const vuln of vulnerabilities) {
@@ -142,7 +173,6 @@ async function processCveBatch(vulnerabilities) {
       if (error.isRejected) {
         rejectedCount++;
         totalRejected++;
-        // No need to log rejected CVEs to badCVEs.jsonl
       } else {
         failedCount++;
         totalFailed++;
@@ -158,6 +188,10 @@ async function processCveBatch(vulnerabilities) {
   const successfulCount = goodCves.length;
 
   if (goodCves.length > 0) {
+    // 1. Write the successful batch to output.jsonl, handling backpressure
+    await writeBatchToOutput(goodCves);
+
+    // 2. Post to database (placeholder)
     await postToDatabase(goodCves);
   }
 
@@ -186,7 +220,7 @@ async function fetchAndProcessBatch(currentStartIndex, totalResults) {
   };
 
   let maxRetries = 5;
-  let delay = 1000;
+  let delay = 2000; // MODIFIED: Start delay at 2000ms (2 seconds)
 
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     try {
@@ -203,7 +237,7 @@ async function fetchAndProcessBatch(currentStartIndex, totalResults) {
         }
         // Rate limit detected, must wait for the delay before retrying
         await new Promise((resolve) => setTimeout(resolve, delay));
-        delay *= 2; // Exponential backoff
+        delay = Math.min(delay * 2, 60000); // MODIFIED: Exponential backoff, capping at 60 seconds
         continue; // Go to the next attempt
       }
 
@@ -223,6 +257,8 @@ async function fetchAndProcessBatch(currentStartIndex, totalResults) {
         `Progress: ${((currentStartIndex / totalResults) * 100).toFixed(2)}% (${currentStartIndex}/${totalResults})`,
       );
 
+      // This is awaited to ensure processCveBatch completes before
+      // we potentially exit the loop or start a new fetch (in sequential mode, not parallel)
       await processCveBatch(rawData.vulnerabilities);
 
       return rawData.vulnerabilities.length;
@@ -262,7 +298,10 @@ async function fetchAllCvesConcurrently() {
   totalSuccessful = 0;
   totalRejected = 0;
   totalFailed = 0;
-  await fs.writeFile(BAD_CVES_FILE, "", "utf-8"); // Clear the log file on start
+  await fs.writeFile(BAD_CVES_FILE, "", "utf-8"); // Clear bad CVEs log file on start
+
+  // NEW: Initialize the Writable Stream
+  outputStream = createWriteStream(OUTPUT_FILE, { encoding: "utf8" });
 
   const totalPages = Math.ceil(totalResults / RESULTS_PER_PAGE);
   const startIndices = [];
@@ -297,16 +336,21 @@ async function fetchAllCvesConcurrently() {
       );
       promises.push(promise);
 
-      // This is the CRITICAL rate limiter: wait 0ms before STARTING the next fetch.
-      // This is where the 600ms was removed.
-      // await new Promise(resolve => setTimeout(resolve, API_RATE_LIMIT_MS));
+      // No explicit global API rate limit timeout
     }
 
     // Wait for all started promises to resolve
     await Promise.all(promises);
   };
 
-  await runInParallel();
+  try {
+    await runInParallel();
+  } catch (e) {
+    console.error("An error occurred during concurrent execution:", e.message);
+  } finally {
+    // Ensure the stream is closed after all work is done
+    outputStream.end();
+  }
 
   console.log("\n--- NVD Synchronization Complete ---");
   console.log("--- FINAL RESULTS ---");
