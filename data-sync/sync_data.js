@@ -1,5 +1,5 @@
 import { promises as fs } from "fs";
-import { createWriteStream } from "fs"; // NEW: Import createWriteStream for stream management
+import { createWriteStream } from "fs";
 // import axios from "axios";
 
 // --- Configuration ---
@@ -19,9 +19,10 @@ let totalProcessed = 0;
 let totalSuccessful = 0;
 let totalRejected = 0;
 let totalFailed = 0;
+let totalVulnerableKnown = 0; // NEW: Counter for definitive "true" or "false" statuses
 
 // --- Global Stream Handle ---
-let outputStream = null; // New global variable for the Writable Stream
+let outputStream = null;
 
 // --- Initial Checks ---
 if (!API_SECRET_KEY) {
@@ -36,8 +37,6 @@ if (!API_SECRET_KEY) {
 
 /**
  * Helper function to append a failed CVE record to the log file.
- * We stick to fs.appendFile here as writes are infrequent and synchronous
- * streaming is overkill for a failure log.
  * @param {object} cveRecord - The raw CVE object that failed.
  * @param {string} reason - The reason for failure (e.g., missing field).
  */
@@ -49,7 +48,6 @@ async function logBadCve(cveRecord, reason) {
       reason: reason,
     }) + "\n";
   try {
-    // Append the JSONL entry to the file
     await fs.appendFile(BAD_CVES_FILE, logEntry, "utf-8");
   } catch (err) {
     console.error(`FATAL: Could not write to ${BAD_CVES_FILE}: ${err.message}`);
@@ -58,7 +56,6 @@ async function logBadCve(cveRecord, reason) {
 
 /**
  * Helper function to write the entire batch of successful CVEs to the output file stream.
- * This is now the dedicated stream write function.
  * @param {Array<object>} cvesArray - The array of successfully extracted CVE records.
  * @returns {Promise<void>} Resolves when the write is complete, handling backpressure.
  */
@@ -101,11 +98,68 @@ async function postToDatabase(newCVEsArray) {
 }
 
 /**
+ * Recursively searches the CVE configurations structure to find any cpeMatch object
+ * marked as vulnerable: true.
+ * * Logic:
+ * 1. Returns "true" if ANY cpeMatch.vulnerable is true.
+ * 2. Returns "false" if cve.configurations exists, but ALL cpeMatch.vulnerable are false.
+ * 3. Returns "Unknown" if cve.configurations is missing or empty.
+ * * @param {object} cve - The cve object.
+ * @returns {string} "true", "false", or "Unknown".
+ */
+const extractIsVulnerableStatus = (cve) => {
+  const configurations = cve.configurations;
+  if (!configurations || configurations.length === 0) {
+    return "Unknown";
+  }
+
+  // Flag to check if we found any valid config node/match at all
+  let foundAnyConfigMatch = false;
+
+  // Recursive helper to traverse nodes (which contain cpeMatch arrays or nested nodes)
+  const traverseNodes = (nodes) => {
+    if (!nodes) return;
+
+    for (const node of nodes) {
+      if (node.cpeMatch && node.cpeMatch.length > 0) {
+        foundAnyConfigMatch = true;
+        for (const match of node.cpeMatch) {
+          // If we find any single true, the record is globally "true"
+          if (match.vulnerable === true) {
+            return "true";
+          }
+        }
+      }
+
+      // If there are nested nodes (e.g., AND/OR groups), recurse
+      if (node.nodes && node.nodes.length > 0) {
+        const result = traverseNodes(node.nodes);
+        if (result === "true") return "true"; // Bubble up the true result
+      }
+    }
+  };
+
+  // Start traversal from the top level configurations
+  for (const config of configurations) {
+    if (config.nodes && config.nodes.length > 0) {
+      const result = traverseNodes(config.nodes);
+      if (result === "true") return "true"; // Found a definitive TRUE
+    }
+  }
+
+  // If we reached here, no 'vulnerable: true' was found.
+  // We check if we found ANY config matches (meaning all found were explicitly 'vulnerable: false').
+  if (foundAnyConfigMatch) {
+    return "false";
+  }
+
+  // If we didn't find any configuration structure at all
+  return "Unknown";
+};
+
+/**
  * Extracts and validates all required fields from a single NVD vulnerability record.
- * Throws an Error if any mandatory field is missing, allowing the calling function
- * to log the bad CVE.
- * * Required fields: cveId, published, lastModified, status, description (English)
- * * @param {object} vulnerability - A single item from the NVD 'vulnerabilities' array.
+ * @param {object} vulnerability - A single item from the NVD 'vulnerabilities' array.
  * @returns {object} The standardized and validated CVE record.
  */
 const extractCveData = (vulnerability) => {
@@ -118,7 +172,7 @@ const extractCveData = (vulnerability) => {
 
   const status = cve?.vulnStatus;
 
-  // 1. DISCARD IMMEDIATELY: Check for "Rejected" status first, before any expensive checks
+  // 1. DISCARD IMMEDIATELY: Check for "Rejected" status first
   if (status === "Rejected") {
     const rejectedError = new Error(`Rejected CVE ID: ${id}`);
     rejectedError.isRejected = true;
@@ -133,17 +187,26 @@ const extractCveData = (vulnerability) => {
   if (!published) throw new Error(`Missing cve.published for CVE ID: ${id}`);
   if (!lastModified)
     throw new Error(`Missing cve.lastModified for CVE ID: ${id}`);
-  if (!status) throw new Error(`Missing cve.vulnStatus for CVE ID: ${id}`); // NEW: Status check
+  if (!status) throw new Error(`Missing cve.vulnStatus for CVE ID: ${id}`);
   if (!description)
     throw new Error(`Missing English description for CVE ID: ${id}`);
 
-  // 3. Build the Final Record with all required fields
+  // 3. Extract Vulnerability Status
+  const isVulnerableString = extractIsVulnerableStatus(cve);
+
+  // 4. Update the "known" status counter
+  if (isVulnerableString !== "Unknown") {
+    totalVulnerableKnown++;
+  }
+
+  // 5. Build the Final Record with all required fields
   const record = {
     cveId: id,
     published: published,
     lastModified: lastModified,
-    status: status, // Status field added
+    status: status,
     description: description,
+    isVulnerable: isVulnerableString, // NEW: Added isVulnerable status as a string
   };
 
   return record;
@@ -151,17 +214,20 @@ const extractCveData = (vulnerability) => {
 
 /**
  * Processes a batch of raw NVD vulnerabilities.
- * Handles filtering, extraction, and logging of failures.
  * @param {Array<object>} vulnerabilities - Array of raw CVE records.
  */
 async function processCveBatch(vulnerabilities) {
   const goodCves = [];
   let rejectedCount = 0;
   let failedCount = 0;
+  let knownStatusCount = 0; // Batch counter for known statuses
 
   const batchProcessed = vulnerabilities.length;
   // Update global processed count at the start of the batch
   totalProcessed += batchProcessed;
+
+  // Capture current global known count before processing the batch
+  const initialVulnerableKnown = totalVulnerableKnown;
 
   for (const vuln of vulnerabilities) {
     try {
@@ -179,13 +245,13 @@ async function processCveBatch(vulnerabilities) {
         console.error(
           `[BAD CVE] ${error.message}. Logging to ${BAD_CVES_FILE}`,
         );
-        // Log the raw CVE object for inspection (only ID and reason)
         await logBadCve(vuln.cve, error.message);
       }
     }
   }
 
   const successfulCount = goodCves.length;
+  knownStatusCount = totalVulnerableKnown - initialVulnerableKnown;
 
   if (goodCves.length > 0) {
     // 1. Write the successful batch to output.jsonl, handling backpressure
@@ -201,6 +267,9 @@ async function processCveBatch(vulnerabilities) {
   console.log(`  -> Successful: ${totalSuccessful} (+${successfulCount})`);
   console.log(`  -> Rejected:   ${totalRejected} (+${rejectedCount})`);
   console.log(`  -> Failed:     ${totalFailed} (+${failedCount})`);
+  console.log(
+    `  -> Vulnerable Statuses Known: ${totalVulnerableKnown} (+${knownStatusCount})`,
+  ); // NEW Reporting
 }
 
 /**
@@ -220,7 +289,7 @@ async function fetchAndProcessBatch(currentStartIndex, totalResults) {
   };
 
   let maxRetries = 5;
-  let delay = 2000; // MODIFIED: Start delay at 2000ms (2 seconds)
+  let delay = 2000;
 
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     try {
@@ -237,8 +306,8 @@ async function fetchAndProcessBatch(currentStartIndex, totalResults) {
         }
         // Rate limit detected, must wait for the delay before retrying
         await new Promise((resolve) => setTimeout(resolve, delay));
-        delay = Math.min(delay * 2, 60000); // MODIFIED: Exponential backoff, capping at 60 seconds
-        continue; // Go to the next attempt
+        delay = Math.min(delay * 2, 60000);
+        continue;
       }
 
       if (!response.ok) {
@@ -257,8 +326,6 @@ async function fetchAndProcessBatch(currentStartIndex, totalResults) {
         `Progress: ${((currentStartIndex / totalResults) * 100).toFixed(2)}% (${currentStartIndex}/${totalResults})`,
       );
 
-      // This is awaited to ensure processCveBatch completes before
-      // we potentially exit the loop or start a new fetch (in sequential mode, not parallel)
       await processCveBatch(rawData.vulnerabilities);
 
       return rawData.vulnerabilities.length;
@@ -298,6 +365,7 @@ async function fetchAllCvesConcurrently() {
   totalSuccessful = 0;
   totalRejected = 0;
   totalFailed = 0;
+  totalVulnerableKnown = 0; // Reset new counter
   await fs.writeFile(BAD_CVES_FILE, "", "utf-8"); // Clear bad CVEs log file on start
 
   // NEW: Initialize the Writable Stream
@@ -359,6 +427,9 @@ async function fetchAllCvesConcurrently() {
   console.log(`Total Successful Records for Database: ${totalSuccessful}`);
   console.log(`Total Rejected (Status 'Rejected'): ${totalRejected}`);
   console.log(`Total Failed (Logged to badCVEs.jsonl): ${totalFailed}`);
+  console.log(
+    `Total Vulnerable Statuses Known (true/false): ${totalVulnerableKnown}`,
+  ); // NEW Final Stat
 }
 
 fetchAllCvesConcurrently();
