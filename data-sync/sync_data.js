@@ -25,6 +25,7 @@ let totalFailed = 0;
 let totalMissingStatus = 0;
 let totalUnknownVulnerability = 0;
 let totalUnknownSeverity = 0;
+let totalUnknownProduct = 0;
 
 // --- Global Stream Handle ---
 let outputStream = null;
@@ -241,6 +242,83 @@ const extractStatus = (cve) => {
   return status;
 };
 
+/**
+ * [SECONDARY FIELD EXTRACTOR] Extracts the product name and version from the first
+ * available CPE criteria found in the configurations structure.
+ * Updates the global counter if the product/version cannot be determined.
+ * @param {object} cve - The cve object.
+ * @returns {{productName: string, productVersion: string}} An object containing the extracted name and version,
+ * or an object with "UNKNOWN" values if extraction fails.
+ */
+const extractProductDetails = (cve) => {
+  const UNKNOWN_PRODUCT_VALUE = "UNKNOWN";
+  const UNKNOWN_VERSION_VALUE = "UNKNOWN_VERSION";
+
+  const configurations = cve.configurations;
+
+  // 1. Find the first CPE criteria string
+  let cpeCriteria = null;
+  const findFirstCpeCriteria = (nodes) => {
+    if (!nodes) return null;
+    for (const node of nodes) {
+      if (node.cpeMatch && node.cpeMatch.length > 0) {
+        return node.cpeMatch[0].criteria;
+      }
+      if (node.nodes && node.nodes.length > 0) {
+        const result = findFirstCpeCriteria(node.nodes);
+        if (result) return result;
+      }
+    }
+    return null;
+  };
+
+  if (configurations && configurations.length > 0) {
+    for (const config of configurations) {
+      cpeCriteria = findFirstCpeCriteria(config.nodes);
+      if (cpeCriteria) break;
+    }
+  }
+
+  if (!cpeCriteria) {
+    totalUnknownProduct++;
+    return {
+      productName: UNKNOWN_PRODUCT_VALUE,
+      productVersion: UNKNOWN_VERSION_VALUE,
+    };
+  }
+
+  // 2. Split and Extract Product Name and Version (Parts 4 and 5 in CPE 2.3)
+  const parts = cpeCriteria.split(":");
+
+  // A valid CPE 2.3 string has 12 parts, but we need at least the first 6 parts.
+  if (parts.length < 6) {
+    totalUnknownProduct++;
+    return {
+      productName: UNKNOWN_PRODUCT_VALUE,
+      productVersion: UNKNOWN_VERSION_VALUE,
+    };
+  }
+
+  const productName = parts[4] || UNKNOWN_PRODUCT_VALUE;
+  let productVersion = parts[5] || UNKNOWN_VERSION_VALUE;
+
+  // Check if the version field is a meaningless wildcard or empty placeholder
+  if (productVersion === "*" || productVersion === "-") {
+    productVersion = UNKNOWN_VERSION_VALUE;
+  }
+
+  // Check for partial failures (e.g., product name is missing but version exists, though unlikely)
+  if (
+    productName === UNKNOWN_PRODUCT_VALUE ||
+    productVersion === UNKNOWN_VERSION_VALUE
+  ) {
+    // If either part is unknown, we count this as a failure point.
+    totalUnknownProduct++;
+  }
+
+  return { productName, productVersion };
+};
+
 // =========================================================================
 // PRIMARY PROCESSING LOGIC
 // =========================================================================
@@ -267,6 +345,7 @@ const extractCveData = (vulnerability) => {
   const finalStatus = extractStatus(cve);
   const isVulnerableString = extractVulnerability(cve);
   const severityLevel = extractSeverity(cve.metrics);
+  const productAndVersion = extractProductDetails(cve);
 
   // 4. Build the Final Record
   const record = {
@@ -277,6 +356,7 @@ const extractCveData = (vulnerability) => {
     status: finalStatus,
     isVulnerable: isVulnerableString,
     severityLevel: severityLevel,
+    productAndVersion: productAndVersion,
   };
 
   return record;
@@ -295,6 +375,7 @@ async function processCveBatch(vulnerabilities) {
   const initialMissingStatus = totalMissingStatus;
   const initialUnknownVulnerable = totalUnknownVulnerability;
   const initialUnknownSeverity = totalUnknownSeverity;
+  const initialUnknownProduct = totalUnknownProduct;
 
   const batchProcessed = vulnerabilities.length;
   // Update global processed count at the start of the batch
@@ -329,6 +410,7 @@ async function processCveBatch(vulnerabilities) {
   const batchUnknownVulnerable =
     totalUnknownVulnerability - initialUnknownVulnerable;
   const batchUnknownSeverity = totalUnknownSeverity - initialUnknownSeverity;
+  const batchUnknownProduct = totalUnknownProduct - initialUnknownProduct;
 
   if (goodCves.length > 0) {
     // 1. Write the successful batch to output.jsonl, handling backpressure
@@ -354,6 +436,9 @@ async function processCveBatch(vulnerabilities) {
   );
   console.log(
     `  -> Unknown Severity Levels: ${totalUnknownSeverity} (+${batchUnknownSeverity})`,
+  );
+  console.log(
+    `  -> Unknown Product/Version: ${totalUnknownProduct} (+${batchUnknownProduct})`,
   );
 }
 
@@ -459,10 +544,10 @@ async function fetchAllCvesConcurrently() {
   totalMissingStatus = 0;
   totalUnknownVulnerability = 0;
   totalUnknownSeverity = 0;
+  totalUnknownProduct = 0;
 
   await fs.writeFile(BAD_CVES_FILE, "", "utf-8"); // Clear bad CVEs log file on start
 
-  // NEW: Initialize the Writable Stream
   outputStream = createWriteStream(OUTPUT_FILE, { encoding: "utf8" });
 
   const totalPages = Math.ceil(totalResults / RESULTS_PER_PAGE);
@@ -524,6 +609,7 @@ async function fetchAllCvesConcurrently() {
   console.log(`Total Missing Status Field: ${totalMissingStatus}`);
   console.log(`Total Unknown isVulnerable: ${totalUnknownVulnerability}`);
   console.log(`Total Unknown Severity Levels: ${totalUnknownSeverity}`);
+  console.log(`Total Unknown Product/Version: ${totalUnknownProduct}`);
 }
 
 fetchAllCvesConcurrently();
