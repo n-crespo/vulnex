@@ -18,8 +18,12 @@ const MAX_CONCURRENT_FETCHES = 10;
 let totalProcessed = 0;
 let totalSuccessful = 0;
 let totalRejected = 0;
-let totalFailed = 0;
-let totalVulnerableKnown = 0; // NEW: Counter for definitive "true" or "false" statuses
+let totalFailed = 0; // Total records failed entire validation (logged to badCVEs.jsonl)
+
+// --- Global Counters for Partial Data Failures (new requirement) ---
+let totalMissingStatus = 0;
+let totalUnknownVulnerability = 0;
+let totalUnknownSeverity = 0;
 
 // --- Global Stream Handle ---
 let outputStream = null;
@@ -96,6 +100,55 @@ async function postToDatabase(newCVEsArray) {
   //   console.error("Database post error: ", error.message);
   // }
 }
+
+/**
+ * Tries to extract the highest available CVSS Base Severity (V4.0 -> V3.1 -> V3.0 -> V2.0).
+ * Validates the severity string against the known CVSS categories.
+ * @param {object} metrics - The cve.metrics object.
+ * @returns {string} The base severity string ("NONE", "LOW", "MEDIUM", "HIGH", "CRITICAL", or "UNKNOWN").
+ */
+const extractBaseSeverity = (metrics) => {
+  if (!metrics) return "UNKNOWN";
+
+  // CVSS v3.x and v4.x standard severity levels
+  const validSeverities = ["NONE", "LOW", "MEDIUM", "HIGH", "CRITICAL"];
+
+  // Function to safely check and return severity
+  const getSeverity = (metric) => {
+    if (metric) {
+      // Check V4.0, V3.1, V3.0
+      const v34Severity = metric[0]?.cvssData?.baseSeverity;
+      // Check V2.0 (severity is one level up)
+      const v2Severity = metric[0]?.baseSeverity;
+
+      const severity = v34Severity || v2Severity;
+
+      if (severity !== undefined) {
+        const upperSeverity = severity.toUpperCase();
+        if (validSeverities.includes(upperSeverity)) {
+          return upperSeverity;
+        }
+      }
+    }
+    return null;
+  };
+
+  // Priority: V4.0 -> V3.1 -> V3.0 -> V2.0
+  let severity = getSeverity(metrics.cvssMetricV40);
+  if (severity) return severity;
+
+  severity = getSeverity(metrics.cvssMetricV31);
+  if (severity) return severity;
+
+  severity = getSeverity(metrics.cvssMetricV30);
+  if (severity) return severity;
+
+  // We are accepting V2 categorical severity if it matches the V3/V4 standards
+  severity = getSeverity(metrics.cvssMetricV2);
+  if (severity) return severity;
+
+  return "UNKNOWN";
+};
 
 /**
  * Recursively searches the CVE configurations structure to find any cpeMatch object
@@ -179,7 +232,7 @@ const extractCveData = (vulnerability) => {
     throw rejectedError;
   }
 
-  // 2. Mandatory Field Checks
+  // 2. Mandatory Field Checks (for throwing a TOTAL FAILURE)
   const published = cve?.published;
   const lastModified = cve?.lastModified;
   const description = cve.descriptions?.find((d) => d.lang === "en")?.value;
@@ -187,26 +240,49 @@ const extractCveData = (vulnerability) => {
   if (!published) throw new Error(`Missing cve.published for CVE ID: ${id}`);
   if (!lastModified)
     throw new Error(`Missing cve.lastModified for CVE ID: ${id}`);
+  // NOTE: Status is checked below for partial failure, but we check here for total failure.
   if (!status) throw new Error(`Missing cve.vulnStatus for CVE ID: ${id}`);
   if (!description)
     throw new Error(`Missing English description for CVE ID: ${id}`);
 
-  // 3. Extract Vulnerability Status
+  // 3. Extract Secondary Fields & Check for PARTIAL FAILURE
+
+  // --- 3a. Status (Only check if we missed it above, although unlikely) ---
+  let finalStatus = status; // Already checked for existence in mandatory checks
+
+  // --- 3b. Vulnerable Status ---
   const isVulnerableString = extractIsVulnerableStatus(cve);
 
-  // 4. Update the "known" status counter
-  if (isVulnerableString !== "Unknown") {
-    totalVulnerableKnown++;
+  // --- 3c. Severity Level ---
+  const severityLevel = extractBaseSeverity(cve.metrics);
+
+  // 4. Update PARTIAL FAILURE counters
+  if (!finalStatus) {
+    totalMissingStatus++;
+    finalStatus = "Unknown";
   }
 
-  // 5. Build the Final Record with all required fields
+  if (isVulnerableString === "Unknown") {
+    totalUnknownVulnerability++;
+  } else {
+    // If not "Unknown", it means we successfully determined "true" or "false"
+    // We remove the old counter totalVulnerableKnown since we are tracking the negative now.
+    // If you need it back, we can re-add it.
+  }
+
+  if (severityLevel === "UNKNOWN") {
+    totalUnknownSeverity++;
+  }
+
+  // 5. Build the Final Record
   const record = {
     cveId: id,
     published: published,
     lastModified: lastModified,
-    status: status,
+    status: finalStatus,
     description: description,
-    isVulnerable: isVulnerableString, // NEW: Added isVulnerable status as a string
+    isVulnerable: isVulnerableString,
+    severityLevel: severityLevel,
   };
 
   return record;
@@ -220,14 +296,15 @@ async function processCveBatch(vulnerabilities) {
   const goodCves = [];
   let rejectedCount = 0;
   let failedCount = 0;
-  let knownStatusCount = 0; // Batch counter for known statuses
+
+  // Capture current global partial failure counts before processing the batch
+  const initialMissingStatus = totalMissingStatus;
+  const initialUnknownVulnerable = totalUnknownVulnerability;
+  const initialUnknownSeverity = totalUnknownSeverity;
 
   const batchProcessed = vulnerabilities.length;
   // Update global processed count at the start of the batch
   totalProcessed += batchProcessed;
-
-  // Capture current global known count before processing the batch
-  const initialVulnerableKnown = totalVulnerableKnown;
 
   for (const vuln of vulnerabilities) {
     try {
@@ -245,13 +322,19 @@ async function processCveBatch(vulnerabilities) {
         console.error(
           `[BAD CVE] ${error.message}. Logging to ${BAD_CVES_FILE}`,
         );
+        // Use the raw cve object for logging the failure
         await logBadCve(vuln.cve, error.message);
       }
     }
   }
 
   const successfulCount = goodCves.length;
-  knownStatusCount = totalVulnerableKnown - initialVulnerableKnown;
+
+  // Calculate batch partial failure increments
+  const batchMissingStatus = totalMissingStatus - initialMissingStatus;
+  const batchUnknownVulnerable =
+    totalUnknownVulnerability - initialUnknownVulnerable;
+  const batchUnknownSeverity = totalUnknownSeverity - initialUnknownSeverity;
 
   if (goodCves.length > 0) {
     // 1. Write the successful batch to output.jsonl, handling backpressure
@@ -266,10 +349,18 @@ async function processCveBatch(vulnerabilities) {
   console.log(`  -> Total: ${totalProcessed} (+${batchProcessed})`);
   console.log(`  -> Successful: ${totalSuccessful} (+${successfulCount})`);
   console.log(`  -> Rejected:   ${totalRejected} (+${rejectedCount})`);
-  console.log(`  -> Failed:     ${totalFailed} (+${failedCount})`);
   console.log(
-    `  -> Vulnerable Statuses Known: ${totalVulnerableKnown} (+${knownStatusCount})`,
-  ); // NEW Reporting
+    `  -> Failed (Total Validation): ${totalFailed} (+${failedCount})`,
+  );
+  console.log(
+    `  -> Missing Status Field: ${totalMissingStatus} (+${batchMissingStatus})`,
+  );
+  console.log(
+    `  -> Unknown isVulnerable: ${totalUnknownVulnerability} (+${batchUnknownVulnerable})`,
+  );
+  console.log(
+    `  -> Unknown Severity Levels: ${totalUnknownSeverity} (+${batchUnknownSeverity})`,
+  );
 }
 
 /**
@@ -374,7 +465,10 @@ async function fetchAllCvesConcurrently() {
   totalSuccessful = 0;
   totalRejected = 0;
   totalFailed = 0;
-  totalVulnerableKnown = 0; // Reset new counter
+  totalMissingStatus = 0;
+  totalUnknownVulnerability = 0;
+  totalUnknownSeverity = 0;
+
   await fs.writeFile(BAD_CVES_FILE, "", "utf-8"); // Clear bad CVEs log file on start
 
   // NEW: Initialize the Writable Stream
@@ -436,9 +530,9 @@ async function fetchAllCvesConcurrently() {
   console.log(`Total Successful Records for Database: ${totalSuccessful}`);
   console.log(`Total Rejected (Status 'Rejected'): ${totalRejected}`);
   console.log(`Total Failed (Logged to badCVEs.jsonl): ${totalFailed}`);
-  console.log(
-    `Total Vulnerable Statuses Known (true/false): ${totalVulnerableKnown}`,
-  ); // NEW Final Stat
+  console.log(`Total Missing Status Field: ${totalMissingStatus}`);
+  console.log(`Total Unknown isVulnerable: ${totalUnknownVulnerability}`);
+  console.log(`Total Unknown Severity Levels: ${totalUnknownSeverity}`);
 }
 
 fetchAllCvesConcurrently();
