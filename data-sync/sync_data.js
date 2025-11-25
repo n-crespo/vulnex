@@ -15,6 +15,11 @@ const OUTPUT_FILE = "output.jsonl";
 const MAX_CONCURRENT_FETCHES = 10;
 const MAX_RETRIES = 6; // Updated as per successful run
 
+// for mock validation checks
+const cveIdRegex = /^(CVE|VUL|TEST)-\d{4}-\d{4,}$/i;
+const severityEnum = ["NONE", "LOW", "MEDIUM", "HIGH", "CRITICAL", "UNKNOWN"];
+const vulnerableEnum = ["true", "false", "Unknown"];
+
 // --- Global Counters for Total Reporting ---
 let totalProcessed = 0;
 let totalSuccessful = 0;
@@ -26,6 +31,7 @@ let totalMissingStatus = 0;
 let totalUnknownVulnerability = 0;
 let totalUnknownSeverity = 0;
 let totalUnknownProduct = 0;
+let totalValidationFails = 0;
 
 // --- Global Stream Handle ---
 let outputStream = null;
@@ -90,6 +96,7 @@ async function postToDatabase(newCVEsArray) {
     return;
   }
   console.log(`Attempting to post ${newCVEsArray.length} records...`);
+  verifyCveArrayData(newCVEsArray);
   // --- This is the placeholder for your actual database posting logic ---
   // try {
   //   const response = await protectedClient.post("/", newCVEsArray);
@@ -101,6 +108,58 @@ async function postToDatabase(newCVEsArray) {
   // } catch (error) {
   //   console.error("Database post error: ", error.message);
   // }
+}
+
+/**
+ * Verifies if all CVE objects in an array conform to the required regex and enum standards.
+ * @param {Array<Object>} cveArray The array of parsed CVE objects.
+ */
+function verifyCveArrayData(cveArray) {
+  let failedCount = 0;
+
+  cveArray.forEach((cve, index) => {
+    let isValid = true;
+    const errors = [];
+
+    // cveid against regex
+    if (!cveIdRegex.test(cve.cveId)) {
+      errors.push(`cveId: '${cve.cveId}' failed regex check.`);
+      isValid = false;
+    }
+
+    // severityLevel against enum
+    if (!severityEnum.includes(cve.severityLevel)) {
+      errors.push(
+        `severityLevel: '${cve.severityLevel}' is not a valid enum value.`,
+      );
+      isValid = false;
+    }
+
+    // isVulnerable vs enum
+    if (!vulnerableEnum.includes(cve.isVulnerable)) {
+      errors.push(
+        `isVulnerable: '${cve.isVulnerable}' is not a valid enum value.`,
+      );
+      isValid = false;
+    }
+
+    if (!isValid) {
+      console.error(
+        `Validation Failed for CVE at index ${index} (${cve.cveId || "No ID"}):`,
+        errors,
+      );
+      failedCount++;
+    }
+  });
+
+  if (failedCount === 0) {
+    // console.log(
+    //   `Validation successful: ${cveArray.length} records passed all checks.`,
+    // );
+  } else {
+    totalValidationFails += failedCount;
+    console.warn(`${failedCount} records failed validation checks.`);
+  }
 }
 
 // =========================================================================
@@ -481,6 +540,7 @@ async function processCveBatch(vulnerabilities) {
   console.log(
     `  -> Unknown Product/Version: ${totalUnknownProduct} (+${batchUnknownProduct})`,
   );
+  console.log(`  -> Failed Validations: ${totalValidationFails}`);
 }
 
 /**
@@ -651,6 +711,7 @@ async function fetchAllCvesConcurrently() {
   console.log(`Total Unknown isVulnerable: ${totalUnknownVulnerability}`);
   console.log(`Total Unknown Severity Levels: ${totalUnknownSeverity}`);
   console.log(`Total Unknown Product/Version: ${totalUnknownProduct}`);
+  console.log(`Total Validation Fails: ${totalValidationFails}`);
 }
 
 fetchAllCvesConcurrently();
