@@ -24,8 +24,7 @@ const CVESchema = Schema(
       trim: true,
       uppercase: true,
     },
-    // TODO: turn these dates from ISO time stamp format into Date objects for
-    // proper indexing.
+    // could turn these dates from ISO time stamp format into Date objects for better indexing?
     published: {
       type: String,
       required: true,
@@ -46,21 +45,35 @@ const CVESchema = Schema(
       required: true,
       text: true, // creates a text index for keyword searching
     },
-    baseSeverityScore: {
-      type: Number,
-      cast: false, // don't coerce type into a number
-      required: true,
-      min: [1, "Base severity score must be at least 1."],
-      max: [10, "Base severity score cannot exceed 10."],
-    },
-    isVulnerable: {
-      type: Boolean,
+
+    // Categorical Severity (NONE, LOW, MEDIUM, HIGH, CRITICAL, UNKNOWN)
+    severityLevel: {
+      type: String,
       required: true,
       index: true,
-      cast: false, // don't type cast
     },
-    // TODO: split up cpeId into product/version. currently not indexed.
-    cpeId: {
+
+    // ("true", "false", "Unknown")
+    isVulnerable: {
+      type: String,
+      required: true,
+      index: true,
+    },
+
+    productName: {
+      type: String,
+      required: true,
+      index: true, // Common query point
+    },
+    patchedInVersion: {
+      type: String,
+      required: true,
+    },
+    minAffectedVersion: {
+      type: String,
+      required: true,
+    },
+    maxAffectedVersion: {
       type: String,
       required: true,
     },
