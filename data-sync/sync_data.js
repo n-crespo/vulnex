@@ -13,14 +13,15 @@ const BAD_CVES_FILE = "badCVEs.jsonl";
 const OUTPUT_FILE = "output.jsonl";
 // const API_RATE_LIMIT_MS = 0;
 const MAX_CONCURRENT_FETCHES = 10;
+const MAX_RETRIES = 6; // Updated as per successful run
 
 // --- Global Counters for Total Reporting ---
 let totalProcessed = 0;
 let totalSuccessful = 0;
 let totalRejected = 0;
-let totalFailed = 0; // Total records failed entire validation (logged to badCVEs.jsonl)
+let totalFailed = 0;
 
-// --- Global Counters for Partial Data Failures (new requirement) ---
+// --- Global Counters for Partial Data Failures (Unknown/Missing) ---
 let totalMissingStatus = 0;
 let totalUnknownVulnerability = 0;
 let totalUnknownSeverity = 0;
@@ -101,26 +102,101 @@ async function postToDatabase(newCVEsArray) {
   // }
 }
 
+// =========================================================================
+// MODULAR EXTRACTION FUNCTIONS
+// The following functions implement the core logic for extracting specific fields.
+// =========================================================================
+
 /**
- * Tries to extract the highest available CVSS Base Severity (V4.0 -> V3.1 -> V3.0 -> V2.0).
- * Validates the severity string against the known CVSS categories.
+ * [MANDATORY FIELD EXTRACTOR] Extracts core fields needed for a valid record.
+ * Throws an error if any of these are missing, resulting in total record failure.
+ * @param {object} cve - The cve object.
+ * @returns {{id: string, published: string, lastModified: string, description: string}}
+ */
+const extractRequiredFields = (cve) => {
+  const id = cve?.id;
+  const published = cve?.published;
+  const lastModified = cve?.lastModified;
+  const description = cve.descriptions?.find((d) => d.lang === "en")?.value;
+
+  if (!id) throw new Error("Missing cve.id in vulnerability record.");
+  if (!published) throw new Error(`Missing cve.published for CVE ID: ${id}`);
+  if (!lastModified)
+    throw new Error(`Missing cve.lastModified for CVE ID: ${id}`);
+  if (!description)
+    throw new Error(`Missing English description for CVE ID: ${id}`);
+
+  return { id, published, lastModified, description };
+};
+
+/**
+ * [SECONDARY FIELD EXTRACTOR] Extracts the vulnerability status.
+ * Updates the global counter if the status cannot be determined.
+ * @param {object} cve - The cve object.
+ * @returns {string} "true", "false", or "Unknown".
+ */
+const extractVulnerability = (cve) => {
+  // Recursive helper function (kept inline for simplicity, but could be separate)
+  const traverseNodes = (nodes) => {
+    if (!nodes) return;
+    let foundAnyConfigMatch = false;
+
+    for (const node of nodes) {
+      if (node.cpeMatch && node.cpeMatch.length > 0) {
+        foundAnyConfigMatch = true;
+        for (const match of node.cpeMatch) {
+          if (match.vulnerable === true) return "true";
+        }
+      }
+      if (node.nodes && node.nodes.length > 0) {
+        const result = traverseNodes(node.nodes);
+        if (result === "true") return "true";
+      }
+    }
+    return foundAnyConfigMatch ? "partial_false" : null;
+  };
+
+  const configurations = cve.configurations;
+  if (!configurations || configurations.length === 0) {
+    totalUnknownVulnerability++;
+    return "Unknown";
+  }
+
+  let foundConfig = false;
+  for (const config of configurations) {
+    if (config.nodes && config.nodes.length > 0) {
+      const result = traverseNodes(config.nodes);
+      if (result === "true") return "true";
+      if (result === "partial_false") foundConfig = true;
+    }
+  }
+
+  if (foundConfig) {
+    return "false";
+  }
+
+  totalUnknownVulnerability++;
+  return "Unknown";
+};
+
+/**
+ * [SECONDARY FIELD EXTRACTOR] Extracts the categorical severity level.
+ * Updates the global counter if the severity level is not recognized.
  * @param {object} metrics - The cve.metrics object.
  * @returns {string} The base severity string ("NONE", "LOW", "MEDIUM", "HIGH", "CRITICAL", or "UNKNOWN").
  */
-const extractBaseSeverity = (metrics) => {
-  if (!metrics) return "UNKNOWN";
+const extractSeverity = (metrics) => {
+  if (!metrics) {
+    totalUnknownSeverity++;
+    return "UNKNOWN";
+  }
 
-  // CVSS v3.x and v4.x standard severity levels
   const validSeverities = ["NONE", "LOW", "MEDIUM", "HIGH", "CRITICAL"];
 
-  // Function to safely check and return severity
   const getSeverity = (metric) => {
     if (metric) {
-      // Check V4.0, V3.1, V3.0
       const v34Severity = metric[0]?.cvssData?.baseSeverity;
-      // Check V2.0 (severity is one level up)
       const v2Severity = metric[0]?.baseSeverity;
-
       const severity = v34Severity || v2Severity;
 
       if (severity !== undefined) {
@@ -143,72 +219,31 @@ const extractBaseSeverity = (metrics) => {
   severity = getSeverity(metrics.cvssMetricV30);
   if (severity) return severity;
 
-  // We are accepting V2 categorical severity if it matches the V3/V4 standards
   severity = getSeverity(metrics.cvssMetricV2);
   if (severity) return severity;
 
+  totalUnknownSeverity++;
   return "UNKNOWN";
 };
 
 /**
- * Recursively searches the CVE configurations structure to find any cpeMatch object
- * marked as vulnerable: true.
- * * Logic:
- * 1. Returns "true" if ANY cpeMatch.vulnerable is true.
- * 2. Returns "false" if cve.configurations exists, but ALL cpeMatch.vulnerable are false.
- * 3. Returns "Unknown" if cve.configurations is missing or empty.
- * * @param {object} cve - The cve object.
- * @returns {string} "true", "false", or "Unknown".
+ * [SECONDARY FIELD EXTRACTOR] Extracts the CVE status.
+ * Updates the global counter if the status is missing.
+ * @param {object} cve - The cve object.
+ * @returns {string} The status string or "Unknown".
  */
-const extractIsVulnerableStatus = (cve) => {
-  const configurations = cve.configurations;
-  if (!configurations || configurations.length === 0) {
+const extractStatus = (cve) => {
+  const status = cve?.vulnStatus;
+  if (!status) {
+    totalMissingStatus++;
     return "Unknown";
   }
-
-  // Flag to check if we found any valid config node/match at all
-  let foundAnyConfigMatch = false;
-
-  // Recursive helper to traverse nodes (which contain cpeMatch arrays or nested nodes)
-  const traverseNodes = (nodes) => {
-    if (!nodes) return;
-
-    for (const node of nodes) {
-      if (node.cpeMatch && node.cpeMatch.length > 0) {
-        foundAnyConfigMatch = true;
-        for (const match of node.cpeMatch) {
-          // If we find any single true, the record is globally "true"
-          if (match.vulnerable === true) {
-            return "true";
-          }
-        }
-      }
-
-      // If there are nested nodes (e.g., AND/OR groups), recurse
-      if (node.nodes && node.nodes.length > 0) {
-        const result = traverseNodes(node.nodes);
-        if (result === "true") return "true"; // Bubble up the true result
-      }
-    }
-  };
-
-  // Start traversal from the top level configurations
-  for (const config of configurations) {
-    if (config.nodes && config.nodes.length > 0) {
-      const result = traverseNodes(config.nodes);
-      if (result === "true") return "true"; // Found a definitive TRUE
-    }
-  }
-
-  // If we reached here, no 'vulnerable: true' was found.
-  // We check if we found ANY config matches (meaning all found were explicitly 'vulnerable: false').
-  if (foundAnyConfigMatch) {
-    return "false";
-  }
-
-  // If we didn't find any configuration structure at all
-  return "Unknown";
+  return status;
 };
+
+// =========================================================================
+// PRIMARY PROCESSING LOGIC
+// =========================================================================
 
 /**
  * Extracts and validates all required fields from a single NVD vulnerability record.
@@ -217,70 +252,29 @@ const extractIsVulnerableStatus = (cve) => {
  */
 const extractCveData = (vulnerability) => {
   const cve = vulnerability.cve;
-  const id = cve?.id;
-
-  if (!id) {
-    throw new Error("Missing cve.id in vulnerability record.");
-  }
-
-  const status = cve?.vulnStatus;
 
   // 1. DISCARD IMMEDIATELY: Check for "Rejected" status first
-  if (status === "Rejected") {
-    const rejectedError = new Error(`Rejected CVE ID: ${id}`);
+  if (cve?.vulnStatus === "Rejected") {
+    const rejectedError = new Error(`Rejected CVE ID: ${cve.id}`);
     rejectedError.isRejected = true;
     throw rejectedError;
   }
 
-  // 2. Mandatory Field Checks (for throwing a TOTAL FAILURE)
-  const published = cve?.published;
-  const lastModified = cve?.lastModified;
-  const description = cve.descriptions?.find((d) => d.lang === "en")?.value;
+  // 2. Extract Mandatory Fields (Throws if fails -> totalFailed)
+  const requiredData = extractRequiredFields(cve);
 
-  if (!published) throw new Error(`Missing cve.published for CVE ID: ${id}`);
-  if (!lastModified)
-    throw new Error(`Missing cve.lastModified for CVE ID: ${id}`);
-  // NOTE: Status is checked below for partial failure, but we check here for total failure.
-  if (!status) throw new Error(`Missing cve.vulnStatus for CVE ID: ${id}`);
-  if (!description)
-    throw new Error(`Missing English description for CVE ID: ${id}`);
+  // 3. Extract Secondary Fields (Fails gracefully -> updates partial counters)
+  const finalStatus = extractStatus(cve);
+  const isVulnerableString = extractVulnerability(cve);
+  const severityLevel = extractSeverity(cve.metrics);
 
-  // 3. Extract Secondary Fields & Check for PARTIAL FAILURE
-
-  // --- 3a. Status (Only check if we missed it above, although unlikely) ---
-  let finalStatus = status; // Already checked for existence in mandatory checks
-
-  // --- 3b. Vulnerable Status ---
-  const isVulnerableString = extractIsVulnerableStatus(cve);
-
-  // --- 3c. Severity Level ---
-  const severityLevel = extractBaseSeverity(cve.metrics);
-
-  // 4. Update PARTIAL FAILURE counters
-  if (!finalStatus) {
-    totalMissingStatus++;
-    finalStatus = "Unknown";
-  }
-
-  if (isVulnerableString === "Unknown") {
-    totalUnknownVulnerability++;
-  } else {
-    // If not "Unknown", it means we successfully determined "true" or "false"
-    // We remove the old counter totalVulnerableKnown since we are tracking the negative now.
-    // If you need it back, we can re-add it.
-  }
-
-  if (severityLevel === "UNKNOWN") {
-    totalUnknownSeverity++;
-  }
-
-  // 5. Build the Final Record
+  // 4. Build the Final Record
   const record = {
-    cveId: id,
-    published: published,
-    lastModified: lastModified,
+    cveId: requiredData.id,
+    published: requiredData.published,
+    lastModified: requiredData.lastModified,
+    description: requiredData.description,
     status: finalStatus,
-    description: description,
     isVulnerable: isVulnerableString,
     severityLevel: severityLevel,
   };
@@ -379,7 +373,7 @@ async function fetchAndProcessBatch(currentStartIndex, totalResults) {
     },
   };
 
-  let maxRetries = 6;
+  let maxRetries = MAX_RETRIES; // Use constant
   let delay = 2000;
 
   for (let attempt = 0; attempt < maxRetries; attempt++) {
@@ -397,15 +391,12 @@ async function fetchAndProcessBatch(currentStartIndex, totalResults) {
         }
 
         // --- JITTER IMPLEMENTATION ---
-        // Calculate a random waiting time between 50% and 100% of the current delay
         const minDelay = delay / 2;
         const jitterDelay =
           Math.floor(Math.random() * (delay - minDelay + 1)) + minDelay;
 
-        // Wait for the randomized delay
         await new Promise((resolve) => setTimeout(resolve, jitterDelay));
 
-        // Exponential backoff, capping at 60 seconds
         delay = Math.min(delay * 2, 60000);
         continue; // Go to the next attempt
       }
