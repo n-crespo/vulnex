@@ -1,5 +1,15 @@
 # Resources
 
+> [!NOTE]
+> For troubleshooting, find a SINGLE cve with the following URL:
+>
+> ```
+> <https://services.nvd.nist.gov/rest/json/cves/2.0?cveId={YOUR-CVE-ID}>
+> ```
+>
+> For example, see
+> <https://services.nvd.nist.gov/rest/json/cves/2.0?cveId=CVE-2021-21429>
+
 - NVD CVE API JSON Schema
   - <https://nvd.nist.gov/vuln/data-feeds#:~:text=Schema%20Version%202.0%20%3A%C2%A0%20NVD%20JSON%202.0%20Schema)>
   - <https://csrc.nist.gov/schema/nvd/api/2.0/cve_api_json_2.0.schema>
