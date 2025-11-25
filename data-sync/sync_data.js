@@ -2,7 +2,6 @@ import { promises as fs } from "fs";
 import { createWriteStream } from "fs";
 // import axios from "axios";
 
-// --- Configuration ---
 const NVD_API_KEY = process.env.NVD_API_KEY;
 const API_SECRET_KEY = process.env.API_SECRET_KEY;
 const NVD_BASE_URL = "https://services.nvd.nist.gov/rest/json/cves/2.0";
@@ -13,30 +12,29 @@ const BAD_CVES_FILE = "badCVEs.jsonl";
 const OUTPUT_FILE = "output.jsonl";
 // const API_RATE_LIMIT_MS = 0;
 const MAX_CONCURRENT_FETCHES = 10;
-const MAX_RETRIES = 6; // Updated as per successful run
+const MAX_RETRIES = 6; // increased from 5
 
 // for mock validation checks
 const cveIdRegex = /^(CVE|VUL|TEST)-\d{4}-\d{4,}$/i;
 const severityEnum = ["NONE", "LOW", "MEDIUM", "HIGH", "CRITICAL", "UNKNOWN"];
 const vulnerableEnum = ["true", "false", "Unknown"];
 
-// --- Global Counters for Total Reporting ---
+// global success counters used in final report
 let totalProcessed = 0;
 let totalSuccessful = 0;
 let totalRejected = 0;
 let totalFailed = 0;
 
-// --- Global Counters for Partial Data Failures (Unknown/Missing) ---
+// global failure counters used in final report
 let totalMissingStatus = 0;
 let totalUnknownVulnerability = 0;
 let totalUnknownSeverity = 0;
 let totalUnknownProduct = 0;
 let totalValidationFails = 0;
 
-// --- Global Stream Handle ---
 let outputStream = null;
 
-// --- Initial Checks ---
+// don't run without api key
 if (!API_SECRET_KEY) {
   console.warn("Warning: API_SECRET_KEY is not set. Execution stopped.");
   throw new Error("API_SECRET_KEY is required.");
@@ -53,7 +51,6 @@ if (!API_SECRET_KEY) {
  * @param {string} reason - The reason for failure (e.g., missing field).
  */
 async function logBadCve(cveRecord, reason) {
-  // Only include cveId and reason as requested
   const logEntry =
     JSON.stringify({
       cveId: cveRecord.id,
@@ -162,14 +159,11 @@ function verifyCveArrayData(cveArray) {
   }
 }
 
-// =========================================================================
-// MODULAR EXTRACTION FUNCTIONS
-// The following functions implement the core logic for extracting specific fields.
-// =========================================================================
+// EXTRACTION FUNCTIONS
 
 /**
- * [MANDATORY FIELD EXTRACTOR] Extracts core fields needed for a valid record.
- * Throws an error if any of these are missing, resulting in total record failure.
+ *  Extracts core fields needed for a valid record. Throws an error if any of
+ *  these are missing, resulting in total record failure.
  * @param {object} cve - The cve object.
  * @returns {{id: string, published: string, lastModified: string, description: string}}
  */
@@ -190,13 +184,13 @@ const extractRequiredFields = (cve) => {
 };
 
 /**
- * [SECONDARY FIELD EXTRACTOR] Extracts the vulnerability status.
- * Updates the global counter if the status cannot be determined.
+ *  Extracts the vulnerability status. Updates the global counter if the status
+ *  cannot be determined.
  * @param {object} cve - The cve object.
  * @returns {string} "true", "false", or "Unknown".
  */
 const extractVulnerability = (cve) => {
-  // Recursive helper function (kept inline for simplicity, but could be separate)
+  // recursive helper function
   const traverseNodes = (nodes) => {
     if (!nodes) return;
     let foundAnyConfigMatch = false;
@@ -240,8 +234,8 @@ const extractVulnerability = (cve) => {
 };
 
 /**
- * [SECONDARY FIELD EXTRACTOR] Extracts the categorical severity level.
- * Updates the global counter if the severity level is not recognized.
+ *  Extracts the categorical severity level. Updates the global counter if the
+ *  severity level is not recognized.
  * @param {object} metrics - The cve.metrics object.
  * @returns {string} The base severity string ("NONE", "LOW", "MEDIUM", "HIGH", "CRITICAL", or "UNKNOWN").
  */
@@ -269,7 +263,7 @@ const extractSeverity = (metrics) => {
     return null;
   };
 
-  // Priority: V4.0 -> V3.1 -> V3.0 -> V2.0
+  // Priority: V4.0, V3.1, V3.0, V2.0
   let severity = getSeverity(metrics.cvssMetricV40);
   if (severity) return severity;
 
@@ -287,8 +281,8 @@ const extractSeverity = (metrics) => {
 };
 
 /**
- * [SECONDARY FIELD EXTRACTOR] Extracts the CVE status.
- * Updates the global counter if the status is missing.
+ *  Extracts the CVE status. Updates the global counter if the status is
+ *  missing.
  * @param {object} cve - The cve object.
  * @returns {string} The status string or "Unknown".
  */
@@ -302,8 +296,8 @@ const extractStatus = (cve) => {
 };
 
 /**
- * [SECONDARY FIELD EXTRACTOR] Extracts the product name and the version status (patch version or affected range).
- * Prioritizes 'versionEndExcluding' as the definitive patch version.
+ *  Extracts the product name and the version status (patch version or affected
+ *  range). Prioritizes 'versionEndExcluding' as the definitive patch version.
  * Updates the global counter if product details cannot be determined.
  * @param {object} cve - The cve object.
  * @returns {{productName: string, patchedInVersion: string, minAffectedVersion: string, maxAffectedVersion: string}}
@@ -316,7 +310,7 @@ const extractProductDetails = (cve) => {
   const configurations = cve.configurations;
 
   let firstProductName = null;
-  let patchedVersion = null; // NEW: Holds the versionEndExcluding value
+  let patchedVersion = null;
   const specificVersions = new Set();
 
   const isWildcard = (v) => v === "*" || v === "-" || !v;
@@ -334,7 +328,7 @@ const extractProductDetails = (cve) => {
             const productName = parts[4];
             let versionInCriteria = parts[5];
 
-            // 1. Capture the first valid product name found
+            // Capture the first valid product name found
             if (
               !firstProductName &&
               productName &&
@@ -343,16 +337,15 @@ const extractProductDetails = (cve) => {
               firstProductName = productName;
             }
 
-            // 2. Capture the Patch Version (highest priority)
+            // capture the patch version
             if (!patchedVersion && match.versionEndExcluding) {
               patchedVersion = match.versionEndExcluding;
             } else if (!patchedVersion && match.versionEndIncluding) {
-              // Sometimes 'versionEndIncluding' is used to define the last vulnerable version
-              // We'll capture it, but 'Excluding' is usually cleaner.
+              // sometimes versionEndIncluding is used to define the last vulnerable version
               patchedVersion = match.versionEndIncluding;
             }
 
-            // 3. Collect specific version numbers from criteria (as a fallback/range)
+            // collect specific version numbers from criteria as fallback
             if (!isWildcard(versionInCriteria)) {
               specificVersions.add(versionInCriteria);
             }
@@ -366,26 +359,23 @@ const extractProductDetails = (cve) => {
     }
   };
 
-  // Start traversal
   if (configurations && configurations.length > 0) {
     for (const config of configurations) {
       traverseAndCollect(config.nodes);
     }
   }
 
-  // --- Determine Final Range and Product Name ---
-
+  // Determine Final Range and Product Name
   if (!firstProductName) {
     totalUnknownProduct++;
     return {
       productName: UNKNOWN_PRODUCT_VALUE,
-      patchedInVersion: UNKNOWN_VERSION_VALUE, // Added new field
+      patchedInVersion: UNKNOWN_VERSION_VALUE,
       minAffectedVersion: UNKNOWN_VERSION_VALUE,
       maxAffectedVersion: UNKNOWN_VERSION_VALUE,
     };
   }
 
-  // Determine min/max affected versions from the collected criteria list
   let minVersion = UNKNOWN_VERSION_VALUE;
   let maxVersion = UNKNOWN_VERSION_VALUE;
 
@@ -395,7 +385,7 @@ const extractProductDetails = (cve) => {
     maxVersion = sortedVersions[sortedVersions.length - 1];
   }
 
-  // If we found a patch version, use it. Otherwise, mark the patch field as UNKNOWN.
+  // UNKNOWN as fallback value
   const finalPatchedVersion = patchedVersion || UNKNOWN_VERSION_VALUE;
 
   // Final check for unknown status
@@ -403,7 +393,7 @@ const extractProductDetails = (cve) => {
     finalPatchedVersion === UNKNOWN_VERSION_VALUE &&
     specificVersions.size === 0
   ) {
-    // We only count as Unknown if we found no patch version AND no criteria versions.
+    // only count as failure if we found no patch version AND no criteria versions.
     totalUnknownProduct++;
   }
 
@@ -416,9 +406,7 @@ const extractProductDetails = (cve) => {
   };
 };
 
-// =========================================================================
-// PRIMARY PROCESSING LOGIC
-// =========================================================================
+// PRIMARY LOGIC
 
 /**
  * Extracts and validates all required fields from a single NVD vulnerability record.
@@ -428,23 +416,22 @@ const extractProductDetails = (cve) => {
 const extractCveData = (vulnerability) => {
   const cve = vulnerability.cve;
 
-  // 1. DISCARD IMMEDIATELY: Check for "Rejected" status first
+  // Check for "Rejected" status first and discard
   if (cve?.vulnStatus === "Rejected") {
     const rejectedError = new Error(`Rejected CVE ID: ${cve.id}`);
     rejectedError.isRejected = true;
     throw rejectedError;
   }
 
-  // 2. Extract Mandatory Fields (Throws if fails -> totalFailed)
+  // extract mandatory fields and throw error if fails (shouldn't, hasn't)
   const requiredData = extractRequiredFields(cve);
 
-  // 3. Extract Secondary Fields (Fails gracefully -> updates partial counters)
+  // optional fields (include failure counters, errors gracefully)
   const finalStatus = extractStatus(cve);
   const isVulnerableString = extractVulnerability(cve);
   const severityLevel = extractSeverity(cve.metrics);
-  const productDetails = extractProductDetails(cve); // Returns object with 4 fields
+  const productDetails = extractProductDetails(cve); // returns object with 4 fields
 
-  // 4. Build the Final Record
   const record = {
     cveId: requiredData.id,
     published: requiredData.published,
@@ -487,7 +474,6 @@ async function processCveBatch(vulnerabilities) {
       goodCves.push(extractedRecord);
       totalSuccessful++;
     } catch (error) {
-      // Check for the 'Rejected' status filter
       if (error.isRejected) {
         rejectedCount++;
         totalRejected++;
@@ -513,14 +499,13 @@ async function processCveBatch(vulnerabilities) {
   const batchUnknownProduct = totalUnknownProduct - initialUnknownProduct;
 
   if (goodCves.length > 0) {
-    // 1. Write the successful batch to output.jsonl, handling backpressure
+    // write to output file
     await writeBatchToOutput(goodCves);
-
-    // 2. Post to database (placeholder)
+    // post to database
     await postToDatabase(goodCves);
   }
 
-  // Updated console output to show running totals and batch increments
+  // per-batch report
   console.log(`Processed batch: ${batchProcessed}`);
   console.log(`  -> Total: ${totalProcessed} (+${batchProcessed})`);
   console.log(`  -> Successful: ${totalSuccessful} (+${successfulCount})`);
@@ -559,7 +544,7 @@ async function fetchAndProcessBatch(currentStartIndex, totalResults) {
     },
   };
 
-  let maxRetries = MAX_RETRIES; // Use constant
+  let maxRetries = MAX_RETRIES;
   let delay = 2000;
 
   for (let attempt = 0; attempt < maxRetries; attempt++) {
@@ -576,7 +561,8 @@ async function fetchAndProcessBatch(currentStartIndex, totalResults) {
           );
         }
 
-        // --- JITTER IMPLEMENTATION ---
+        // JITTER (include randomness in delay for next api call to avoid
+        // overloading api)
         const minDelay = delay / 2;
         const jitterDelay =
           Math.floor(Math.random() * (delay - minDelay + 1)) + minDelay;
@@ -622,7 +608,7 @@ async function fetchAndProcessBatch(currentStartIndex, totalResults) {
 async function fetchAllCvesConcurrently() {
   console.log("Starting initial fetch to determine total results...");
 
-  // 1. Initial synchronous fetch to get totalResults
+  // synchronous fetch to get totalResults
   const initialUrl = `${NVD_BASE_URL}/?resultsPerPage=1&startIndex=0`;
   let totalResults = 0;
   try {
@@ -637,7 +623,6 @@ async function fetchAllCvesConcurrently() {
     return;
   }
 
-  // 2. Setup counters and file
   totalProcessed = 0;
   totalSuccessful = 0;
   totalRejected = 0;
@@ -647,7 +632,7 @@ async function fetchAllCvesConcurrently() {
   totalUnknownSeverity = 0;
   totalUnknownProduct = 0;
 
-  await fs.writeFile(BAD_CVES_FILE, "", "utf-8"); // Clear bad CVEs log file on start
+  await fs.writeFile(BAD_CVES_FILE, "", "utf-8"); // clear bad CVEs log file on start
 
   outputStream = createWriteStream(OUTPUT_FILE, { encoding: "utf8" });
 
@@ -664,22 +649,22 @@ async function fetchAllCvesConcurrently() {
     `Starting concurrent fetch of ${totalPages} batches (Max Concurrency: ${MAX_CONCURRENT_FETCHES}).`,
   );
 
-  // 3. Simple rate-limited concurrent execution
+  // simple rate-limited concurrent execution
   const runInParallel = async () => {
     for (let i = 0; i < startIndices.length; i++) {
       const startIndex = startIndices[i];
 
-      // Wait until the number of active fetches is below the limit
+      // wait until the number of active fetches is below the limit
       while (activeFetches >= MAX_CONCURRENT_FETCHES) {
-        await new Promise((resolve) => setTimeout(resolve, 100)); // Short pause to wait for a slot
+        await new Promise((resolve) => setTimeout(resolve, 100)); // short pause to wait for a slot
       }
 
       activeFetches++;
 
-      // Start the fetch/process, but don't await it immediately
+      // start the fetch/process, but don't await it immediately
       const promise = fetchAndProcessBatch(startIndex, totalResults).finally(
         () => {
-          activeFetches--; // Decrement active count when done
+          activeFetches--; // decrement active count when done
         },
       );
       promises.push(promise);
