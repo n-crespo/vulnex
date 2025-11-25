@@ -8,6 +8,10 @@ import { Schema, model } from "mongoose";
 // 5. at least one digit, generally 4 or more
 const cveIdRegex = /^(CVE|VUL|TEST)-\d{4}-\d{4,}$/i;
 
+// Enums for strict validation
+const severityEnum = ["NONE", "LOW", "MEDIUM", "HIGH", "CRITICAL", "UNKNOWN"];
+const vulnerableEnum = ["true", "false", "Unknown"];
+
 // PERF adding 'index: true' will speed up read queries like finding/filtering
 // CVEs but will slow down write operations since MongoDB has to make a new
 // index for every change. This is an acceptable tradeoff since we will be
@@ -24,8 +28,7 @@ const CVESchema = Schema(
       trim: true,
       uppercase: true,
     },
-    // TODO: turn these dates from ISO time stamp format into Date objects for
-    // proper indexing.
+    // could turn these dates from ISO time stamp format into Date objects for better indexing?
     published: {
       type: String,
       required: true,
@@ -46,21 +49,37 @@ const CVESchema = Schema(
       required: true,
       text: true, // creates a text index for keyword searching
     },
-    baseSeverityScore: {
-      type: Number,
-      cast: false, // don't coerce type into a number
-      required: true,
-      min: [1, "Base severity score must be at least 1."],
-      max: [10, "Base severity score cannot exceed 10."],
-    },
-    isVulnerable: {
-      type: Boolean,
+
+    // Categorical Severity (NONE, LOW, MEDIUM, HIGH, CRITICAL, UNKNOWN)
+    severityLevel: {
+      type: String,
       required: true,
       index: true,
-      cast: false, // don't type cast
+      enum: severityEnum, // Strict validation for known severity levels
     },
-    // TODO: split up cpeId into product/version. currently not indexed.
-    cpeId: {
+
+    // ("true", "false", "Unknown")
+    isVulnerable: {
+      type: String,
+      required: true,
+      index: true,
+      enum: vulnerableEnum, // Strict validation for known vulnerability states
+    },
+
+    productName: {
+      type: String,
+      required: true,
+      index: true, // Common query point
+    },
+    patchedInVersion: {
+      type: String,
+      required: true,
+    },
+    minAffectedVersion: {
+      type: String,
+      required: true,
+    },
+    maxAffectedVersion: {
       type: String,
       required: true,
     },
