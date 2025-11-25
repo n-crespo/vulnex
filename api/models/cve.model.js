@@ -8,6 +8,10 @@ import { Schema, model } from "mongoose";
 // 5. at least one digit, generally 4 or more
 const cveIdRegex = /^(CVE|VUL|TEST)-\d{4}-\d{4,}$/i;
 
+// Enums for strict validation
+const severityEnum = ["NONE", "LOW", "MEDIUM", "HIGH", "CRITICAL", "UNKNOWN"];
+const vulnerableEnum = ["true", "false", "Unknown"];
+
 // PERF adding 'index: true' will speed up read queries like finding/filtering
 // CVEs but will slow down write operations since MongoDB has to make a new
 // index for every change. This is an acceptable tradeoff since we will be
@@ -51,6 +55,7 @@ const CVESchema = Schema(
       type: String,
       required: true,
       index: true,
+      enum: severityEnum, // Strict validation for known severity levels
     },
 
     // ("true", "false", "Unknown")
@@ -58,6 +63,7 @@ const CVESchema = Schema(
       type: String,
       required: true,
       index: true,
+      enum: vulnerableEnum, // Strict validation for known vulnerability states
     },
 
     productName: {
