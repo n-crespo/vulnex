@@ -4,11 +4,12 @@ import { writeBatchToOutput, postToDatabase } from "./src/output.js";
 import { verifyCveArrayData } from "./src/verify.js";
 import { processCveBatch } from "./src/fetch.js";
 import { generateFinalReport, generateBatchReport } from "./src/report.js";
+import axios from "axios";
 
 const NVD_API_KEY = process.env.NVD_API_KEY;
-// const API_SECRET_KEY = process.env.API_SECRET_KEY;
+const API_SECRET_KEY = process.env.API_SECRET_KEY;
 const NVD_BASE_URL = "https://services.nvd.nist.gov/rest/json/cves/2.0";
-// const API_BASE_URL = "http://localhost:3000/api/cves";
+const API_BASE_URL = "http://localhost:3000/api/cves";
 
 const RESULTS_PER_PAGE = 2000;
 const BAD_CVES_FILE = "badCVEs.jsonl";
@@ -35,10 +36,15 @@ const metrics = {
 let outputStream = null;
 
 // don't run without api key
-// if (!API_SECRET_KEY) {
-//   console.warn("Warning: API_SECRET_KEY is not set. Execution stopped.");
-//   throw new Error("API_SECRET_KEY is required.");
-// }
+if (!API_SECRET_KEY) {
+  console.warn("Warning: API_SECRET_KEY is not set. Execution stopped.");
+  throw new Error("API_SECRET_KEY is required.");
+}
+
+const protectedClient = axios.create({
+  baseURL: API_BASE_URL,
+  headers: { "x-api-key": API_SECRET_KEY, "Content-Type": "application/json" },
+});
 
 /**
  * Main function to fetch CVEs from the NVD API using rate-limited concurrency.
@@ -189,8 +195,7 @@ async function fetchAndProcessBatch(currentStartIndex, totalResults) {
       if (goodCves.length > 0 && verifyCveArrayData(goodCves, metrics)) {
         // commit processed data to db/file/whatever
         await writeBatchToOutput(goodCves, outputStream);
-        // post to database
-        await postToDatabase(goodCves);
+        await postToDatabase(goodCves, protectedClient);
       }
 
       // print report on how processing this batch went
