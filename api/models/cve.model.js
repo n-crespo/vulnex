@@ -73,15 +73,15 @@ const CVESchema = Schema(
     },
     patchedInVersion: {
       type: String,
-      required: true,
+      required: false,
     },
     minAffectedVersion: {
       type: String,
-      required: true,
+      required: false,
     },
     maxAffectedVersion: {
       type: String,
-      required: true,
+      required: false,
     },
   },
   {
