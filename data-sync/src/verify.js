@@ -7,7 +7,7 @@ const vulnerableEnum = ["true", "false", "Unknown"];
  * Verifies if all CVE objects in an array conform to the required regex and enum standards.
  * @param {Array<Object>} cveArray The array of parsed CVE objects.
  */
-export function verifyCveArrayData(cveArray) {
+export function verifyCveArrayData(cveArray, metrics) {
   let failedCount = 0;
 
   cveArray.forEach((cve, index) => {
@@ -51,7 +51,7 @@ export function verifyCveArrayData(cveArray) {
     //   `Validation successful: ${cveArray.length} records passed all checks.`,
     // );
   } else {
-    totalValidationFails += failedCount;
+    metrics.totalValidationFails += failedCount;
     console.warn(`${failedCount} records failed validation checks.`);
     return false;
   }

@@ -1,14 +1,8 @@
 import { promises as fs } from "fs";
 import { createWriteStream } from "fs";
-import { logBadCve, writeBatchToOutput, postToDatabase } from "./src/output.js";
-import {
-  extractRequiredFields,
-  extractStatus,
-  extractIsVulnerable,
-  extractSeverityLevel,
-  extractProductDetails,
-} from "./src/extract.js";
+import { writeBatchToOutput, postToDatabase } from "./src/output.js";
 import { verifyCveArrayData } from "./src/verify.js";
+import { processCveBatch } from "./src/fetch.js";
 import { generateFinalReport, generateBatchReport } from "./src/report.js";
 
 const NVD_API_KEY = process.env.NVD_API_KEY;
@@ -47,47 +41,6 @@ let outputStream = null;
 // }
 
 /**
- * Extracts and validates all required fields from a single NVD vulnerability record.
- * @param {object} vulnerability - A single item from the NVD 'vulnerabilities' array.
- * @returns {object} The standardized and validated CVE record.
- */
-const extractCveData = (vulnerability) => {
-  const cve = vulnerability.cve;
-
-  // Check for "Rejected" status first and discard
-  if (cve?.vulnStatus === "Rejected") {
-    const rejectedError = new Error(`Rejected CVE ID: ${cve.id}`);
-    rejectedError.isRejected = true;
-    throw rejectedError;
-  }
-
-  // extract mandatory fields and throw error if fails (shouldn't, hasn't)
-  const requiredData = extractRequiredFields(cve);
-
-  // optional fields (include failure counters, errors gracefully)
-  const finalStatus = extractStatus(cve, metrics);
-  const isVulnerableString = extractIsVulnerable(cve, metrics);
-  const severityLevel = extractSeverityLevel(cve.metrics, metrics);
-  const productDetails = extractProductDetails(cve, metrics); // returns object with 4 fields
-
-  const record = {
-    cveId: requiredData.id,
-    published: requiredData.published,
-    lastModified: requiredData.lastModified,
-    description: requiredData.description,
-    status: finalStatus,
-    isVulnerable: isVulnerableString,
-    severityLevel: severityLevel,
-    productName: productDetails.productName,
-    patchedInVersion: productDetails.patchedInVersion,
-    minAffectedVersion: productDetails.minAffectedVersion,
-    maxAffectedVersion: productDetails.maxAffectedVersion,
-  };
-
-  return record;
-};
-
-/**
  * Main function to fetch CVEs from the NVD API using rate-limited concurrency.
  */
 async function fetchAllCVEs() {
@@ -95,15 +48,13 @@ async function fetchAllCVEs() {
 
   // synchronous fetch to get totalResults
   const initialUrl = `${NVD_BASE_URL}/?resultsPerPage=1&startIndex=0`;
-  let totalResults = 0;
   try {
     const response = await fetch(initialUrl, {
       headers: { apiKey: NVD_API_KEY, Accept: "application/json" },
     });
     const rawData = await response.json();
-    totalResults = rawData.totalResults;
-    metrics.totalResults = totalResults;
-    console.log(`Total CVEs found: ${totalResults}`);
+    metrics.totalResults = rawData.totalResults;
+    console.log(`Total CVEs found: ${metrics.totalResults}`);
   } catch (error) {
     console.error(`CRITICAL: Initial API fetch failed: ${error.message}`);
     return;
@@ -112,7 +63,7 @@ async function fetchAllCVEs() {
   await fs.writeFile(BAD_CVES_FILE, "", "utf-8"); // clear bad CVEs log file on start
   outputStream = createWriteStream(OUTPUT_FILE, { encoding: "utf8" });
 
-  const totalPages = Math.ceil(totalResults / RESULTS_PER_PAGE);
+  const totalPages = Math.ceil(metrics.totalResults / RESULTS_PER_PAGE);
   const startIndices = [];
   for (let i = 0; i < totalPages; i++) {
     startIndices.push(i * RESULTS_PER_PAGE);
@@ -138,11 +89,12 @@ async function fetchAllCVEs() {
       activeFetches++;
 
       // start the fetch/process, but don't await it immediately
-      const promise = fetchAndProcessBatch(startIndex, totalResults).finally(
-        () => {
-          activeFetches--; // decrement active count when done
-        },
-      );
+      const promise = fetchAndProcessBatch(
+        startIndex,
+        metrics.totalResults,
+      ).finally(() => {
+        activeFetches--; // decrement active count when done
+      });
       promises.push(promise);
 
       // No explicit global API rate limit timeout
@@ -225,7 +177,21 @@ async function fetchAndProcessBatch(currentStartIndex, totalResults) {
         `Progress: ${((currentStartIndex / totalResults) * 100).toFixed(2)}% (${currentStartIndex}/${totalResults})`,
       );
 
-      await processCveBatch(rawData.vulnerabilities);
+      const [goodCves, batchMetrics] = await processCveBatch(
+        rawData.vulnerabilities,
+        metrics,
+        BAD_CVES_FILE,
+      );
+
+      if (goodCves.length > 0 && verifyCveArrayData(goodCves, metrics)) {
+        // write to output file
+        await writeBatchToOutput(goodCves);
+        // post to database
+        await postToDatabase(goodCves);
+      }
+
+      // log per-batch report
+      generateBatchReport(metrics, batchMetrics);
 
       return rawData.vulnerabilities.length;
     } catch (error) {
@@ -236,70 +202,6 @@ async function fetchAndProcessBatch(currentStartIndex, totalResults) {
     }
   }
   return 0;
-}
-
-/**
- * Processes a batch of raw NVD vulnerabilities.
- * @param {Array<object>} vulnerabilities - Array of raw CVE records.
- */
-async function processCveBatch(vulnerabilities) {
-  const goodCves = [];
-  let batchRejectedCount = 0;
-  let batchFailedCount = 0;
-
-  // Capture current global partial failure counts before processing the batch
-  const initialMissingStatus = metrics.totalMissingStatus;
-  const initialUnknownVulnerable = metrics.totalUnknownVulnerability;
-  const initialUnknownSeverity = metrics.totalUnknownSeverity;
-  const initialUnknownProduct = metrics.totalUnknownProduct;
-
-  const batchProcessed = vulnerabilities.length;
-  metrics.totalProcessed += batchProcessed;
-  // Update global processed count at the start of the batch
-
-  for (const vuln of vulnerabilities) {
-    try {
-      const extractedRecord = extractCveData(vuln);
-      goodCves.push(extractedRecord);
-      metrics.totalSuccessful++;
-    } catch (error) {
-      if (error.isRejected) {
-        batchRejectedCount++;
-        metrics.totalRejected++;
-      } else {
-        batchFailedCount++;
-        metrics.totalFailed++;
-        console.error(
-          `[BAD CVE] ${error.message}. Logging to ${BAD_CVES_FILE}`,
-        );
-        // Use the raw cve object for logging the failure
-        await logBadCve(vuln.cve, error.message, BAD_CVES_FILE);
-      }
-    }
-  }
-
-  // Calculate batch partial failure increments
-  const batchMetrics = {
-    batchProcessed: batchProcessed,
-    batchRejectedCount: batchRejectedCount,
-    batchFailedCount: batchFailedCount,
-    batchSuccessCount: goodCves.length,
-    batchMissingStatus: metrics.totalMissingStatus - initialMissingStatus,
-    batchUnknownVulnerable:
-      metrics.totalUnknownVulnerability - initialUnknownVulnerable,
-    batchUnknownSeverity: metrics.totalUnknownSeverity - initialUnknownSeverity,
-    batchUnknownProduct: metrics.totalUnknownProduct - initialUnknownProduct,
-  };
-
-  if (goodCves.length > 0 && verifyCveArrayData(goodCves)) {
-    // write to output file
-    await writeBatchToOutput(goodCves);
-    // post to database
-    await postToDatabase(goodCves);
-  }
-
-  // log per-batch report
-  generateBatchReport(metrics, batchMetrics);
 }
 
 // const protectedClient = axios.create({
