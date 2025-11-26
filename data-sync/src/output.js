@@ -52,15 +52,15 @@ export async function postToDatabase(newCVEsArray, protectedClient) {
     console.log("No new CVE records to post.");
     return;
   }
-  // console.log(`Attempting to post ${newCVEsArray.length} records...`);
-  // try {
-  //   const response = await protectedClient.post("/", newCVEsArray);
-  //   const status = response.status;
-  //   if (status !== 200) {
-  //     throw new Error(`Post to database failed with status: ${status}`);
-  //   }
-  //   console.log("Successfully posted batch to database.");
-  // } catch (error) {
-  //   console.error("Database post error: ", error.message);
-  // }
+  console.log(`Attempting to post ${newCVEsArray.length} records...`);
+  try {
+    const response = await protectedClient.post("/", newCVEsArray);
+    const status = response.status;
+    if (status !== 200) {
+      throw new Error(`Post to database failed with status: ${status}`);
+    }
+    console.log("Successfully posted batch to database.");
+  } catch (error) {
+    console.error("Database post error: ", error.message);
+  }
 }

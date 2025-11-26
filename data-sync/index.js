@@ -1,6 +1,6 @@
 import { promises as fs } from "fs";
 import { createWriteStream } from "fs";
-import { writeBatchToOutput, postToDatabase } from "./src/output.js";
+import { /* writeBatchToOutput, */ postToDatabase } from "./src/output.js";
 import { verifyCveArrayData } from "./src/verify.js";
 import { processCveBatch } from "./src/fetch.js";
 import { generateFinalReport, generateBatchReport } from "./src/report.js";
@@ -194,13 +194,12 @@ async function fetchAndProcessBatch(currentStartIndex, totalResults) {
       // verify the processing went correctly...
       if (goodCves.length > 0 && verifyCveArrayData(goodCves, metrics)) {
         // commit processed data to db/file/whatever
-        await writeBatchToOutput(goodCves, outputStream);
+        // await writeBatchToOutput(goodCves, outputStream);
         await postToDatabase(goodCves, protectedClient);
       }
 
       // print report on how processing this batch went
       generateBatchReport(metrics, batchMetrics);
-
       return rawData.vulnerabilities.length;
     } catch (error) {
       console.error(
