@@ -170,27 +170,30 @@ async function fetchAndProcessBatch(currentStartIndex, totalResults) {
 
       const rawData = await response.json();
 
+      // start processing...
       console.log(
         `\n--- Processing Batch starting at Index: ${currentStartIndex} ---`,
       );
       console.log(
-        `Progress: ${((currentStartIndex / totalResults) * 100).toFixed(2)}% (${currentStartIndex}/${totalResults})`,
+        `Progress: ${((metrics.totalProcessed / totalResults) * 100).toFixed(2)}% (${metrics.totalProcessed}/${totalResults})`,
       );
 
+      // do the processing...
       const [goodCves, batchMetrics] = await processCveBatch(
         rawData.vulnerabilities,
         metrics,
         BAD_CVES_FILE,
       );
 
+      // verify the processing went correctly...
       if (goodCves.length > 0 && verifyCveArrayData(goodCves, metrics)) {
-        // write to output file
+        // commit processed data to db/file/whatever
         await writeBatchToOutput(goodCves, outputStream);
         // post to database
         await postToDatabase(goodCves);
       }
 
-      // log per-batch report
+      // print report on how processing this batch went
       generateBatchReport(metrics, batchMetrics);
 
       return rawData.vulnerabilities.length;
@@ -198,15 +201,11 @@ async function fetchAndProcessBatch(currentStartIndex, totalResults) {
       console.error(
         `\nCRITICAL API/Fetch Error for index ${currentStartIndex}: ${error.message}`,
       );
-      return 0;
+      process.exit(1); // quit on error
+      // return 0;
     }
   }
   return 0;
 }
-
-// const protectedClient = axios.create({
-//   baseURL: API_BASE_URL,
-//   headers: { "x-api-key": API_SECRET_KEY, "Content-Type": "application/json" },
-// });
 
 fetchAllCVEs();
