@@ -1,6 +1,6 @@
 import { promises as fs } from "fs";
 import { createWriteStream } from "fs";
-import { /* writeBatchToOutput, */ postToDatabase } from "./src/output.js";
+import { writeBatchToOutput, postToDatabase } from "./src/output.js";
 import { verifyCveArrayData } from "./src/verify.js";
 import { processCveBatch } from "./src/fetch.js";
 import { generateFinalReport, generateBatchReport } from "./src/report.js";
