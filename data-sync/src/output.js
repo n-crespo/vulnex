@@ -42,13 +42,13 @@ export function writeBatchToOutput(cvesArray, outputStream) {
   return Promise.resolve();
 }
 
-export async function postToDatabase(newCVEsArray) {
+// protectedClient: axios object with baseURL  and api key in header
+export async function postToDatabase(newCVEsArray, protectedClient) {
   if (!newCVEsArray || newCVEsArray.length === 0) {
     console.log("No new CVE records to post.");
     return;
   }
-  console.log(`Attempting to post ${newCVEsArray.length} records...`);
-  // --- This is the placeholder for your actual database posting logic ---
+  // console.log(`Attempting to post ${newCVEsArray.length} records...`);
   // try {
   //   const response = await protectedClient.post("/", newCVEsArray);
   //   const status = response.status;
