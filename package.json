@@ -17,8 +17,9 @@
     "start:api": "npm run start -w=api",
     "dev:api": "dotenvx run -- npm run dev -w=api",
     "test:api": "dotenvx run -- npm run test:api -w tests",
-    "dev:data-sync": "dotenvx run -- npm run dev -w data-sync",
-    "db:delete": " dotenvx run -- npm run delete -w data-sync"
+    "data-sync": "dotenvx run -- npm run dev -w data-sync",
+    "db:delete": " dotenvx run -- npm run delete -w data-sync",
+    "fetch": "dotenvx run -- npm run fetch -w data-sync"
   },
   "dependencies": {
     "lucide-react": "^0.546.0",
