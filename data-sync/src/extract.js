@@ -190,7 +190,6 @@ export const extractSeverityLevel = (cveMetrics, metrics) => {
  */
 export const extractProductDetails = (cve, metrics) => {
   const UNKNOWN_PRODUCT_VALUE = "UNKNOWN";
-  const UNKNOWN_VERSION_VALUE = "UNKNOWN_VERSION";
 
   const configurations = cve.configurations;
 
@@ -255,14 +254,11 @@ export const extractProductDetails = (cve, metrics) => {
     metrics.totalUnknownProduct++;
     return {
       productName: UNKNOWN_PRODUCT_VALUE,
-      patchedInVersion: UNKNOWN_VERSION_VALUE,
-      minAffectedVersion: UNKNOWN_VERSION_VALUE,
-      maxAffectedVersion: UNKNOWN_VERSION_VALUE,
     };
   }
 
-  let minVersion = UNKNOWN_VERSION_VALUE;
-  let maxVersion = UNKNOWN_VERSION_VALUE;
+  let minVersion = null;
+  let maxVersion = null;
 
   if (specificVersions.size > 0) {
     const sortedVersions = Array.from(specificVersions).sort();
@@ -270,23 +266,28 @@ export const extractProductDetails = (cve, metrics) => {
     maxVersion = sortedVersions[sortedVersions.length - 1];
   }
 
-  // UNKNOWN as fallback value
-  const finalPatchedVersion = patchedVersion || UNKNOWN_VERSION_VALUE;
+  const finalPatchedVersion = patchedVersion || null;
 
   // Final check for unknown status
-  if (
-    finalPatchedVersion === UNKNOWN_VERSION_VALUE &&
-    specificVersions.size === 0
-  ) {
+  if (finalPatchedVersion === null && specificVersions.size === 0) {
     // only count as failure if we found no patch version AND no criteria versions.
     metrics.totalUnknownProduct++;
   }
 
-  // Success!
-  return {
+  const result = {
     productName: firstProductName,
-    patchedInVersion: finalPatchedVersion, // Primary Field
-    minAffectedVersion: minVersion,
-    maxAffectedVersion: maxVersion,
   };
+
+  // Conditionally add version fields only if a value was found
+  if (patchedVersion) {
+    result.patchedInVersion = patchedVersion;
+  }
+  if (minVersion) {
+    result.minAffectedVersion = minVersion;
+  }
+  if (maxVersion) {
+    result.maxAffectedVersion = maxVersion;
+  }
+
+  return result;
 };
