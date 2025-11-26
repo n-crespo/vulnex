@@ -29,3 +29,4 @@ dist-ssr
 */*/.env
 
 data-sync/output.jsonl
+data-sync/badCVEs.jsonl
