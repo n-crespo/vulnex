@@ -48,7 +48,6 @@ export async function postToDatabase(newCVEsArray) {
     return;
   }
   console.log(`Attempting to post ${newCVEsArray.length} records...`);
-  verifyCveArrayData(newCVEsArray);
   // --- This is the placeholder for your actual database posting logic ---
   // try {
   //   const response = await protectedClient.post("/", newCVEsArray);

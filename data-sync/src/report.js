@@ -3,12 +3,12 @@ export function generateFinalReport(metrics) {
   console.log(
     "--- NVD Synchronization Complete ---\n" +
       "--- FINAL RESULTS ---\n" +
-      `Total CVEs Retrieved (via NVD totalResults): ${nvdTotalResults}\n` +
+      `Total CVEs Retrieved (via NVD totalResults): ${metrics.totalResults}\n` +
       `Total CVEs Processed (in batches): ${metrics.totalProcessed}\n` +
       `Total Successful Records for Database: ${metrics.totalSuccessful}\n` +
       `Total Rejected (Status 'Rejected'): ${metrics.totalRejected}\n` +
       `Total Failed (Logged to badCVEs.jsonl): ${metrics.totalFailed}\n` +
-      `Total Extraction Issues: ${metrics.totalMissingStatus + totalResults.totalUnknownVulnerability + totalResults.totalUnknownSeverity + totalResults.totalUnknownProduct + totalResults.totalValidationFails}\n` +
+      `Total Extraction Issues: ${metrics.totalMissingStatus + metrics.totalUnknownVulnerability + metrics.totalUnknownSeverity + metrics.totalUnknownProduct + metrics.totalValidationFails}\n` +
       `  - Total Missing Status Field: ${metrics.totalMissingStatus}\n` +
       `  - Total Unknown isVulnerable: ${metrics.totalUnknownVulnerability}\n` +
       `  - Total Unknown Severity Levels: ${metrics.totalUnknownSeverity}\n` +

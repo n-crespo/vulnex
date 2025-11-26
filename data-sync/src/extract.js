@@ -1,6 +1,47 @@
 // functions to extract the data I want from CVE records
 
 /**
+ * Extracts and validates all required fields from a single NVD vulnerability record.
+ * @param {object} vulnerability - A single item from the NVD 'vulnerabilities' array.
+ * @returns {object} The standardized and validated CVE record.
+ */
+export const extractCveData = (vulnerability, metrics) => {
+  const cve = vulnerability.cve;
+
+  // Check for "Rejected" status first and discard
+  if (cve?.vulnStatus === "Rejected") {
+    const rejectedError = new Error(`Rejected CVE ID: ${cve.id}`);
+    rejectedError.isRejected = true;
+    throw rejectedError;
+  }
+
+  // extract mandatory fields and throw error if fails (shouldn't, hasn't)
+  const requiredData = extractRequiredFields(cve);
+
+  // optional fields (include failure counters, errors gracefully)
+  const finalStatus = extractStatus(cve, metrics);
+  const isVulnerableString = extractIsVulnerable(cve, metrics);
+  const severityLevel = extractSeverityLevel(cve.metrics, metrics);
+  const productDetails = extractProductDetails(cve, metrics); // returns object with 4 fields
+
+  const record = {
+    cveId: requiredData.id,
+    published: requiredData.published,
+    lastModified: requiredData.lastModified,
+    description: requiredData.description,
+    status: finalStatus,
+    isVulnerable: isVulnerableString,
+    severityLevel: severityLevel,
+    productName: productDetails.productName,
+    patchedInVersion: productDetails.patchedInVersion,
+    minAffectedVersion: productDetails.minAffectedVersion,
+    maxAffectedVersion: productDetails.maxAffectedVersion,
+  };
+
+  return record;
+};
+
+/**
  *  Extracts core fields needed for a valid record. Throws an error if any of
  *  these are missing, resulting in total record failure.
  * @param {object} cve - The cve object.
@@ -46,7 +87,7 @@ export const extractStatus = (cve, metrics) => {
  * @param {object} metrics - Object containing keys to track failures
  * @returns {string} "true", "false", or "Unknown".
  */
-export const extractIsVulnerable = (cve, cveMetrics, metrics) => {
+export const extractIsVulnerable = (cve, metrics) => {
   // recursive helper function
   const traverseNodes = (nodes) => {
     if (!nodes) return;
