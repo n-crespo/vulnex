@@ -157,7 +157,7 @@ async function fetchAndProcessBatch(currentStartIndex, totalResults) {
 
         await new Promise((resolve) => setTimeout(resolve, jitterDelay));
 
-        delay = Math.min(delay * 2, 60000);
+        delay = Math.min(delay * 2.5, 60000);
         continue; // Go to the next attempt
       }
 
