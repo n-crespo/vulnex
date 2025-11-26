@@ -1,0 +1,32 @@
+// Function to generate the final report
+export function generateFinalReport(metrics) {
+  console.log(
+    "--- NVD Synchronization Complete ---\n" +
+      "--- FINAL RESULTS ---\n" +
+      `Total CVEs Retrieved (via NVD totalResults): ${nvdTotalResults}\n` +
+      `Total CVEs Processed (in batches): ${metrics.totalProcessed}\n` +
+      `Total Successful Records for Database: ${metrics.totalSuccessful}\n` +
+      `Total Rejected (Status 'Rejected'): ${metrics.totalRejected}\n` +
+      `Total Failed (Logged to badCVEs.jsonl): ${metrics.totalFailed}\n` +
+      `Total Extraction Issues: ${metrics.totalMissingStatus + totalResults.totalUnknownVulnerability + totalResults.totalUnknownSeverity + totalResults.totalUnknownProduct + totalResults.totalValidationFails}\n` +
+      `  - Total Missing Status Field: ${metrics.totalMissingStatus}\n` +
+      `  - Total Unknown isVulnerable: ${metrics.totalUnknownVulnerability}\n` +
+      `  - Total Unknown Severity Levels: ${metrics.totalUnknownSeverity}\n` +
+      `  - Total Unknown Product/Version: ${metrics.totalUnknownProduct}\n` +
+      `  - Total Validation Fails: ${metrics.totalValidationFails}`,
+  );
+}
+
+export function generateBatchReport(metrics, batchMetrics) {
+  console.log(`Processed batch: ${batchMetrics.batchProcessed}
+  -> Total: ${metrics.totalProcessed} (+${batchMetrics.batchProcessed})
+  -> Successful: ${metrics.totalSuccessful} (+${batchMetrics.batchSuccessCount})
+  -> Rejected:   ${metrics.totalRejected} (+${batchMetrics.batchRejectedCount})
+  -> Failed (Total Validation): ${metrics.totalFailed} (+${batchMetrics.batchFailedCount})
+  -> Missing Status Field: ${metrics.totalMissingStatus} (+${batchMetrics.batchMissingStatus})
+  -> Unknown isVulnerable: ${metrics.totalUnknownVulnerability} (+${batchMetrics.batchUnknownVulnerable})
+  -> Unknown Severity Levels: ${metrics.totalUnknownSeverity} (+${batchMetrics.batchUnknownSeverity})
+  -> Unknown Product/Version: ${metrics.totalUnknownProduct} (+${batchMetrics.batchUnknownProduct})
+  -> Failed Validations: ${metrics.totalValidationFails}
+`);
+}
