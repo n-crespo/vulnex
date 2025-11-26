@@ -19,9 +19,12 @@ export async function logBadCve(cveRecord, reason, BAD_CVES_FILE) {
 }
 
 /**
- * Helper function to write the entire batch of successful CVEs to the output file stream.
- * @param {Array<object>} cvesArray - The array of successfully extracted CVE records.
- * @returns {Promise<void>} Resolves when the write is complete, handling backpressure.
+ * Writes a batch of processed CVE records to a writable stream, handling stream
+ * backpressure to prevent overflow.
+ * @param {Array<object>} cvesArray - The array of CVE record objects to be written.
+ * @param {import('stream').Writable} outputStream - The writable stream (e.g., a file stream)
+ * @returns {Promise<void>} Resolves when write is complete, handling backpressure.
+ * @throws {Error} Throws an error if the stream operation fails.
  */
 export function writeBatchToOutput(cvesArray, outputStream) {
   if (cvesArray.length === 0 || !outputStream) return;
@@ -29,6 +32,7 @@ export function writeBatchToOutput(cvesArray, outputStream) {
   const data = JSON.stringify(cvesArray) + "\n";
 
   // Attempt to write the data
+  console.log(`Writing ${cvesArray.length} CVEs to output stream...`);
   const canWrite = outputStream.write(data, "utf8");
 
   // Check for backpressure
