@@ -8,6 +8,7 @@
   "main": "sync_data.js",
   "scripts": {
     "dev": "node sync_data.js",
+    "fetch": "node index.js",
     "delete": "node delete.js"
   }
 }
