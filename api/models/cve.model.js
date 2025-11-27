@@ -10,7 +10,6 @@ const cveIdRegex = /^(CVE|VUL|TEST)-\d{4}-\d{4,}$/i;
 
 // Enums for strict validation
 const severityEnum = ["NONE", "LOW", "MEDIUM", "HIGH", "CRITICAL", "UNKNOWN"];
-const vulnerableEnum = ["true", "false", "Unknown"];
 
 // PERF adding 'index: true' will speed up read queries like finding/filtering
 // CVEs but will slow down write operations since MongoDB has to make a new
@@ -23,53 +22,34 @@ const CVESchema = Schema(
       type: String,
       required: true,
       unique: true, // prevent duplicates
-      index: true,
       match: [cveIdRegex, "cveId must be in the format CVE-YYYY-NNNN+"], // regex validator
       trim: true,
       uppercase: true,
+      // index: true,
     },
     // could turn these dates from ISO time stamp format into Date objects for better indexing?
     published: {
-      type: String,
+      type: Date, // instead of string
       required: true,
-      index: true,
-    },
-    lastModified: {
-      type: String,
-      required: true,
-      index: true,
-    },
-    status: {
-      type: String,
-      required: true,
-      index: true,
     },
     description: {
       type: String,
       required: true,
-      text: true, // creates a text index for keyword searching
+      // text: true, // creates a text index but VASTLY increases data size
     },
 
     // Categorical Severity (NONE, LOW, MEDIUM, HIGH, CRITICAL, UNKNOWN)
     severityLevel: {
       type: String,
       required: true,
-      index: true,
+      // index: true,
       enum: severityEnum, // Strict validation for known severity levels
-    },
-
-    // ("true", "false", "Unknown")
-    isVulnerable: {
-      type: String,
-      required: true,
-      index: true,
-      enum: vulnerableEnum, // Strict validation for known vulnerability states
     },
 
     productName: {
       type: String,
       required: true,
-      index: true, // Common query point
+      // index: true, // Common query point
     },
     patchedInVersion: {
       type: String,
@@ -85,7 +65,6 @@ const CVESchema = Schema(
     },
   },
   {
-    timestamps: true,
     strict: true, // don't allow fields that aren't in the schema
   },
 );
