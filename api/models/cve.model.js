@@ -49,7 +49,7 @@ const CVESchema = Schema(
     productName: {
       type: String,
       required: true,
-      // index: true, // Common query point
+      index: true, // Common query point
     },
     patchedInVersion: {
       type: String,
