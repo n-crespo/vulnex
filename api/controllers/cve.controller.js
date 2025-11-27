@@ -1,9 +1,5 @@
 import CVE from "../models/cve.model.js";
 
-function finish() {
-  console.log("--------------------");
-}
-
 /**
  * Create a CVE(s) via POST /api/cves/
  * Request Body:
@@ -76,7 +72,6 @@ export const createCVE = async (req, res) => {
       });
     }
   }
-  finish();
 };
 
 /**
@@ -111,7 +106,6 @@ export const getCVEs = async (req, res) => {
     console.log("failed: ", error.message);
     res.status(500).json({ message: error.message });
   }
-  finish();
 };
 
 /** Fetch one CVE by ID via GET /api/cves/:id
@@ -126,7 +120,6 @@ export const getCVE = async (req, res) => {
 
     if (!cve) {
       console.log("Failed, CVE not found");
-      finish();
       return res.status(404).json({ message: "CVE not found" });
     }
 
@@ -135,10 +128,8 @@ export const getCVE = async (req, res) => {
     res.status(200).json(cve);
   } catch (error) {
     console.log("Failed: ", error.message);
-    finish();
     return res.status(500).json({ message: error.message });
   }
-  finish();
 };
 
 /** Update one CVE by ID via POST /api/cves/:id
@@ -156,7 +147,6 @@ export const updateCVE = async (req, res) => {
     // error if trying to update non existent CVE
     if (!cve) {
       console.log("Failed, CVE not found");
-      finish();
       return res.status(404).json({ message: "CVE not found" });
     }
 
@@ -165,10 +155,8 @@ export const updateCVE = async (req, res) => {
     res.status(200).json(updatedCVE);
   } catch (error) {
     console.log("Failed: ", error.message);
-    finish();
     return res.status(500).json({ message: error.message });
   }
-  finish();
 };
 
 /** Bulk update CVEs via PUT /api/cves/
@@ -193,7 +181,6 @@ export const bulkUpdateCVEs = async (req, res) => {
     console.log(
       "Request body must contain a non-empty array of update objects.",
     );
-    finish();
     return res.status(400).json({
       message: "Request body must contain a non-empty array of update objects.",
     });
@@ -227,7 +214,6 @@ export const bulkUpdateCVEs = async (req, res) => {
 
   if (bulkOperations.length === 0) {
     console.log("No valid update operations found in the request body.");
-    finish();
     return res.status(400).json({
       message: "No valid update operations found in the request body.",
     });
@@ -244,13 +230,11 @@ export const bulkUpdateCVEs = async (req, res) => {
     });
   } catch (error) {
     console.log("Internal server error during bulk update.", error.message);
-    finish();
     return res.status(500).json({
       message: "Internal server error during bulk update.",
       error: error.message,
     });
   }
-  finish();
 };
 
 /** Delete one CVE by ID via DELETE /api/cves/:id
@@ -266,17 +250,14 @@ export const deleteCVE = async (req, res) => {
     if (!cve) {
       // cve doesn't exist
       console.log("Failed, CVE not found");
-      finish();
       return res.status(404).json({ message: "CVE not found" });
     }
 
     res.status(200).json({ message: "CVE deleted successfully" });
   } catch (error) {
     console.log("Failed: ", error.message);
-    finish();
     return res.status(500).json({ message: error.message });
   }
-  finish();
 };
 
 /** Bulk delete CVEs via DELETE /api/cves/
@@ -296,7 +277,6 @@ export const bulkDeleteCVEs = async (req, res) => {
   console.log(`[DELETE] Bulk Deleting CVEs: ${cveIds ? cveIds.length : 0} IDs`);
 
   if (!Array.isArray(cveIds) || cveIds.length === 0) {
-    finish();
     return res.status(400).json({
       message: "Request body must contain a non-empty array of 'cveIds'.",
     });
@@ -310,7 +290,6 @@ export const bulkDeleteCVEs = async (req, res) => {
 
     if (result.deletedCount === 0) {
       console.log("No matching CVEs found for deletion.");
-      finish();
       return res
         .status(404)
         .json({ message: "No matching CVEs found for deletion." });
@@ -323,11 +302,9 @@ export const bulkDeleteCVEs = async (req, res) => {
     });
   } catch (error) {
     console.log("Failed to bulk delete CVEs: ", error.message);
-    finish();
     return res.status(500).json({
       message: "Internal server error during bulk deletion.",
       error: error.message,
     });
   }
-  finish();
 };
