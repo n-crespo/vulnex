@@ -32,4 +32,3 @@
   - [./schema/cvss-2.0.json](./schema/cvss-2.0.json)
 
 [Suggested API Workflow](https://nvd.nist.gov/developers/api-workflows)
-[Info on CVE Statuses](https://nvd.nist.gov/vuln/vulnerability-status#divNvdStatus)

@@ -19,16 +19,13 @@ export const extractCveData = (vulnerability, metrics) => {
   const requiredData = extractRequiredFields(cve);
 
   // optional fields (include failure counters, errors gracefully)
-  const finalStatus = extractStatus(cve, metrics);
   const severityLevel = extractSeverityLevel(cve.metrics, metrics);
   const productDetails = extractProductDetails(cve, metrics); // returns object with 4 fields
 
   const record = {
     cveId: requiredData.id,
     published: requiredData.published,
-    lastModified: requiredData.lastModified,
     description: requiredData.description,
-    status: finalStatus,
     severityLevel: severityLevel,
     productName: productDetails.productName,
     patchedInVersion: productDetails.patchedInVersion,
@@ -59,22 +56,6 @@ export const extractRequiredFields = (cve) => {
     throw new Error(`Missing English description for CVE ID: ${id}`);
 
   return { id, published, lastModified, description };
-};
-
-/**
- *  Extracts the CVE status. Updates the global counter if the status is
- *  missing.
- * @param {object} cve - The cve object.
- * @param {object} metrics - Object containing keys to track failures
- * @returns {string} The status string or "Unknown".
- */
-export const extractStatus = (cve, metrics) => {
-  const status = cve?.vulnStatus;
-  if (!status) {
-    metrics.totalMissingStatus++;
-    return "Unknown";
-  }
-  return status;
 };
 
 /**

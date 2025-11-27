@@ -1,4 +1,5 @@
 import { extractCveData } from "./extract.js";
+import { logBadCve } from "./output.js";
 
 /**
  * Processes a batch of raw NVD vulnerabilities.
@@ -10,8 +11,6 @@ export async function processCveBatch(vulnerabilities, metrics, BAD_CVES_FILE) {
   let batchFailedCount = 0;
 
   // Capture current global partial failure counts before processing the batch
-  const initialMissingStatus = metrics.totalMissingStatus;
-  const initialUnknownVulnerable = metrics.totalUnknownVulnerability;
   const initialUnknownSeverity = metrics.totalUnknownSeverity;
   const initialUnknownProduct = metrics.totalUnknownProduct;
 
@@ -48,9 +47,6 @@ export async function processCveBatch(vulnerabilities, metrics, BAD_CVES_FILE) {
       batchRejectedCount: batchRejectedCount,
       batchFailedCount: batchFailedCount,
       batchSuccessCount: goodCves.length,
-      batchMissingStatus: metrics.totalMissingStatus - initialMissingStatus,
-      batchUnknownVulnerable:
-        metrics.totalUnknownVulnerability - initialUnknownVulnerable,
       batchUnknownSeverity:
         metrics.totalUnknownSeverity - initialUnknownSeverity,
       batchUnknownProduct: metrics.totalUnknownProduct - initialUnknownProduct,

@@ -8,8 +8,7 @@ export function generateFinalReport(metrics) {
       `Total Successful Records for Database: ${metrics.totalSuccessful}\n` +
       `Total Rejected (Status 'Rejected'): ${metrics.totalRejected}\n` +
       `Total Failed (Logged to badCVEs.jsonl): ${metrics.totalFailed}\n` +
-      `Total Extraction Issues: ${metrics.totalMissingStatus + metrics.totalUnknownVulnerability + metrics.totalUnknownSeverity + metrics.totalUnknownProduct + metrics.totalValidationFails}\n` +
-      `  - Total Missing Status Field: ${metrics.totalMissingStatus}\n` +
+      `Total Extraction Issues: ${metrics.totalUnknownVulnerability + metrics.totalUnknownSeverity + metrics.totalUnknownProduct + metrics.totalValidationFails}\n` +
       `  - Total Unknown Severity Levels: ${metrics.totalUnknownSeverity}\n` +
       `  - Total Unknown Product/Version: ${metrics.totalUnknownProduct}\n` +
       `  - Total Validation Fails: ${metrics.totalValidationFails}`,
@@ -22,7 +21,6 @@ export function generateBatchReport(metrics, batchMetrics) {
   -> Successful: ${metrics.totalSuccessful} (+${batchMetrics.batchSuccessCount})
   -> Rejected:   ${metrics.totalRejected} (+${batchMetrics.batchRejectedCount})
   -> Failed (Total Validation): ${metrics.totalFailed} (+${batchMetrics.batchFailedCount})
-  -> Missing Status Field: ${metrics.totalMissingStatus} (+${batchMetrics.batchMissingStatus})
   -> Unknown Severity Levels: ${metrics.totalUnknownSeverity} (+${batchMetrics.batchUnknownSeverity})
   -> Unknown Product/Version: ${metrics.totalUnknownProduct} (+${batchMetrics.batchUnknownProduct})
   -> Failed Validations: ${metrics.totalValidationFails}

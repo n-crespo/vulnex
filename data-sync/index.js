@@ -26,8 +26,6 @@ const metrics = {
   totalFailed: 0,
   totalProcessed: 0,
   // extraction errors
-  totalMissingStatus: 0,
-  totalUnknownVulnerability: 0,
   totalUnknownSeverity: 0,
   totalUnknownProduct: 0,
   totalValidationFails: 0,
