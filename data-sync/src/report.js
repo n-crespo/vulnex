@@ -10,7 +10,6 @@ export function generateFinalReport(metrics) {
       `Total Failed (Logged to badCVEs.jsonl): ${metrics.totalFailed}\n` +
       `Total Extraction Issues: ${metrics.totalMissingStatus + metrics.totalUnknownVulnerability + metrics.totalUnknownSeverity + metrics.totalUnknownProduct + metrics.totalValidationFails}\n` +
       `  - Total Missing Status Field: ${metrics.totalMissingStatus}\n` +
-      `  - Total Unknown isVulnerable: ${metrics.totalUnknownVulnerability}\n` +
       `  - Total Unknown Severity Levels: ${metrics.totalUnknownSeverity}\n` +
       `  - Total Unknown Product/Version: ${metrics.totalUnknownProduct}\n` +
       `  - Total Validation Fails: ${metrics.totalValidationFails}`,
@@ -24,7 +23,6 @@ export function generateBatchReport(metrics, batchMetrics) {
   -> Rejected:   ${metrics.totalRejected} (+${batchMetrics.batchRejectedCount})
   -> Failed (Total Validation): ${metrics.totalFailed} (+${batchMetrics.batchFailedCount})
   -> Missing Status Field: ${metrics.totalMissingStatus} (+${batchMetrics.batchMissingStatus})
-  -> Unknown isVulnerable: ${metrics.totalUnknownVulnerability} (+${batchMetrics.batchUnknownVulnerable})
   -> Unknown Severity Levels: ${metrics.totalUnknownSeverity} (+${batchMetrics.batchUnknownSeverity})
   -> Unknown Product/Version: ${metrics.totalUnknownProduct} (+${batchMetrics.batchUnknownProduct})
   -> Failed Validations: ${metrics.totalValidationFails}
