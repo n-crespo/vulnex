@@ -1,7 +1,6 @@
 // for mock validation checks
 const cveIdRegex = /^(CVE|VUL|TEST)-\d{4}-\d{4,}$/i;
 const severityEnum = ["NONE", "LOW", "MEDIUM", "HIGH", "CRITICAL", "UNKNOWN"];
-const vulnerableEnum = ["true", "false", "Unknown"];
 
 /**
  * Verifies if all CVE objects in an array conform to the required regex and enum standards.
@@ -24,14 +23,6 @@ export function verifyCveArrayData(cveArray, metrics) {
     if (!severityEnum.includes(cve.severityLevel)) {
       errors.push(
         `severityLevel: '${cve.severityLevel}' is not a valid enum value.`,
-      );
-      isValid = false;
-    }
-
-    // isVulnerable vs enum
-    if (!vulnerableEnum.includes(cve.isVulnerable)) {
-      errors.push(
-        `isVulnerable: '${cve.isVulnerable}' is not a valid enum value.`,
       );
       isValid = false;
     }

@@ -20,7 +20,6 @@ export const extractCveData = (vulnerability, metrics) => {
 
   // optional fields (include failure counters, errors gracefully)
   const finalStatus = extractStatus(cve, metrics);
-  const isVulnerableString = extractIsVulnerable(cve, metrics);
   const severityLevel = extractSeverityLevel(cve.metrics, metrics);
   const productDetails = extractProductDetails(cve, metrics); // returns object with 4 fields
 
@@ -30,7 +29,6 @@ export const extractCveData = (vulnerability, metrics) => {
     lastModified: requiredData.lastModified,
     description: requiredData.description,
     status: finalStatus,
-    isVulnerable: isVulnerableString,
     severityLevel: severityLevel,
     productName: productDetails.productName,
     patchedInVersion: productDetails.patchedInVersion,
