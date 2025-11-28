@@ -159,113 +159,147 @@ export const extractSeverityLevel = (cveMetrics, metrics) => {
 };
 
 /**
- *  Extracts the product name and the version status (patch version or affected
- *  range). Prioritizes 'versionEndExcluding' as the definitive patch version.
- * Updates the global counter if product details cannot be determined.
- * @param {object} cve - The cve object.
- * @param {object} metrics - Object containing keys to track failures
- * @returns {{productName: string, patchedInVersion: string, minAffectedVersion: string, maxAffectedVersion: string}}
- * An object containing the product name and the version status. Note: 'patchedInVersion' is the primary focus.
+ * Custom version comparator: Compares version strings numerically (e.g., "10.3" > "9.1").
+ * This is needed because standard string sorting fails on version numbers.
+ */
+const compareVersions = (v1, v2) => {
+  // Treat null/empty versions as less than any concrete version
+  if (!v1 || !v2) return v1 ? 1 : v2 ? -1 : 0;
+
+  // Split by dot and map parts to numbers if possible (e.g., '11.2p' remains '11.2p', '10' becomes 10)
+  const s1 = v1.split(".").map((p) => (isNaN(parseInt(p)) ? p : parseInt(p)));
+  const s2 = v2.split(".").map((p) => (isNaN(parseInt(p)) ? p : parseInt(p)));
+
+  const maxLength = Math.max(s1.length, s2.length);
+
+  for (let i = 0; i < maxLength; i++) {
+    const part1 = s1[i] || 0;
+    const part2 = s2[i] || 0;
+
+    if (typeof part1 === "number" && typeof part2 === "number") {
+      if (part1 > part2) return 1;
+      if (part1 < part2) return -1;
+    } else {
+      // Fallback for non-numeric parts (like '11.2p' vs '11.2')
+      const str1 = String(part1);
+      const str2 = String(part2);
+      const comparison = str1.localeCompare(str2);
+      if (comparison !== 0) return comparison;
+    }
+  }
+  return 0;
+};
+
+/**
+ * Extracts product name (vendor:product) and version details from NVD configurations.
+ * @param {object} cve - The complete CVE object from the NVD data feed.
+ * @param {object} metrics - Object for tracking parsing failures.
+ * @returns {{productName: string, patchedInVersion?: string, minAffectedVersion?: string, maxAffectedVersion?: string}}
  */
 export const extractProductDetails = (cve, metrics) => {
   const UNKNOWN_PRODUCT_VALUE = "UNKNOWN";
+  const configurations = cve.configurations || [];
 
-  const configurations = cve.configurations;
-
-  let firstProductName = null;
-  let patchedVersion = null;
-  const specificVersions = new Set();
-
+  let firstFullProductName = null;
+  let explicitPatchVersion = null;
+  const allVulnerableVersions = new Set();
   const isWildcard = (v) => v === "*" || v === "-" || !v;
 
-  // Recursive helper to traverse all nodes and collect data
-  const traverseAndCollect = (nodes) => {
+  // Recursive helper to deeply traverse configuration nodes
+  const traverse = (nodes) => {
     if (!nodes) return;
 
     for (const node of nodes) {
-      if (node.cpeMatch && node.cpeMatch.length > 0) {
-        for (const match of node.cpeMatch) {
-          const parts = match.criteria ? match.criteria.split(":") : [];
+      // Process all CPE matches in the current node
+      (node.cpeMatch || []).forEach((match) => {
+        if (!match.vulnerable) return;
 
-          if (parts.length >= 6) {
-            const productName = parts[4];
-            let versionInCriteria = parts[5];
+        // split by colon
+        const parts = match.criteria ? match.criteria.split(":") : [];
 
-            // Capture the first valid product name found
-            if (
-              !firstProductName &&
-              productName &&
-              productName !== UNKNOWN_PRODUCT_VALUE
-            ) {
-              firstProductName = productName;
-            }
+        // Criteria should be long enough: cpe:2.3:<part>:<vendor>:<product>:<version>:...
+        if (parts.length >= 6) {
+          const vendor = parts[3];
+          const product = parts[4];
+          const versionInCriteria = parts[5];
 
-            // capture the patch version
-            if (!patchedVersion && match.versionEndExcluding) {
-              patchedVersion = match.versionEndExcluding;
-            } else if (!patchedVersion && match.versionEndIncluding) {
-              // sometimes versionEndIncluding is used to define the last vulnerable version
-              patchedVersion = match.versionEndIncluding;
-            }
+          // capture the first full product name ("cisco:ios")
+          if (!firstFullProductName && vendor && product) {
+            firstFullProductName = `${vendor}:${product}`;
+          }
 
-            // collect specific version numbers from criteria as fallback
-            if (!isWildcard(versionInCriteria)) {
-              specificVersions.add(versionInCriteria);
-            }
+          // Capture the explicit patch version (versionEndExcluding preferred)
+          if (!explicitPatchVersion && match.versionEndExcluding) {
+            explicitPatchVersion = match.versionEndExcluding;
+          }
+
+          // Collect all vulnerable version strings for min/max calculation
+          if (!isWildcard(versionInCriteria)) {
+            allVulnerableVersions.add(versionInCriteria);
+          }
+          if (
+            match.versionStartIncluding &&
+            !isWildcard(match.versionStartIncluding)
+          ) {
+            allVulnerableVersions.add(match.versionStartIncluding);
+          }
+          if (
+            match.versionEndIncluding &&
+            !isWildcard(match.versionEndIncluding)
+          ) {
+            allVulnerableVersions.add(match.versionEndIncluding);
           }
         }
-      }
+      });
 
+      // Recurse into nested nodes
       if (node.nodes && node.nodes.length > 0) {
-        traverseAndCollect(node.nodes);
+        traverse(node.nodes);
       }
     }
   };
 
-  if (configurations && configurations.length > 0) {
-    for (const config of configurations) {
-      traverseAndCollect(config.nodes);
-    }
-  }
+  // Start traversal from the top level configurations
+  configurations.forEach((config) => traverse(config.nodes));
 
-  // Determine Final Range and Product Name
-  if (!firstProductName) {
+  // product name
+  if (!firstFullProductName) {
     metrics.totalUnknownProduct++;
-    return {
-      productName: UNKNOWN_PRODUCT_VALUE,
-    };
+    return { productName: UNKNOWN_PRODUCT_VALUE };
   }
 
+  // Determine Min/Max Affected Version Range using the robust comparator
   let minVersion = null;
   let maxVersion = null;
 
-  if (specificVersions.size > 0) {
-    const sortedVersions = Array.from(specificVersions).sort();
-    minVersion = sortedVersions[0];
-    maxVersion = sortedVersions[sortedVersions.length - 1];
-  }
-
-  const finalPatchedVersion = patchedVersion || null;
-
-  // Final check for unknown status
-  if (finalPatchedVersion === null && specificVersions.size === 0) {
-    // only count as failure if we found no patch version AND no criteria versions.
-    metrics.totalUnknownProduct++;
+  for (const version of allVulnerableVersions) {
+    if (minVersion === null || compareVersions(version, minVersion) < 0) {
+      minVersion = version;
+    }
+    if (maxVersion === null || compareVersions(version, maxVersion) > 0) {
+      maxVersion = version;
+    }
   }
 
   const result = {
-    productName: firstProductName,
+    productName: firstFullProductName,
   };
 
-  // Conditionally add version fields only if a value was found
-  if (patchedVersion) {
-    result.patchedInVersion = patchedVersion;
+  if (explicitPatchVersion) {
+    result.patchedInVersion = explicitPatchVersion;
   }
+
+  // Include min/max only if found and ensure max is only added if different from min
   if (minVersion) {
     result.minAffectedVersion = minVersion;
   }
-  if (maxVersion) {
+  if (maxVersion && maxVersion !== minVersion) {
     result.maxAffectedVersion = maxVersion;
+  }
+
+  // check for unknown status
+  if (!explicitPatchVersion && allVulnerableVersions.size === 0) {
+    metrics.totalUnknownProduct++;
   }
 
   return result;
