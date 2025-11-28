@@ -15,53 +15,49 @@ const NOT_FOUND_STATUS = 404;
 
 // Sample data for the test record
 const singleNewCVE = {
-  cveId: "TEST-2025-0001",
-  published: "2025-11-20T02:20:46",
-  lastModified: "2025-11-20T02:20:50",
-  status: "Deferred",
+  cveId: "CVE-2090-0000",
+  published: "2006-09-20T04:07:00.000Z",
   description: "TEST CVE",
-  baseSeverityScore: 10,
-  isVulnerable: true,
-  cpeId: "cpe:2.3:a:vendor:product:1.0:*:*:*:*:*:*:*",
+  severityLevel: "MEDIUM",
+  productName: "test-product",
+  minAffectedVersion: "1.0",
+  maxAffectedVersion: "1.0",
 };
 
 const singleBadCVE = {
-  cveId: "TEST-2025-0003", // invalid year portion (22025)
-  published: "2025-11-20T02:20:46",
-  lastModified: "2025-11-20T02:20:50",
-  status: "Deferred",
+  cveId: "CVE-22006-4884", // invalid CVE id
+  published: "2006-09-20T04:07:00.000Z",
   description: "TEST CVE",
-  baseSeverityScore: true, // this should be a number!
-  isVulnerable: true,
-  cpeId: "cpe:2.3:a:vendor:product:1.0:*:*:*:*:*:*:*",
+  severityLevel: "MEDIUM",
+  productName: "test-product",
+  minAffectedVersion: "1.0",
+  maxAffectedVersion: "1.0",
 };
 
 // Data for the update operation
 const singleUpdateToCVE = {
-  isVulnerable: false,
+  severityLevel: "CRITICAL",
 };
 
 // Sample data for bulk actions
 const bulkNewCVEs = [
   {
-    cveId: "TEST-2025-0002",
-    published: "2025-11-21T00:00:00",
-    lastModified: "2025-11-21T00:00:00",
-    status: "Analyzed",
+    cveId: "CVE-2090-0001",
+    published: "2006-09-20T04:07:00.000Z",
     description: "TEST CVE",
-    baseSeverityScore: 5,
-    isVulnerable: true,
-    cpeId: "cpe:2.3:a:vendor:product:1.0:*:*:*:*:*:*:*",
+    severityLevel: "HIGH",
+    productName: "shadowed_portal",
+    patchedInVersion: "5.599",
   },
   {
-    cveId: "TEST-2025-0001",
-    published: "2025-11-21T00:00:00",
-    lastModified: "2025-11-21T00:00:00",
-    status: "Analyzed",
+    cveId: "CVE-2090-0002",
+    published: "2006-09-20T04:07:00.000Z",
     description: "TEST CVE",
-    baseSeverityScore: 7,
-    isVulnerable: false,
-    cpeId: "cpe:2.3:a:vendor:product:1.0:*:*:*:*:*:*:*",
+    severityLevel: "HIGH",
+    productName: "apple_remote_desktop",
+    patchedInVersion: "10.2.8",
+    minAffectedVersion: "2.0.0",
+    maxAffectedVersion: "3.0.0",
   },
 ];
 
@@ -69,21 +65,21 @@ const bulkCveIds = { cveIds: bulkNewCVEs.map((cve) => cve.cveId) };
 
 const bulkUpdatesToCVEs = [
   {
-    cveId: "TEST-2025-0002",
+    cveId: "CVE-2090-0001",
     update: {
-      status: "Fixed", // Update 1
-      baseSeverityScore: 5.5,
+      severityLevel: "NONE",
+      patchedInVersion: "2.0",
     },
   },
   {
-    cveId: "TEST-2025-0001",
+    cveId: "CVE-2090-0002",
     update: {
-      isVulnerable: true, // Update 2
-      lastModified: "2025-05-18T08:00:00.000Z",
+      severityLevel: "NONE",
+      patchedInVersion: "2.0",
     },
   },
   {
-    cveId: "TEST-BULK-NONEXISTENT", // Should be matched: 0
+    cveId: "TEST-BULK-NONEXISTENT", // this should fail (invalid CVE)
     update: {
       status: "Test Nonexistent",
     },
@@ -192,13 +188,17 @@ const runApiTests = (baseUrl, environmentName) => {
         // NOTE: Expecting 200, and the controller returns the updated CVE body
         expect(response.status).to.equal(SUCCESS_STATUS);
         // Check that returned object contains the update
-        expect(response.data.isVulnerable).to.equal(false);
+        expect(response.data.severityLevel).to.equal(
+          singleUpdateToCVE.severityLevel,
+        );
       });
 
       it(`GET /api/cves/:id should verify the update ("CRITICAL") (200 OK)`, async () => {
         const response = await publicClient.get(`/${createdCveId}`);
         expect(response.status).to.equal(SUCCESS_STATUS);
-        expect(response.data.isVulnerable).to.equal(false);
+        expect(response.data.severityLevel).to.equal(
+          singleUpdateToCVE.severityLevel,
+        );
       });
     });
 
@@ -286,14 +286,18 @@ const runApiTests = (baseUrl, environmentName) => {
           bulkUpdatesToCVEs.length - 1,
         );
         // Expect 2 CVEs to be modified (assuming the updates are real changes)
-        expect(response.data.modifiedCount).to.be.at.most(2);
+        expect(response.data.modifiedCount).to.equal(2);
       });
 
-      it(`GET /api/cves/:id should verify the bulk update on ${bulkCveIds.cveIds[0]} (status: Fixed)`, async () => {
+      it(`GET /api/cves/:id should verify the bulk update on ${bulkCveIds.cveIds[0]} `, async () => {
         const response = await publicClient.get(`/${bulkCveIds.cveIds[0]}`);
         expect(response.status).to.equal(SUCCESS_STATUS);
-        expect(response.data.status).to.equal("Fixed");
-        expect(response.data.baseSeverityScore).to.equal(5.5);
+        expect(response.data.severityLevel).to.equal(
+          bulkUpdatesToCVEs[0].update.severityLevel,
+        );
+        expect(response.data.patchedInVersion).to.equal(
+          bulkUpdatesToCVEs[0].update.patchedInVersion,
+        );
       });
 
       it(`PUT /api/cves/ should FAIL with 400 Bad Request on empty array body`, async () => {
