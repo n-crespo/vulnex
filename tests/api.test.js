@@ -95,7 +95,7 @@ const bulkUpdatesToCVEs = [
  * @param {string} baseUrl - The base URL of the server (e.g., http://localhost:3000)
  * @param {string} environmentName - A friendly name for the test block (e.g., 'LOCAL')
  */
-const runSecurityTests = (baseUrl, environmentName) => {
+const runApiTests = (baseUrl, environmentName) => {
   const apiEndpoint = `${baseUrl}/api/cves`;
   let createdCveId = null; // will use in tests later to verify cve creation
 
@@ -449,8 +449,8 @@ describe("Full Security and CRUD Workflow Tests", function () {
         `[WARNING]: Skipping tests on local server, port ${PORT} doesn't seem to be in use.`,
       );
     } else {
-      runSecurityTests(LOCAL_URL_BASE, "LOCAL");
+      runApiTests(LOCAL_URL_BASE, "LOCAL");
     }
   });
-  // runSecurityTests(REMOTE_URL_BASE, "REMOTE");
+  // runApiTests(REMOTE_URL_BASE, "REMOTE");
 });
