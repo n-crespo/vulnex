@@ -85,6 +85,7 @@ export const createCVE = async (req, res) => {
  * Query Params:
  *   limit: max number of CVEs to return
  *   skip:  offset from CVE 0 in db to start returning
+ *   productName: filter results by a specific product name ('Apache HTTP Server')
  * Response JSON:
  * `[ { ... }, { ... } ] // array of requested CVEs`
  */
@@ -94,18 +95,31 @@ export const getCVEs = async (req, res) => {
     // extract params from query string
     const limit = parseInt(req.query.limit) || 100; // Default limit to 100 records
     const skip = parseInt(req.query.skip) || 0; // Default skip to 0 (start from the beginning)
+    const requestedProductName = req.query.productName;
 
     // ensure non-negative parameters
     const safeLimit = Math.max(1, limit);
     const safeSkip = Math.max(0, skip);
 
-    console.log(`Fetching CVEs: Limit=${safeLimit}, Skip=${safeSkip}`);
-    // skip: offset, limit: page size
-    const cves = await CVE.find({}).skip(safeSkip).limit(safeLimit);
+    const queryFilter = {};
+    if (requestedProductName) {
+      // queryFilter.productName = requestedProductName; // Exact match filter
+      queryFilter.productName = {
+        $regex: new RegExp(requestedProductName),
+        $options: "i", // case insensitive
+      };
+      console.log(`Adding filter: productName = ${requestedProductName}`);
+    }
 
-    // send the total count for easier pagination
-    const totalCount = await CVE.countDocuments({});
-    res.header("X-Total-Count", totalCount);
+    console.log(
+      `Fetching CVEs: Limit=${safeLimit}, Skip=${safeSkip}, Filter=${JSON.stringify(queryFilter)}`,
+    );
+    const cves = await CVE.find(queryFilter).skip(safeSkip).limit(safeLimit);
+
+    // build the header
+    const totalCount = await CVE.countDocuments(queryFilter);
+    res.header("X-Total-Found", totalCount);
+    res.header("X-Total-Count", limit);
     res.header("X-Initial-Offset", skip);
     res.status(200).json(cves);
   } catch (error) {
@@ -113,7 +127,6 @@ export const getCVEs = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
-
 /** Fetch one CVE by ID via GET /api/cves/:id
  * Response JSON:
  * `{ ... } // the requested CVE`
