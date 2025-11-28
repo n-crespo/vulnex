@@ -408,6 +408,35 @@ const runApiTests = (baseUrl, environmentName) => {
         expect(errorStatus).to.equal(NOT_FOUND_STATUS);
       });
     });
+
+    describe(`FILTERING TESTS`, function () {
+      it(`GET /api/cves?productName=ios should return only CVEs where 'productName' includes 'ios' (case-insensitive)`, async () => {
+        const queryProductName = "ios";
+        const response = await publicClient.get(
+          `${baseUrl}/api/cves?productName=${queryProductName}`,
+        );
+        expect(response.status).to.equal(SUCCESS_STATUS);
+
+        const cves = response.data;
+        expect(cves)
+          .to.be.an("array")
+          // NOTE: this assumes there are CVEs with `ios` in the productName
+          // (reasonable assumption, there are many)
+          .with.lengthOf.at.least(1, "The array of CVEs should not be empty");
+
+        cves.forEach((c) => {
+          // check that productName includes the query string (ignoring case)
+          expect(c.productName.toLowerCase()).to.include(
+            queryProductName.toLowerCase(),
+            `Product name '${c.productName}' must include '${queryProductName}'`,
+          );
+        });
+
+        console.log(
+          `Query '${queryProductName}': returned: ${response.headers["x-total-count"]}, found: ${response.headers["x-total-found"]}`,
+        );
+      });
+    });
   });
 };
 
