@@ -32,3 +32,21 @@
   - [./schema/cvss-2.0.json](./schema/cvss-2.0.json)
 
 [Suggested API Workflow](https://nvd.nist.gov/developers/api-workflows)
+
+## Results
+
+```
+--- NVD Synchronization Complete ---
+--- FINAL RESULTS ---
+Total CVEs Retrieved (via NVD totalResults): 319612
+Total CVEs Processed (in batches): 319612
+Total Successful Records for Database: 303423
+Total Rejected (Status 'Rejected'): 16189
+Total Failed (Logged to badCVEs.jsonl): 0
+Total Extraction Issues: NaN
+
+- Total Unknown Severity Levels: 1869
+- Total Unknown Product/Version: 44151
+- Total Validation Fails: 0
+
+```

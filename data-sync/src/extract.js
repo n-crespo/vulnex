@@ -192,13 +192,15 @@ const compareVersions = (v1, v2) => {
 
 /**
  * Extracts product name (vendor:product) and version details from NVD configurations.
+ * Only processes the nodes in the first configuration block to focus on the primary product.
  * @param {object} cve - The complete CVE object from the NVD data feed.
  * @param {object} metrics - Object for tracking parsing failures.
  * @returns {{productName: string, patchedInVersion?: string, minAffectedVersion?: string, maxAffectedVersion?: string}}
  */
 export const extractProductDetails = (cve, metrics) => {
   const UNKNOWN_PRODUCT_VALUE = "UNKNOWN";
-  const configurations = cve.configurations || [];
+  // only use the nodes from the first configuration object
+  const firstConfigNodes = cve.configurations?.[0]?.nodes || [];
 
   let firstFullProductName = null;
   let explicitPatchVersion = null;
@@ -228,7 +230,6 @@ export const extractProductDetails = (cve, metrics) => {
             firstFullProductName = `${vendor}:${product}`;
           }
 
-          // Capture the explicit patch version (versionEndExcluding preferred)
           if (!explicitPatchVersion && match.versionEndExcluding) {
             explicitPatchVersion = match.versionEndExcluding;
           }
@@ -259,8 +260,7 @@ export const extractProductDetails = (cve, metrics) => {
     }
   };
 
-  // Start traversal from the top level configurations
-  configurations.forEach((config) => traverse(config.nodes));
+  traverse(firstConfigNodes);
 
   // product name
   if (!firstFullProductName) {
