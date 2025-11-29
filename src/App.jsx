@@ -244,13 +244,6 @@ export default function App() {
         )}
       </main>
 
-      {/* Login Module */}
-      <LoginModule 
-        isOpen={isLoginModuleOpen}
-        onClose={() => setIsLoginModuleOpen(false)}
-        onLogin={handleLogin}
-      />
-
     </div>
   );
 }
