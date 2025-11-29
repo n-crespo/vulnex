@@ -1,0 +1,369 @@
+import CVE from "../models/cve.model.js";
+
+const CVE_SCHEMA_FIELDS = Object.keys(CVE.schema.paths).filter(
+  // filter out Mongoose internal fields (_id, __v, etc )
+  (path) => !path.startsWith("_") && path !== "id",
+);
+const ALLOWED_UPDATE_FIELDS = new Set(CVE_SCHEMA_FIELDS);
+
+/**
+ * Create a CVE(s) via POST /api/cves/
+ * Request Body:
+ *   `{ ... } // one CVE record`
+ * Response JSON:
+ *   `{ ... } // the newly created CVE record`
+ *
+ * OR
+ *
+ * Request Body:
+ *   `[ { ... } { ... } ] // an array of CVEs to add`
+ * Response JSON:
+ * ```
+ *   {
+ *     message: // success message
+ *     count: // number of records created
+ *     data: [ { ... }, { ... } ] // array of newly created CVE records
+ *   }
+ *```
+ */
+export const createCVE = async (req, res) => {
+  console.log("--- [POST] Create CVE(s): ");
+  const records = req.body;
+  process.env.LOGGING_ENABLED && console.log(records);
+  try {
+    let result;
+    if (Array.isArray(records)) {
+      console.log(`Attempting bulk insert of ${records.length} records.`);
+      result = await CVE.insertMany(records, { ordered: true }); // ordered: true will stop insertion if any document fails
+      res.status(200).json({
+        message: `${result.length} CVE records created successfully (bulk operation).`,
+        count: result.length,
+        data: result,
+      });
+    } else {
+      console.log("Attempting single record insert.");
+      result = await CVE.create(records);
+      process.env.LOGGING_ENABLED && console.log(result);
+      res.status(200).json(result);
+    }
+  } catch (error) {
+    console.log("Failed to create CVE(s): ", error.message);
+
+    let statusCode = 500;
+    let errorMessage = "An unexpected server error occurred.";
+
+    if (error.name === "ValidationError") {
+      statusCode = 400; // bad request (wrong type, failed regex)
+      const validationMessages = Object.values(error.errors)
+        .map((err) => `${err.path}: ${err.message}`)
+        .join(", "); // Join them into a single string
+
+      errorMessage = `Validation failed for the following fields: ${validationMessages}`;
+
+      res.status(statusCode).json({
+        message: "Failed to create CVE record due to invalid input data.",
+        error: errorMessage,
+      });
+    } else if (error.code && error.code === 11000) {
+      res.status(409).json({
+        message: "Failed to process CVE creation(s)",
+        error: `A record with a duplicate unique key (e.g., cveId) was found. Details: ${error.message}`,
+      });
+    } else {
+      // other errors
+      errorMessage = error.message;
+      res.status(500).json({
+        message: "Failed to process CVE creation(s)",
+        error: errorMessage,
+      });
+    }
+  }
+};
+
+/**
+ * Fetch paginated CVEs via GET /api/cves/
+ * Query Params:
+ *   limit: max number of CVEs to return
+ *   skip:  offset from CVE 0 in db to start returning
+ *   productName: filter results by a specific product name ('Apache HTTP Server')
+ * Response JSON:
+ * `[ { ... }, { ... } ] // array of requested CVEs`
+ */
+export const getCVEs = async (req, res) => {
+  console.log(`--- [GET] Get CVEs`);
+  try {
+    // extract params from query string
+    const limit = parseInt(req.query.limit) || 100; // Default limit to 100 records
+    const skip = parseInt(req.query.skip) || 0; // Default skip to 0 (start from the beginning)
+    const requestedProductName = req.query.productName;
+
+    // ensure non-negative parameters
+    const safeLimit = Math.max(1, limit);
+    const safeSkip = Math.max(0, skip);
+
+    const queryFilter = {};
+    if (requestedProductName) {
+      // queryFilter.productName = requestedProductName; // Exact match filter
+      queryFilter.productName = {
+        $regex: new RegExp(requestedProductName),
+        $options: "i", // case insensitive
+      };
+      console.log(`Adding filter: productName = ${requestedProductName}`);
+    }
+
+    console.log(
+      `Fetching CVEs: Limit=${safeLimit}, Skip=${safeSkip}, Filter=${JSON.stringify(queryFilter)}`,
+    );
+    const cves = await CVE.find(queryFilter).skip(safeSkip).limit(safeLimit);
+
+    // build the header
+    const totalCount = await CVE.countDocuments(queryFilter);
+    res.header("X-Total-Found", totalCount);
+    res.header("X-Total-Count", limit);
+    res.header("X-Initial-Offset", skip);
+    res.status(200).json(cves);
+  } catch (error) {
+    console.log("failed: ", error.message);
+    res.status(500).json({ message: error.message });
+  }
+};
+/** Fetch one CVE by ID via GET /api/cves/:id
+ * Response JSON:
+ * `{ ... } // the requested CVE`
+ */
+export const getCVE = async (req, res) => {
+  try {
+    const { cveId } = req.params;
+    console.log("--- [GET] Get CVE: ", cveId);
+    const cve = await CVE.findOne({ cveId: cveId });
+
+    if (!cve) {
+      console.log("Failed, CVE not found");
+      return res.status(404).json({ message: "CVE not found" });
+    }
+
+    console.log("Getting CVE", cveId);
+    process.env.LOGGING_ENABLED && console.log(cve);
+    res.status(200).json(cve);
+  } catch (error) {
+    console.log("Failed: ", error.message);
+    return res.status(500).json({ message: error.message });
+  }
+};
+
+/** Update one CVE by ID via POST /api/cves/:id
+ * Request Body:
+ * `{ ... } // CVE info to update`
+ * Response JSON:
+ * `{ ... } // the state of the updated CVE`
+ */
+export const updateCVE = async (req, res) => {
+  try {
+    const { cveId } = req.params;
+    console.log(
+      `--- [PUT] Update CVE ${cveId} with ${JSON.stringify(req.body)}`,
+    );
+    const cve = await CVE.findOneAndUpdate({ cveId: cveId }, req.body);
+
+    // error if trying to update non existent CVE
+    if (!cve) {
+      console.log("Failed, CVE not found");
+      return res.status(404).json({ message: "CVE not found" });
+    }
+
+    // check for the updated CVE
+    const updatedCVE = await CVE.findOne({ cveId: cveId });
+    res.status(200).json(updatedCVE);
+  } catch (error) {
+    console.log("Failed: ", error.message);
+    return res.status(500).json({ message: error.message });
+  }
+};
+
+/** Bulk update CVEs via PUT /api/cves/
+ * Request body: `[ { cveId: "ID-1", update: { status: "Published" } }, { cveId: "ID-2", update: { severity: "LOW" } } ]`
+ * Response JSON:
+ * ```
+ * {
+ *   message: "Success Message",
+ *   matchedCount: 2, // Number of CVEs found and attempted to update
+ *   modifiedCount: 2 // Number of CVEs successfully modified
+ *   errors: [...] // an optional array of collected errors
+ * }
+ * ```
+ */
+export const bulkUpdateCVEs = async (req, res) => {
+  const updates = req.body;
+  console.log(
+    `--- [PUT] Bulk Update CVEs: ${updates ? updates.length : 0} records`,
+  );
+
+  if (!Array.isArray(updates) || updates.length === 0) {
+    return res.status(400).json({
+      message: "Request body must contain a non-empty array of update objects.",
+    });
+  }
+
+  // Array to collect detailed errors for the user
+  const errors = [];
+
+  // Convert array of updates into an array of mongodb bulkwrite operations
+  const bulkOperations = updates
+    .map((item, index) => {
+      // validate basic structure
+      if (
+        !item.cveId ||
+        !item.update ||
+        typeof item.update !== "object" ||
+        Object.keys(item.update).length === 0
+      ) {
+        errors.push({
+          index,
+          cveId: item.cveId || "N/A",
+          message: "Missing 'cveId' or empty 'update' object.",
+        });
+        return null; // Will be filtered out
+      }
+
+      // filter out unauthorized fields
+      const filteredUpdate = {};
+      const receivedFields = Object.keys(item.update);
+      const invalidFields = [];
+
+      receivedFields.forEach((key) => {
+        if (ALLOWED_UPDATE_FIELDS.has(key)) {
+          filteredUpdate[key] = item.update[key];
+        } else {
+          invalidFields.push(key);
+        }
+      });
+
+      // collect errors for invalid fields
+      if (invalidFields.length > 0) {
+        errors.push({
+          index,
+          cveId: item.cveId,
+          message: `Update skipped invalid field(s): ${invalidFields.join(", ")}.`,
+          skippedFields: invalidFields,
+        });
+      }
+
+      // skip operation if no valid fields remain after filtering
+      if (Object.keys(filteredUpdate).length === 0) {
+        return null;
+      }
+
+      return {
+        updateOne: {
+          filter: { cveId: item.cveId },
+          // filteredUpdate object is guaranteed to only contain $set-able fields
+          update: { $set: filteredUpdate },
+        },
+      };
+    })
+    .filter((op) => op !== null); // Filter out invalid/empty operations
+
+  if (bulkOperations.length === 0 && errors.length > 0) {
+    // If we only had operations that were entirely invalid (all filtered out)
+    return res.status(400).json({
+      message: "No valid update operations were found. See errors for details.",
+      errors: errors,
+    });
+  } else if (bulkOperations.length === 0) {
+    return res.status(400).json({
+      message: "No valid update operations found in the request body.",
+    });
+  }
+
+  try {
+    const result = await CVE.bulkWrite(bulkOperations);
+
+    console.log(`Successfully updated ${result.modifiedCount} CVEs`);
+    res.status(200).json({
+      message: `${result.matchedCount} CVEs matched, ${result.modifiedCount} CVEs successfully modified.`,
+      matchedCount: result.matchedCount,
+      modifiedCount: result.modifiedCount,
+      errors: errors, // collected errors
+    });
+  } catch (error) {
+    console.error("Database error during bulk update.", error);
+    return res.status(500).json({
+      message: "Internal server error during bulk update.",
+      error: error.message,
+    });
+  }
+};
+
+/** Delete one CVE by ID via DELETE /api/cves/:id
+ * Response JSON:
+ * `{ message: "Success message" }`
+ */
+export const deleteCVE = async (req, res) => {
+  console.log(`--- [DELETE] Delete CVE: ${JSON.stringify(req.params)}`);
+  try {
+    const { cveId } = req.params;
+    const cve = await CVE.findOneAndDelete({ cveId: cveId });
+
+    if (!cve) {
+      // cve doesn't exist
+      console.log("Failed, CVE not found");
+      return res.status(404).json({ message: "CVE not found" });
+    }
+
+    res.status(200).json({ message: "CVE deleted successfully" });
+  } catch (error) {
+    console.log("Failed: ", error.message);
+    return res.status(500).json({ message: error.message });
+  }
+};
+
+/** Bulk delete CVEs via DELETE /api/cves/
+ * Request body: `{ "cveIds": ["CVE-ID-1", "CVE-ID-2", ...] }`
+ * Response JSON:
+ * ```
+ *   {
+ *     message: "Success Message"
+ *     deletedCount: 2 // Number of CVEs successfully deleted
+ *     requestedCount: 2 // Number of CVEs requested for deletion
+ *   }
+ * ```
+ */
+export const bulkDeleteCVEs = async (req, res) => {
+  const { cveIds } = req.body;
+  console.log(cveIds);
+  console.log(
+    `--- [DELETE] Bulk Delete CVEs: ${cveIds ? cveIds.length : 0} IDs`,
+  );
+
+  if (!Array.isArray(cveIds) || cveIds.length === 0) {
+    return res.status(400).json({
+      message: "Request body must contain a non-empty array of 'cveIds'.",
+    });
+  }
+
+  try {
+    // use $in to match all provided IDs
+    const result = await CVE.deleteMany({
+      cveId: { $in: cveIds },
+    });
+
+    if (result.deletedCount === 0) {
+      console.log("No matching CVEs found for deletion.");
+      return res
+        .status(404)
+        .json({ message: "No matching CVEs found for deletion." });
+    }
+
+    res.status(200).json({
+      message: `${result.deletedCount} CVEs deleted successfully.`,
+      deletedCount: result.deletedCount,
+      requestedCount: cveIds.length,
+    });
+  } catch (error) {
+    console.log("Failed to bulk delete CVEs: ", error.message);
+    return res.status(500).json({
+      message: "Internal server error during bulk deletion.",
+      error: error.message,
+    });
+  }
+};

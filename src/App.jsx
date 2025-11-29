@@ -1,13 +1,28 @@
-import { useState } from 'react';
-import { ShieldAlert, Upload, User } from 'lucide-react';
-import CVEFeed from './components/CVEFeed';
-import LoginModule from './components/LoginModule';
+import { useState } from "react";
+import { Search, ShieldAlert, Upload, ListFilter, User, LogOut } from "lucide-react";
+import CVEFeed from "./components/CVEFeed";
+import AuthModel from "./components/AuthModel";
 
 export default function App() {
   const [activeTab, setActiveTab] = useState("explore");
   const [jsonLocalDataUploaded, setJsonLocalDataUploaded] = useState(null);
   const [isLoginModuleOpen, setIsLoginModuleOpen] = useState(false);
   const [user, setUser] = useState(null); // null = not logged in
+
+  const [doAuthModel, setDoAuthModel] = useState(false);
+  const [userLoginSessionToken, setUserLoginSessionToken] = useState(null); // null = not logged in
+
+  // successful login function:
+  const doLoginSuccess = (newToken) => {
+    setUserLoginSessionToken(newToken);
+    setDoAuthModel(false);
+  }
+
+  // function for logging out/nulling the token:
+  const doLogoutAndClearSessionToken = () => {
+    setUserLoginSessionToken(null);
+    setActiveTab("explore"); // switch back to the explore tab after logging out
+  }
 
   // Placeholder CVE data -------------------------------------------------------
   const placeholderCVEs = [
@@ -100,7 +115,7 @@ export default function App() {
       {/* Sticky Header */}
       <header className="sticky top-0 z-50 bg-gray-900 border-b border-gray-200 shadow-lg">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="relative flex items-center h-16">
+          <div className="relative flex items-center justify-between h-16">
             {/* Logo */}
             <div className="flex items-center space-x-2">
               <ShieldAlert className="w-10 h-10 text-red-700" />
@@ -133,35 +148,41 @@ export default function App() {
               </button>
             </nav>
 
-              {/* User Section - Top Right */}
-            <div className="absolute right-0">
-              {user ? (
-                // Logged in - show username and logout
-                <div className="flex items-center space-x-3">
-                  <span className="text-white text-sm">
-                    Welcome, <span className="font-semibold">{user.username}</span>
-                  </span>
-                  <button
-                    onClick={handleLogout}
-                    className="text-gray-300 hover:text-white transition-colors text-sm"
-                  >
-                    Logout
-                  </button>
-                </div>
-              ) : (
-                // Not logged in - show user icon button
+            {/* User Auth login/logout buttons: */}
+            <div>
+              {/* if user login session token exists, show logout button */}
+              {userLoginSessionToken ? (
                 <button
-                  onClick={() => setIsLoginModuleOpen(true)}
-                  className="flex items-center space-x-2 text-white hover:text-red-300 transition-colors"
-                >
-                  <User className="w-6 h-6" />
-                </button>
+                  onClick={doLogoutAndClearSessionToken}
+                  className="flex items-center text-white space-x-2">
+                    {/* using lucide-react logout icon: */}
+                    <LogOut size={20} />
+                    <span>Logout</span>
+                  </button>
+              ) : (
+                // if the user has not logged in yet, show the login button
+                <button
+                  onClick={() => setDoAuthModel(true)}
+                  className="flex items-center text-white space-x-2">
+                    {/* using lucide-react user icon: */}
+                    <User size={20} />
+                    <span>Login</span>
+                  </button>
               )}
             </div>
 
           </div>
         </div>
       </header>
+
+      {/* Enable the Auth Model if doAuthModel is true */}
+      {doAuthModel && (
+        <AuthModel
+          closeTheAuthForm={() => setDoAuthModel(false)}
+          whenUserLoginIsSuccessful={doLoginSuccess}
+          />
+      )}
+
 
       {/* Explore Content (Padding) */}
       <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
