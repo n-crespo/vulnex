@@ -22,15 +22,18 @@ export const extractCveData = (vulnerability, metrics) => {
   const severityLevel = extractSeverityLevel(cve.metrics, metrics);
   const productDetails = extractProductDetails(cve, metrics); // returns object with 4 fields
 
+  // discard the CVE if we can't extract product info properly
+  if (!productDetails) {
+    return null;
+  }
+
   const record = {
     cveId: requiredData.id,
     published: requiredData.published,
     description: requiredData.description,
     severityLevel: severityLevel,
     productName: productDetails.productName,
-    patchedInVersion: productDetails.patchedInVersion,
-    minAffectedVersion: productDetails.minAffectedVersion,
-    maxAffectedVersion: productDetails.maxAffectedVersion,
+    productVersions: productDetails.vulnerableRanges,
   };
 
   return record;
@@ -159,148 +162,143 @@ export const extractSeverityLevel = (cveMetrics, metrics) => {
 };
 
 /**
- * Custom version comparator: Compares version strings numerically (e.g., "10.3" > "9.1").
- * This is needed because standard string sorting fails on version numbers.
+ * Helper to convert disparate NVD version constraint fields into a unified,
+ * standardized range object for efficient storage and application filtering.
+ * @param {object} match - The cpeMatch object from NVD.
+ * @param {string} versionInCriteria - The version found in the criteria string (parts[5]).
+ * @param {function} isWildcard - The wildcard check function.
+ * @returns {object | null} The standardized range object, or null if no version info is present.
  */
-const compareVersions = (v1, v2) => {
-  // Treat null/empty versions as less than any concrete version
-  if (!v1 || !v2) return v1 ? 1 : v2 ? -1 : 0;
+const transformRange = (match, versionInCriteria, isWildcard) => {
+  const range = {};
 
-  // Split by dot and map parts to numbers if possible (e.g., '11.2p' remains '11.2p', '10' becomes 10)
-  const s1 = v1.split(".").map((p) => (isNaN(parseInt(p)) ? p : parseInt(p)));
-  const s2 = v2.split(".").map((p) => (isNaN(parseInt(p)) ? p : parseInt(p)));
+  // A safe placeholder for the lowest possible version when a range is open-ended at the start.
+  const MIN_VERSION_PLACEHOLDER = "0";
 
-  const maxLength = Math.max(s1.length, s2.length);
+  const hasStart = match.versionStartIncluding || match.versionStartExcluding;
+  const hasEnd = match.versionEndIncluding || match.versionEndExcluding;
 
-  for (let i = 0; i < maxLength; i++) {
-    const part1 = s1[i] || 0;
-    const part2 = s2[i] || 0;
-
-    if (typeof part1 === "number" && typeof part2 === "number") {
-      if (part1 > part2) return 1;
-      if (part1 < part2) return -1;
-    } else {
-      // Fallback for non-numeric parts (like '11.2p' vs '11.2')
-      const str1 = String(part1);
-      const str2 = String(part2);
-      const comparison = str1.localeCompare(str2);
-      if (comparison !== 0) return comparison;
-    }
+  // --- Define Start Boundary ---
+  if (match.versionStartIncluding) {
+    range.start = match.versionStartIncluding;
+    range.s_type = "i"; // inclusive (>=)
+  } else if (match.versionStartExcluding) {
+    range.start = match.versionStartExcluding;
+    range.s_type = "e"; // exclusive (>)
+  } else if (hasEnd || !isWildcard(versionInCriteria)) {
+    // If an end is specified (open-ended start) or a single version is implied,
+    // we set the start to the MIN_VERSION_PLACEHOLDER
+    range.start = MIN_VERSION_PLACEHOLDER;
+    range.s_type = "i";
   }
-  return 0;
+
+  // --- Define End Boundary ---
+  if (match.versionEndIncluding) {
+    range.end = match.versionEndIncluding;
+    range.e_type = "i"; // inclusive (<=)
+  } else if (match.versionEndExcluding) {
+    range.end = match.versionEndExcluding;
+    range.e_type = "e"; // exclusive (<)
+  } else if (hasStart || !isWildcard(versionInCriteria)) {
+    // If a start is specified (open-ended end) or a single version is implied,
+    // we use a large version string as the placeholder for "unlimited".
+    range.end = "9999.9999.9999";
+    range.e_type = "i"; // Treat max placeholder as inclusive
+  }
+
+  // --- Handle Single Version (versionEquals) Fallback ---
+  // If the CPE has NO version constraints, but a concrete version in the criteria:
+  if (!hasStart && !hasEnd && !isWildcard(versionInCriteria)) {
+    range.start = versionInCriteria;
+    range.end = versionInCriteria;
+    range.s_type = "i";
+    range.e_type = "i";
+  }
+
+  // Ensure we captured a valid start/end combination
+  if (range.start && range.end) {
+    return range;
+  }
+
+  return null;
 };
 
 /**
- * Extracts product name (vendor:product) and version details from NVD configurations.
- * Only processes the nodes in the first configuration block to focus on the primary product.
+ * Extracts product name and all distinct vulnerable version ranges from NVD
+ * configurations, storing ranges in a standardized format.
  * @param {object} cve - The complete CVE object from the NVD data feed.
  * @param {object} metrics - Object for tracking parsing failures.
- * @returns {{productName: string, patchedInVersion?: string, minAffectedVersion?: string, maxAffectedVersion?: string}}
+ * @returns {{productName: string, vulnerableRanges: Array<object>} | null}
  */
 export const extractProductDetails = (cve, metrics) => {
-  const UNKNOWN_PRODUCT_VALUE = "UNKNOWN";
-  // only use the nodes from the first configuration object
+  // grab the first config node
   const firstConfigNodes = cve.configurations?.[0]?.nodes || [];
 
   let firstFullProductName = null;
-  let explicitPatchVersion = null;
-  const allVulnerableVersions = new Set();
+  const vulnerableRanges = [];
   const isWildcard = (v) => v === "*" || v === "-" || !v;
 
-  // Recursive helper to deeply traverse configuration nodes
-  const traverse = (nodes) => {
-    if (!nodes) return;
+  const captureProductName = (parts) => {
+    const vendor = parts[3];
+    const product = parts[4];
+    if (!firstFullProductName && vendor && product) {
+      firstFullProductName = `${vendor}:${product}`;
+    }
+  };
 
-    for (const node of nodes) {
-      // Process all CPE matches in the current node
-      (node.cpeMatch || []).forEach((match) => {
-        if (!match.vulnerable) return;
+  const processCpeMatches = (cpeMatches) => {
+    (cpeMatches || []).forEach((match) => {
+      if (!match.vulnerable) return;
 
-        // split by colon
-        const parts = match.criteria ? match.criteria.split(":") : [];
+      const parts = match.criteria ? match.criteria.split(":") : [];
 
-        // Criteria should be long enough: cpe:2.3:<part>:<vendor>:<product>:<version>:...
-        if (parts.length >= 6) {
-          const vendor = parts[3];
-          const product = parts[4];
-          const versionInCriteria = parts[5];
+      if (parts.length >= 6) {
+        // Capture the product name immediately (before version validation)
+        captureProductName(parts);
+        const versionInCriteria = parts[5];
 
-          // capture the first full product name ("cisco:ios")
-          if (!firstFullProductName && vendor && product) {
-            firstFullProductName = `${vendor}:${product}`;
-          }
+        // Attempt to create the standardized range
+        const standardizedRange = transformRange(
+          match,
+          versionInCriteria,
+          isWildcard,
+        );
 
-          if (!explicitPatchVersion && match.versionEndExcluding) {
-            explicitPatchVersion = match.versionEndExcluding;
-          }
-
-          // Collect all vulnerable version strings for min/max calculation
-          if (!isWildcard(versionInCriteria)) {
-            allVulnerableVersions.add(versionInCriteria);
-          }
-          if (
-            match.versionStartIncluding &&
-            !isWildcard(match.versionStartIncluding)
-          ) {
-            allVulnerableVersions.add(match.versionStartIncluding);
-          }
-          if (
-            match.versionEndIncluding &&
-            !isWildcard(match.versionEndIncluding)
-          ) {
-            allVulnerableVersions.add(match.versionEndIncluding);
-          }
+        if (standardizedRange) {
+          vulnerableRanges.push(standardizedRange);
         }
-      });
+      }
+    });
+  };
 
-      // Recurse into nested nodes
-      if (node.nodes && node.nodes.length > 0) {
-        traverse(node.nodes);
+  // Iterate over the primary nodes in the first configuration block
+  for (const node of firstConfigNodes) {
+    processCpeMatches(node.cpeMatch);
+
+    // Check for one level of nested nodes
+    if (node.nodes && node.nodes.length > 0) {
+      for (const nestedNode of node.nodes) {
+        processCpeMatches(nestedNode.cpeMatch);
       }
     }
-  };
+  }
 
-  traverse(firstConfigNodes);
+  // --- Final Validation ---
 
-  // product name
+  // 1. Return null if product name is missing
   if (!firstFullProductName) {
-    metrics.totalUnknownProduct++;
-    return { productName: UNKNOWN_PRODUCT_VALUE };
+    metrics.totalUnknownProductName++;
+    return null;
   }
 
-  // Determine Min/Max Affected Version Range using the robust comparator
-  let minVersion = null;
-  let maxVersion = null;
-
-  for (const version of allVulnerableVersions) {
-    if (minVersion === null || compareVersions(version, minVersion) < 0) {
-      minVersion = version;
-    }
-    if (maxVersion === null || compareVersions(version, maxVersion) > 0) {
-      maxVersion = version;
-    }
+  // 2. DISCARD the CVE if no actionable version ranges were successfully extracted.
+  if (vulnerableRanges.length === 0) {
+    metrics.totalUnknownProductVersion++;
+    return null;
   }
 
-  const result = {
+  return {
     productName: firstFullProductName,
+    vulnerableRanges: vulnerableRanges,
   };
-
-  if (explicitPatchVersion) {
-    result.patchedInVersion = explicitPatchVersion;
-  }
-
-  // Include min/max only if found and ensure max is only added if different from min
-  if (minVersion) {
-    result.minAffectedVersion = minVersion;
-  }
-  if (maxVersion && maxVersion !== minVersion) {
-    result.maxAffectedVersion = maxVersion;
-  }
-
-  // check for unknown status
-  if (!explicitPatchVersion && allVulnerableVersions.size === 0) {
-    metrics.totalUnknownProduct++;
-  }
-
-  return result;
 };
