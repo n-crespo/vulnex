@@ -224,6 +224,96 @@ const transformRange = (match, versionInCriteria, isWildcard) => {
 };
 
 /**
+ * Merges overlapping or continuous standardized version ranges to optimize storage.
+ * Assumes 'compareVersions' is available in the scope (0 if equal, < 0 if v1 is smaller).
+ * @param {Array<object>} ranges - The array of standardized range objects.
+ * @returns {Array<object>} The minimized array of merged ranges.
+ */
+const mergeVulnerableRanges = (ranges) => {
+  if (ranges.length <= 1) {
+    return ranges;
+  }
+
+  // sort the ranges primarily by the 'start' version.
+  ranges.sort((a, b) => compareVersions(a.start, b.start));
+
+  const merged = [ranges[0]];
+
+  for (let i = 1; i < ranges.length; i++) {
+    const current = ranges[i];
+    const lastMerged = merged[merged.length - 1];
+
+    // Check if the current range starts before or at the end of the last merged range.
+    // If compareVersions(current.start, lastMerged.end) <= 0, they overlap or are contiguous.
+    // We must handle the type ('i' vs 'e') to check for true contiguity (e.g., [1, 2e] and [2i, 3e] are contiguous).
+
+    let isOverlappingOrContiguous = false;
+
+    const comparison = compareVersions(current.start, lastMerged.end);
+
+    if (comparison < 0) {
+      // Current start is definitely before the last end (they overlap)
+      isOverlappingOrContiguous = true;
+    } else if (comparison === 0) {
+      // Starts exactly at the last end. Contiguous if one end is 'i' or both are 'e'.
+      // Ex: [1, 5i] and [5i, 10] -> Contiguous.
+      // Ex: [1, 5e] and [5i, 10] -> Contiguous (v5 is skipped in the first, included in the second).
+      // Ex: [1, 5e] and [5e, 10] -> DISJOINT (v5 is missing).
+      if (lastMerged.e_type === "i" || current.s_type === "i") {
+        isOverlappingOrContiguous = true;
+      }
+    }
+
+    if (isOverlappingOrContiguous) {
+      // Merge: Update the end of the last merged range if the current range extends further.
+      if (compareVersions(current.end, lastMerged.end) > 0) {
+        lastMerged.end = current.end;
+        // Keep the more restrictive type: if the current one is 'e', and it extends further, use 'e'.
+        lastMerged.e_type = current.e_type;
+      }
+      // If the current range ends before the last one, keep the last one's boundary.
+    } else {
+      // Disjoint: Add the current range to the merged list.
+      merged.push(current);
+    }
+  }
+
+  return merged;
+};
+
+/**
+ * Custom version comparator: Compares version strings numerically (e.g., "10.3" > "9.1").
+ * This is needed because standard string sorting fails on version numbers.
+ */
+const compareVersions = (v1, v2) => {
+  // Treat null/empty versions as less than any concrete version
+  if (!v1 || !v2) return v1 ? 1 : v2 ? -1 : 0;
+
+  // Split by dot and map parts to numbers if possible (e.g., '11.2p' remains '11.2p', '10' becomes 10)
+  const s1 = v1.split(".").map((p) => (isNaN(parseInt(p)) ? p : parseInt(p)));
+  const s2 = v2.split(".").map((p) => (isNaN(parseInt(p)) ? p : parseInt(p)));
+
+  const maxLength = Math.max(s1.length, s2.length);
+
+  for (let i = 0; i < maxLength; i++) {
+    const part1 = s1[i] || 0;
+    const part2 = s2[i] || 0;
+
+    if (typeof part1 === "number" && typeof part2 === "number") {
+      if (part1 > part2) return 1;
+      if (part1 < part2) return -1;
+    } else {
+      // Fallback for non-numeric parts (like '11.2p' vs '11.2')
+      const str1 = String(part1);
+      const str2 = String(part2);
+      const comparison = str1.localeCompare(str2);
+      if (comparison !== 0) return comparison;
+    }
+  }
+  return 0;
+};
+
+/**
  * Extracts product name and all distinct vulnerable version ranges from NVD
  * configurations, storing ranges in a standardized format.
  * @param {object} cve - The complete CVE object from the NVD data feed.
@@ -237,6 +327,8 @@ export const extractProductDetails = (cve, metrics) => {
   let firstFullProductName = null;
   const vulnerableRanges = [];
   const isWildcard = (v) => v === "*" || v === "-" || !v;
+
+  // define some helper functions
 
   const captureProductName = (parts) => {
     const vendor = parts[3];
@@ -297,8 +389,18 @@ export const extractProductDetails = (cve, metrics) => {
     return null;
   }
 
+  // merge version ranges to reduce data storage
+  const optimizedRanges = mergeVulnerableRanges(vulnerableRanges);
+  const rangeDifference = vulnerableRanges.length - optimizedRanges.length;
+
+  // if optimized range is BIGGER, something very bad happened
+  if (rangeDifference < 0) {
+    console.error("CRITICAL ERROR IN VERSION RANGES");
+    throw new Error("CRITICAL ERROR IN VERSION RANGES");
+  }
+
   return {
     productName: firstFullProductName,
-    vulnerableRanges: vulnerableRanges,
+    vulnerableRanges: optimizedRanges,
   };
 };
