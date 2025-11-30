@@ -2,8 +2,11 @@ import { promises as fs } from "fs";
 import { createWriteStream } from "fs";
 import { writeBatchToOutput, postToDatabase } from "./src/output.js";
 import { verifyCveArrayData } from "./src/validate.js";
-import { processCveBatch } from "./src/fetch.js";
-import { generateFinalReport, generateBatchReport } from "./src/report.js";
+import { processCveBatch } from "./src/process.js";
+import {
+  generateFinalReport as generateReport,
+  generateBatchReport,
+} from "./src/report.js";
 import axios from "axios";
 
 const NVD_API_KEY = process.env.NVD_API_KEY;
@@ -27,7 +30,8 @@ const metrics = {
   totalProcessed: 0,
   // extraction errors
   totalUnknownSeverity: 0,
-  totalUnknownProduct: 0,
+  totalUnknownProductName: 0,
+  totalUnknownProductVersion: 0,
   totalValidationFails: 0,
 };
 
@@ -118,7 +122,8 @@ async function fetchAllCVEs() {
   }
 
   // final report
-  generateFinalReport(metrics);
+  console.log("\n\n--- NVD Sync Complete ---\n" + "--- FINAL RESULTS ---");
+  generateReport(metrics);
 }
 
 /**
@@ -190,13 +195,15 @@ async function fetchAndProcessBatch(currentStartIndex, totalResults) {
       );
 
       // verify the processing went correctly...
+      // console.log(goodCves);
       if (goodCves.length > 0 && verifyCveArrayData(goodCves, metrics)) {
         // commit processed data to db/file/whatever
         await writeBatchToOutput(goodCves, outputStream);
-        await postToDatabase(goodCves, protectedClient);
+        // await postToDatabase(goodCves, protectedClient);
       }
 
       // print report on how processing this batch went
+      console.log("\n--- Batch Report ---");
       generateBatchReport(metrics, batchMetrics);
       return rawData.vulnerabilities.length;
     } catch (error) {
