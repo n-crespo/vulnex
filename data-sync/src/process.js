@@ -12,7 +12,9 @@ export async function processCveBatch(vulnerabilities, metrics, BAD_CVES_FILE) {
 
   // Capture current global partial failure counts before processing the batch
   const initialUnknownSeverity = metrics.totalUnknownSeverity;
-  const initialUnknownProduct = metrics.totalUnknownProduct;
+  const initialUnknownProductName = metrics.totalUnknownProductName;
+  const initialUnknownProductVersion = metrics.totalUnknownProductVersion;
+  const initialFailedProductName = metrics.initialFailedProductName;
 
   const batchProcessed = vulnerabilities.length;
   metrics.totalProcessed += batchProcessed;
@@ -21,7 +23,9 @@ export async function processCveBatch(vulnerabilities, metrics, BAD_CVES_FILE) {
   for (const vuln of vulnerabilities) {
     try {
       const extractedRecord = extractCveData(vuln, metrics);
-      goodCves.push(extractedRecord);
+      if (extractedRecord) {
+        goodCves.push(extractedRecord);
+      }
       metrics.totalSuccessful++;
     } catch (error) {
       if (error.isRejected) {
@@ -47,9 +51,14 @@ export async function processCveBatch(vulnerabilities, metrics, BAD_CVES_FILE) {
       batchRejectedCount: batchRejectedCount,
       batchFailedCount: batchFailedCount,
       batchSuccessCount: goodCves.length,
+      batchFailedProductName:
+        metrics.totalUnknownProductName - initialFailedProductName,
       batchUnknownSeverity:
         metrics.totalUnknownSeverity - initialUnknownSeverity,
-      batchUnknownProduct: metrics.totalUnknownProduct - initialUnknownProduct,
+      batchUnknownProduct:
+        metrics.totalUnknownProduct - initialUnknownProductName,
+      batchUnknownProductVersion:
+        metrics.totalUnknownProductVersion - initialUnknownProductVersion,
     },
   ];
 }
