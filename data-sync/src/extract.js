@@ -224,7 +224,7 @@ const transformRange = (match, versionInCriteria, isWildcard) => {
 };
 
 /**
- * Merges overlapping or contiguous standardized version ranges to optimize storage.
+ * Merges overlapping or continuous standardized version ranges to optimize storage.
  * Assumes 'compareVersions' is available in the scope (0 if equal, < 0 if v1 is smaller).
  * @param {Array<object>} ranges - The array of standardized range objects.
  * @returns {Array<object>} The minimized array of merged ranges.
@@ -234,7 +234,7 @@ const mergeVulnerableRanges = (ranges) => {
     return ranges;
   }
 
-  // 1. Sort the ranges primarily by the 'start' version.
+  // sort the ranges primarily by the 'start' version.
   ranges.sort((a, b) => compareVersions(a.start, b.start));
 
   const merged = [ranges[0]];
@@ -328,6 +328,8 @@ export const extractProductDetails = (cve, metrics) => {
   const vulnerableRanges = [];
   const isWildcard = (v) => v === "*" || v === "-" || !v;
 
+  // define some helper functions
+
   const captureProductName = (parts) => {
     const vendor = parts[3];
     const product = parts[4];
@@ -387,8 +389,18 @@ export const extractProductDetails = (cve, metrics) => {
     return null;
   }
 
+  // merge version ranges to reduce data storage
+  const optimizedRanges = mergeVulnerableRanges(vulnerableRanges);
+  const rangeDifference = vulnerableRanges.length - optimizedRanges.length;
+
+  // if optimized range is BIGGER, something very bad happened
+  if (rangeDifference < 0) {
+    console.error("CRITICAL ERROR IN VERSION RANGES");
+    throw new Error("CRITICAL ERROR IN VERSION RANGES");
+  }
+
   return {
     productName: firstFullProductName,
-    vulnerableRanges: vulnerableRanges,
+    vulnerableRanges: optimizedRanges,
   };
 };
