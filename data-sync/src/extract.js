@@ -224,6 +224,63 @@ const transformRange = (match, versionInCriteria, isWildcard) => {
 };
 
 /**
+ * Merges overlapping or contiguous standardized version ranges to optimize storage.
+ * Assumes 'compareVersions' is available in the scope (0 if equal, < 0 if v1 is smaller).
+ * @param {Array<object>} ranges - The array of standardized range objects.
+ * @returns {Array<object>} The minimized array of merged ranges.
+ */
+const mergeVulnerableRanges = (ranges) => {
+  if (ranges.length <= 1) {
+    return ranges;
+  }
+
+  // 1. Sort the ranges primarily by the 'start' version.
+  ranges.sort((a, b) => compareVersions(a.start, b.start));
+
+  const merged = [ranges[0]];
+
+  for (let i = 1; i < ranges.length; i++) {
+    const current = ranges[i];
+    const lastMerged = merged[merged.length - 1];
+
+    // Check if the current range starts before or at the end of the last merged range.
+    // If compareVersions(current.start, lastMerged.end) <= 0, they overlap or are contiguous.
+    // We must handle the type ('i' vs 'e') to check for true contiguity (e.g., [1, 2e] and [2i, 3e] are contiguous).
+
+    let isOverlappingOrContiguous = false;
+
+    const comparison = compareVersions(current.start, lastMerged.end);
+
+    if (comparison < 0) {
+      // Current start is definitely before the last end (they overlap)
+      isOverlappingOrContiguous = true;
+    } else if (comparison === 0) {
+      // Starts exactly at the last end. Contiguous if one end is 'i' or both are 'e'.
+      // Ex: [1, 5i] and [5i, 10] -> Contiguous.
+      // Ex: [1, 5e] and [5i, 10] -> Contiguous (v5 is skipped in the first, included in the second).
+      // Ex: [1, 5e] and [5e, 10] -> DISJOINT (v5 is missing).
+      if (lastMerged.e_type === "i" || current.s_type === "i") {
+        isOverlappingOrContiguous = true;
+      }
+    }
+
+    if (isOverlappingOrContiguous) {
+      // Merge: Update the end of the last merged range if the current range extends further.
+      if (compareVersions(current.end, lastMerged.end) > 0) {
+        lastMerged.end = current.end;
+        // Keep the more restrictive type: if the current one is 'e', and it extends further, use 'e'.
+        lastMerged.e_type = current.e_type;
+      }
+      // If the current range ends before the last one, keep the last one's boundary.
+    } else {
+      // Disjoint: Add the current range to the merged list.
+      merged.push(current);
+    }
+  }
+
+  return merged;
+};
+/**
  * Extracts product name and all distinct vulnerable version ranges from NVD
  * configurations, storing ranges in a standardized format.
  * @param {object} cve - The complete CVE object from the NVD data feed.
