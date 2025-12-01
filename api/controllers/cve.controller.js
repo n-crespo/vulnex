@@ -1,4 +1,5 @@
 import CVE from "../models/cve.model.js";
+import { filterCvesByVersion } from "../../utils/version_filter.js";
 
 const CVE_SCHEMA_FIELDS = Object.keys(CVE.schema.paths).filter(
   // filter out Mongoose internal fields (_id, __v, etc )
@@ -103,6 +104,13 @@ export const getCVEs = async (req, res) => {
     const limit = parseInt(req.query.limit) || 100; // Default limit to 100 records
     const skip = parseInt(req.query.skip) || 0; // Default skip to 0 (start from the beginning)
 
+    const requestedProductName = req.query.productName;
+    const requestedSeverityLevel = req.query.severityLevel;
+    const requestedVersion = req.query.version;
+
+    // cves need manual filtering if version is specified. this also requires product name.
+    const needsManualFiltering = requestedProductName && requestedVersion;
+
     // ensure non-negative parameters
     const safeLimit = Math.max(1, limit);
     const safeSkip = Math.max(0, skip);
@@ -110,7 +118,6 @@ export const getCVEs = async (req, res) => {
     const queryFilter = {};
 
     // add product name filter
-    const requestedProductName = req.query.productName;
     if (requestedProductName) {
       queryFilter.productName = {
         $regex: new RegExp(requestedProductName),
@@ -119,23 +126,39 @@ export const getCVEs = async (req, res) => {
     }
 
     // add severityLevel filter
-    const requestedSeverityLevel = req.query.severityLevel;
     if (requestedSeverityLevel) {
-      // Per the requirement, this filter is applied regardless of productName being specified.
       queryFilter.severityLevel = requestedSeverityLevel;
-      console.log(`Adding filter: severityLevel=${requestedSeverityLevel}`);
     }
 
-    // count matching records without page limits
-    const totalCount = await CVE.countDocuments(queryFilter);
+    let totalCount;
+    let cves = {};
 
     console.log(
-      `Fetching CVEs: Limit=${safeLimit}, Skip=${safeSkip}, Product=${requestedProductName} Severity=${requestedSeverityLevel}`,
+      `Fetching CVEs: Limit=${safeLimit}, Skip=${safeSkip}, Product=${requestedProductName} Severity=${requestedSeverityLevel} Version=${requestedVersion}`,
     );
 
-    // execute the query
-    const cves = await CVE.find(queryFilter).skip(safeSkip).limit(safeLimit);
+    if (needsManualFiltering) {
+      console.log("In-memory filtering...");
+      let allFilteredCves = await CVE.find(queryFilter);
+      allFilteredCves = filterCvesByVersion(allFilteredCves, requestedVersion);
+
+      // header info (total matching cves)
+      totalCount = allFilteredCves.length;
+
+      // respect pagination request
+      cves = allFilteredCves.slice(safeSkip, safeSkip + safeLimit);
+    } else {
+      // get total count with mongo function
+      totalCount = await CVE.countDocuments(queryFilter);
+      cves = await CVE.find(queryFilter).skip(safeSkip).limit(safeLimit);
+    }
+
+    // count CVEs we will return
     const pageCount = cves.length;
+
+    console.log(
+      `Query results: Total matching=${totalCount}, Returned (page)=${pageCount}`,
+    );
 
     // build the headers
     res.header("X-Page-Count", pageCount);
