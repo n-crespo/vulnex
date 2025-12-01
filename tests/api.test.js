@@ -20,8 +20,7 @@ const singleNewCVE = {
   description: "TEST CVE",
   severityLevel: "MEDIUM",
   productName: "test-product",
-  minAffectedVersion: "1.0",
-  maxAffectedVersion: "1.0",
+  productVersions: [{ start: "0.5", end: "5.1", s_type: "i", e_type: "e" }],
 };
 
 const singleBadCVE = {
@@ -30,8 +29,7 @@ const singleBadCVE = {
   description: "TEST CVE",
   severityLevel: "MEDIUM",
   productName: "test-product",
-  minAffectedVersion: "1.0",
-  maxAffectedVersion: "1.0",
+  productVersions: [{ start: "0.5", end: "5.1", s_type: "i", e_type: "e" }],
 };
 
 // Data for the update operation
@@ -47,7 +45,7 @@ const bulkNewCVEs = [
     description: "TEST CVE",
     severityLevel: "HIGH",
     productName: "shadowed_portal",
-    patchedInVersion: "5.599",
+    productVersions: [{ start: "0.5", end: "5.1", s_type: "i", e_type: "e" }],
   },
   {
     cveId: "CVE-2090-0002",
@@ -55,9 +53,7 @@ const bulkNewCVEs = [
     description: "TEST CVE",
     severityLevel: "HIGH",
     productName: "apple_remote_desktop",
-    patchedInVersion: "10.2.8",
-    minAffectedVersion: "2.0.0",
-    maxAffectedVersion: "3.0.0",
+    productVersions: [{ start: "0.5", end: "5.1", s_type: "i", e_type: "e" }],
   },
 ];
 
@@ -68,14 +64,13 @@ const bulkUpdatesToCVEs = [
     cveId: "CVE-2090-0001",
     update: {
       severityLevel: "NONE",
-      patchedInVersion: "2.0",
+      productVersions: [{ start: "0.5", end: "5.2", s_type: "i", e_type: "e" }],
     },
   },
   {
     cveId: "CVE-2090-0002",
     update: {
       severityLevel: "NONE",
-      patchedInVersion: "2.0",
     },
   },
   {
@@ -410,8 +405,8 @@ const runApiTests = (baseUrl, environmentName) => {
     });
 
     describe(`FILTERING TESTS`, function () {
-      it(`GET /api/cves?productName=ios should return only CVEs where 'productName' includes 'ios' (case-insensitive)`, async () => {
-        const queryProductName = "ios";
+      it(`GET /api/cves?productName=dompurify should return only CVEs where 'productName' includes 'ios' (case-insensitive)`, async () => {
+        const queryProductName = "dompurify";
         const response = await publicClient.get(
           `${baseUrl}/api/cves?productName=${queryProductName}`,
         );
@@ -420,7 +415,7 @@ const runApiTests = (baseUrl, environmentName) => {
         const cves = response.data;
         expect(cves)
           .to.be.an("array")
-          // NOTE: this assumes there are CVEs with `ios` in the productName
+          // NOTE: this assumes there are CVEs with `dompurify` in the productName
           // (reasonable assumption, there are many)
           .with.lengthOf.at.least(1, "The array of CVEs should not be empty");
 
