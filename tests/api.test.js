@@ -781,7 +781,7 @@ const runApiTests = (baseUrl, environmentName) => {
         });
       });
 
-      it(`GET /api/cves?productName=dompurify&keyword=svg should return CVEs for dompurify w/ 'vulnerable' in description`, async () => {
+      it(`GET /api/cves?productName=dompurify&keyword=svg should return CVEs for dompurify w/ 'svg' in description`, async () => {
         const queryProductName = "dompurify";
         const queryKeyword = "svg";
 
