@@ -1,4 +1,5 @@
 import { expect } from "chai";
+import { compareVersions } from "../utils/version_comparator.js";
 import axios from "axios";
 import net from "net";
 
@@ -416,6 +417,7 @@ const runApiTests = (baseUrl, environmentName) => {
           );
         });
       });
+
       it(`GET /api/cves?productName=dompurify&severityLevel=CRITICAL should return only CVEs matching both criteria`, async () => {
         const queryProductName = "dompurify";
         const querySeverityLevel = "CRITICAL";
@@ -448,6 +450,86 @@ const runApiTests = (baseUrl, environmentName) => {
           expect(c.severityLevel).to.equal(
             querySeverityLevel,
             `Severity level '${c.severityLevel}' must be equal to '${querySeverityLevel}'`,
+          );
+        });
+      });
+
+      it(`GET /api/cves?productName=dompurify&version=3.0.0 should return CVEs applicable to specified version`, async () => {
+        const queryProductName = "dompurify";
+        const queryVersion = "3.0.0";
+
+        // helper function to check if a specific version falls within a CVE's version ranges
+        const isVersionApplicable = (cve, targetVersion) => {
+          // Must have productVersions to check applicability
+          if (!cve.productVersions || cve.productVersions.length === 0) {
+            return false;
+          }
+
+          // iterate through all version ranges for the CVE
+          return cve.productVersions.some((range) => {
+            const { start, end, s_type, e_type } = range;
+
+            // Check Start Boundary (targetVersion compared to start)
+            const startComparison = compareVersions(targetVersion, start);
+            let meetsStartCondition = false;
+            if (s_type === "i") {
+              // inclusive
+              meetsStartCondition = startComparison >= 0;
+            } else if (s_type === "e") {
+              // exclusive
+              meetsStartCondition = startComparison > 0;
+            } else {
+              // Assume inclusive if type is missing or unknown for robustness
+              meetsStartCondition = startComparison >= 0;
+            }
+
+            // Check End Boundary (targetVersion compared to end)
+            const endComparison = compareVersions(targetVersion, end);
+            let meetsEndCondition = false;
+            if (e_type === "i") {
+              // inclusive
+              meetsEndCondition = endComparison <= 0;
+            } else if (e_type === "e") {
+              // exclusive
+              meetsEndCondition = endComparison < 0;
+            } else {
+              // Assume inclusive if type is missing or unknown for robustness
+              meetsEndCondition = endComparison <= 0;
+            }
+
+            // The version is applicable if it meets both start and end conditions
+            return meetsStartCondition && meetsEndCondition;
+          });
+        };
+
+        const response = await publicClient.get(
+          `${baseUrl}/api/cves?productName=${queryProductName}&version=${queryVersion}`,
+        );
+
+        // check HTTP Status
+        expect(response.status).to.equal(SUCCESS_STATUS);
+
+        const cves = response.data;
+
+        // check that results were returned
+        expect(cves)
+          .to.be.an("array")
+          .with.lengthOf.at.least(
+            1,
+            `Expected at least one CVE for product '${queryProductName}' applicable to version '${queryVersion}'`,
+          );
+
+        // iterate and check ALL filtering conditions
+        cves.forEach((cve) => {
+          // check productName includes the query string (case-insensitive)
+          expect(cve.productName.toLowerCase()).to.include(
+            queryProductName.toLowerCase(),
+            `Product name '${cve.productName}' must include '${queryProductName}'`,
+          );
+
+          // check the version applicability filter was correctly applied by the server
+          expect(isVersionApplicable(cve, queryVersion)).to.be.true(
+            `CVE ID ${cve.cveId} (Product: ${cve.productName}) must be vulnerable to version ${queryVersion} based on its productVersions array.`,
           );
         });
       });
