@@ -314,7 +314,6 @@ const runApiTests = (baseUrl, environmentName) => {
         try {
           await protectedClient.post(`/`, bulkCVEsWithInvalidEntry);
         } catch (error) {
-          // console.log(error.response);
           expect(error.response.status).to.equal(BAD_REQUEST_STATUS);
         }
       });
@@ -648,7 +647,7 @@ const runApiTests = (baseUrl, environmentName) => {
       it(`GET /api/cves?productName=dompurify&version=3.0.0&publishedStart=2024-01-01 should filter by start date`, async () => {
         const queryProductName = "dompurify";
         const queryVersion = "3.0.0";
-        const queryPublishedStart = "2024-09-01";
+        const queryPublishedStart = "2024-10-01";
         const queryPublishedEnd = undefined; // no end date
 
         const response = await publicClient.get(
@@ -666,7 +665,6 @@ const runApiTests = (baseUrl, environmentName) => {
             `Expected results after applying publishedStart filter.`,
           );
 
-        console.log(cves);
         cves.forEach((cve) => {
           // Check existing filters (Product, Version)
           expect(cve.productName.toLowerCase()).to.include(
@@ -686,7 +684,7 @@ const runApiTests = (baseUrl, environmentName) => {
         const queryProductName = "dompurify";
         const queryVersion = "3.0.0";
         const queryPublishedStart = undefined; // No start date
-        const queryPublishedEnd = "2024-09-30";
+        const queryPublishedEnd = "2024-10-30";
 
         const response = await publicClient.get(
           `${baseUrl}/api/cves?productName=${queryProductName}&version=${queryVersion}&publishedEnd=${queryPublishedEnd}`,
@@ -721,8 +719,8 @@ const runApiTests = (baseUrl, environmentName) => {
       it(`GET /api/cves?productName=dompurify&version=3.0.0&publishedStart=2024-01-01&publishedEnd=2024-06-30 should filter by both start and end dates`, async () => {
         const queryProductName = "dompurify";
         const queryVersion = "3.0.0";
-        const queryPublishedStart = "2024-09-01";
-        const queryPublishedEnd = "2024-09-30";
+        const queryPublishedStart = "2024-10-01";
+        const queryPublishedEnd = "2024-10-30";
 
         const response = await publicClient.get(
           `${baseUrl}/api/cves?productName=${queryProductName}&version=${queryVersion}&publishedStart=${queryPublishedStart}&publishedEnd=${queryPublishedEnd}`,
