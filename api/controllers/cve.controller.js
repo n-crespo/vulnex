@@ -157,7 +157,7 @@ export const getCVEs = async (req, res) => {
     const pageCount = cves.length;
 
     console.log(
-      `Query results: Total matching=${totalCount}, Returned (page)=${pageCount}`,
+      `Query results: Total Count=${totalCount}, Page Count=${pageCount}`,
     );
 
     // build the headers
