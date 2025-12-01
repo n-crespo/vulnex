@@ -42,7 +42,7 @@ const CVESchema = Schema(
     severityLevel: {
       type: String,
       required: true,
-      // index: true,
+      index: true,
       enum: severityEnum, // Strict validation for known severity levels
     },
 
