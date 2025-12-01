@@ -82,6 +82,73 @@ const bulkUpdatesToCVEs = [
   },
 ];
 
+// helper function to check if a specific version falls within a CVE's version ranges
+const isVersionApplicable = (cve, targetVersion) => {
+  // Must have productVersions to check applicability
+  if (!cve.productVersions || cve.productVersions.length === 0) {
+    return false;
+  }
+
+  // iterate through all version ranges for the CVE
+  return cve.productVersions.some((range) => {
+    const { start, end, s_type, e_type } = range;
+
+    // Check Start Boundary (targetVersion compared to start)
+    const startComparison = compareVersions(targetVersion, start);
+    let meetsStartCondition = false;
+    if (s_type === "i") {
+      // inclusive
+      meetsStartCondition = startComparison >= 0;
+    } else if (s_type === "e") {
+      // exclusive
+      meetsStartCondition = startComparison > 0;
+    } else {
+      // Assume inclusive if type is missing or unknown for robustness
+      meetsStartCondition = startComparison >= 0;
+    }
+
+    // Check End Boundary (targetVersion compared to end)
+    const endComparison = compareVersions(targetVersion, end);
+    let meetsEndCondition = false;
+    if (e_type === "i") {
+      // inclusive
+      meetsEndCondition = endComparison <= 0;
+    } else if (e_type === "e") {
+      // exclusive
+      meetsEndCondition = endComparison < 0;
+    } else {
+      // Assume inclusive if type is missing or unknown for robustness
+      meetsEndCondition = endComparison <= 0;
+    }
+
+    // The version is applicable if it meets both start and end conditions
+    return meetsStartCondition && meetsEndCondition;
+  });
+};
+
+// Helper function used to verify that the CVE's 'published' field falls within the specified date range.
+const isDateWithinRange = (cve, startDateStr, endDateStr) => {
+  // Parse the CVE's published date, which is stored as an ISO string.
+  const publishedDate = new Date(cve.published);
+
+  let meetsStartCondition = true;
+  let meetsEndCondition = true;
+
+  if (startDateStr) {
+    const startDate = new Date(startDateStr);
+    // Verify condition: publishedDate >= startDate
+    meetsStartCondition = publishedDate.getTime() >= startDate.getTime();
+  }
+
+  if (endDateStr) {
+    const endDate = new Date(endDateStr);
+    // Verify condition: publishedDate <= endDate
+    meetsEndCondition = publishedDate.getTime() <= endDate.getTime();
+  }
+
+  return meetsStartCondition && meetsEndCondition;
+};
+
 /**
  * Executes the full CRUD and security check sequence for a given base URL.
  * @param {string} baseUrl - The base URL of the server (e.g., http://localhost:3000)
@@ -247,7 +314,6 @@ const runApiTests = (baseUrl, environmentName) => {
         try {
           await protectedClient.post(`/`, bulkCVEsWithInvalidEntry);
         } catch (error) {
-          // console.log(error.response);
           expect(error.response.status).to.equal(BAD_REQUEST_STATUS);
         }
       });
@@ -458,50 +524,6 @@ const runApiTests = (baseUrl, environmentName) => {
         const queryProductName = "dompurify";
         const queryVersion = "3.0.0";
 
-        // helper function to check if a specific version falls within a CVE's version ranges
-        const isVersionApplicable = (cve, targetVersion) => {
-          // Must have productVersions to check applicability
-          if (!cve.productVersions || cve.productVersions.length === 0) {
-            return false;
-          }
-
-          // iterate through all version ranges for the CVE
-          return cve.productVersions.some((range) => {
-            const { start, end, s_type, e_type } = range;
-
-            // Check Start Boundary (targetVersion compared to start)
-            const startComparison = compareVersions(targetVersion, start);
-            let meetsStartCondition = false;
-            if (s_type === "i") {
-              // inclusive
-              meetsStartCondition = startComparison >= 0;
-            } else if (s_type === "e") {
-              // exclusive
-              meetsStartCondition = startComparison > 0;
-            } else {
-              // Assume inclusive if type is missing or unknown for robustness
-              meetsStartCondition = startComparison >= 0;
-            }
-
-            // Check End Boundary (targetVersion compared to end)
-            const endComparison = compareVersions(targetVersion, end);
-            let meetsEndCondition = false;
-            if (e_type === "i") {
-              // inclusive
-              meetsEndCondition = endComparison <= 0;
-            } else if (e_type === "e") {
-              // exclusive
-              meetsEndCondition = endComparison < 0;
-            } else {
-              // Assume inclusive if type is missing or unknown for robustness
-              meetsEndCondition = endComparison <= 0;
-            }
-
-            // The version is applicable if it meets both start and end conditions
-            return meetsStartCondition && meetsEndCondition;
-          });
-        };
-
         const response = await publicClient.get(
           `${baseUrl}/api/cves?productName=${queryProductName}&version=${queryVersion}`,
         );
@@ -619,6 +641,114 @@ const runApiTests = (baseUrl, environmentName) => {
             querySeverityLevel,
             `Severity level '${cve.severityLevel}' must be equal to '${querySeverityLevel}'`,
           );
+        });
+      });
+
+      it(`GET /api/cves?productName=dompurify&version=3.0.0&publishedStart=2024-01-01 should filter by start date`, async () => {
+        const queryProductName = "dompurify";
+        const queryVersion = "3.0.0";
+        const queryPublishedStart = "2024-10-01";
+        const queryPublishedEnd = undefined; // no end date
+
+        const response = await publicClient.get(
+          `${baseUrl}/api/cves?productName=${queryProductName}&version=${queryVersion}&publishedStart=${queryPublishedStart}`,
+        );
+
+        expect(response.status).to.equal(SUCCESS_STATUS);
+
+        const cves = response.data;
+
+        expect(cves)
+          .to.be.an("array")
+          .with.lengthOf.at.least(
+            1,
+            `Expected results after applying publishedStart filter.`,
+          );
+
+        cves.forEach((cve) => {
+          // Check existing filters (Product, Version)
+          expect(cve.productName.toLowerCase()).to.include(
+            queryProductName.toLowerCase(),
+          );
+          expect(isVersionApplicable(cve, queryVersion)).to.be.true;
+
+          // Check Date Filter
+          expect(
+            isDateWithinRange(cve, queryPublishedStart, queryPublishedEnd),
+            `CVE ID ${cve.cveId} must be published on or after ${queryPublishedStart}`,
+          ).to.be.true;
+        });
+      });
+
+      it(`GET /api/cves?productName=dompurify&version=3.0.0&publishedEnd=2024-06-30 should filter by end date`, async () => {
+        const queryProductName = "dompurify";
+        const queryVersion = "3.0.0";
+        const queryPublishedStart = undefined; // No start date
+        const queryPublishedEnd = "2024-10-30";
+
+        const response = await publicClient.get(
+          `${baseUrl}/api/cves?productName=${queryProductName}&version=${queryVersion}&publishedEnd=${queryPublishedEnd}`,
+        );
+
+        expect(response.status).to.equal(SUCCESS_STATUS);
+
+        const cves = response.data;
+
+        expect(cves)
+          .to.be.an("array")
+          .with.lengthOf.at.least(
+            1,
+            `Expected results after applying publishedEnd filter.`,
+          );
+
+        cves.forEach((cve) => {
+          // Check existing filters (Product, Version)
+          expect(cve.productName.toLowerCase()).to.include(
+            queryProductName.toLowerCase(),
+          );
+          expect(isVersionApplicable(cve, queryVersion)).to.be.true;
+
+          // Check Date Filter
+          expect(
+            isDateWithinRange(cve, queryPublishedStart, queryPublishedEnd),
+            `CVE ID ${cve.cveId} must be published on or before ${queryPublishedEnd}`,
+          ).to.be.true;
+        });
+      });
+
+      it(`GET /api/cves?productName=dompurify&version=3.0.0&publishedStart=2024-01-01&publishedEnd=2024-06-30 should filter by both start and end dates`, async () => {
+        const queryProductName = "dompurify";
+        const queryVersion = "3.0.0";
+        const queryPublishedStart = "2024-10-01";
+        const queryPublishedEnd = "2024-10-30";
+
+        const response = await publicClient.get(
+          `${baseUrl}/api/cves?productName=${queryProductName}&version=${queryVersion}&publishedStart=${queryPublishedStart}&publishedEnd=${queryPublishedEnd}`,
+        );
+
+        expect(response.status).to.equal(SUCCESS_STATUS);
+
+        const cves = response.data;
+
+        expect(cves)
+          .to.be.an("array")
+          .with.lengthOf.at.least(
+            1,
+            `Expected results after applying both date filters.`,
+          );
+
+        cves.forEach((cve) => {
+          // Check existing filters (Product, Version)
+          expect(cve.productName.toLowerCase()).to.include(
+            queryProductName.toLowerCase(),
+          );
+          expect(isVersionApplicable(cve, queryVersion)).to.be.true;
+
+          // Check Date Filter
+          expect(
+            isDateWithinRange(cve, queryPublishedStart, queryPublishedEnd),
+            `CVE ID ${cve.cveId} must be published between ${queryPublishedStart} and ${queryPublishedEnd} (inclusive).`,
+          ).to.be.true;
         });
       });
     });
