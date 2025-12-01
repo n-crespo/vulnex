@@ -200,7 +200,7 @@ async function fetchAndProcessBatch(currentStartIndex, totalResults) {
       if (goodCves.length > 0 && verifyCveArrayData(goodCves, metrics)) {
         // commit processed data to db/file/whatever
         await writeBatchToOutput(goodCves, outputStream);
-        // await postToDatabase(goodCves, protectedClient);
+        await postToDatabase(goodCves, protectedClient);
       }
 
       // print report on how processing this batch went
