@@ -490,6 +490,7 @@ const runApiTests = (baseUrl, environmentName) => {
     });
 
     describe(`FILTERING TESTS (GET)`, function () {
+      // product name filtering
       it(`GET /api/cves?productName=dompurify should return CVEs with specified product (case-insensitive)`, async () => {
         const queryProductName = "dompurify";
         const response = await publicClient.get(
@@ -513,6 +514,7 @@ const runApiTests = (baseUrl, environmentName) => {
         });
       });
 
+      // severity level filtering
       it(`GET /api/cves?productName=dompurify&severityLevel=CRITICAL should return CVEs with specified product name/severity`, async () => {
         const queryProductName = "dompurify";
         const querySeverityLevel = "CRITICAL";
@@ -549,6 +551,7 @@ const runApiTests = (baseUrl, environmentName) => {
         });
       });
 
+      // version filtering
       it(`GET /api/cves?productName=dompurify&version=3.0.0 should return CVEs with specified product/version/severity`, async () => {
         const queryProductName = "dompurify";
         const queryVersion = "3.0.0";
@@ -673,6 +676,7 @@ const runApiTests = (baseUrl, environmentName) => {
         });
       });
 
+      // date filtering
       it(`GET /api/cves?productName=dompurify&version=3.0.0&publishedStart=2024-01-01 should filter by start date`, async () => {
         const queryProductName = "dompurify";
         const queryVersion = "3.0.0";
@@ -781,6 +785,7 @@ const runApiTests = (baseUrl, environmentName) => {
         });
       });
 
+      // keyword filtering
       it(`GET /api/cves?productName=dompurify&keyword=svg should return CVEs for dompurify w/ 'svg' in description`, async () => {
         const queryProductName = "dompurify";
         const queryKeyword = "svg";
