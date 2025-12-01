@@ -25,7 +25,7 @@ const CVESchema = Schema(
       match: [cveIdRegex, "cveId must be in the format CVE-YYYY-NNNN+"], // regex validator
       trim: true,
       uppercase: true,
-      // index: true,
+      // index: true, // implied by unique: true
     },
     // could turn these dates from ISO time stamp format into Date objects for better indexing?
     published: {
@@ -51,17 +51,30 @@ const CVESchema = Schema(
       required: true,
       index: true, // Common query point
     },
-    patchedInVersion: {
-      type: String,
-      required: false,
-    },
-    minAffectedVersion: {
-      type: String,
-      required: false,
-    },
-    maxAffectedVersion: {
-      type: String,
-      required: false,
+
+    /**
+     * Standardized array of version ranges derived from NVD configurations.
+     * Example: [
+     * { start: "0", end: "12.22.9", s_type: "i", e_type: "e" },
+     * { start: "14.0.0", end: "14.18.3", s_type: "i", e_type: "e" }
+     * ]
+     * s_type: i = including start
+     * s_type: e = excluding end
+     * e_type = end type
+     */
+    productVersions: {
+      type: [
+        {
+          start: { type: String, required: true },
+          end: { type: String, required: true },
+          s_type: { type: String, required: true, enum: ["i", "e"] }, // inclusive/exclusive
+          e_type: { type: String, required: true, enum: ["i", "e"] }, // inclusive/exclusive
+          // Note: No index needed here, querying is done in app logic
+          _id: false, // don't create an unnecessary id for subdocuments
+        },
+      ],
+      // This field should only exist if the array has content (non-null check in extraction handles this)
+      required: true,
     },
   },
   {
