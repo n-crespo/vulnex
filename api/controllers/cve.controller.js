@@ -155,6 +155,15 @@ export const getCVEs = async (req, res) => {
         $regex: new RegExp(requestedProductName),
         $options: "i", // case insensitive
       };
+      console.log(`Filter: product=${requestedProductName}`);
+    }
+
+    if (requestedKeyword) {
+      queryFilter.description = {
+        $regex: new RegExp(requestedKeyword),
+        $options: "i", // case insensitive
+      };
+      console.log(`Filter: keyword=${requestedKeyword}`);
     }
 
     // add severityLevel filter
