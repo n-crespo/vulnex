@@ -7,17 +7,8 @@ import { logBadCve } from "./output.js";
  */
 export async function processCveBatch(vulnerabilities, metrics, BAD_CVES_FILE) {
   const goodCves = [];
-  let batchRejectedCount = 0;
-  let batchFailedCount = 0;
 
-  // Capture current global partial failure counts before processing the batch
-  const initialUnknownSeverity = metrics.totalUnknownSeverity;
-  const initialUnknownProductName = metrics.totalUnknownProductName;
-  const initialUnknownProductVersion = metrics.totalUnknownProductVersion;
-  const initialFailedProductName = metrics.initialFailedProductName;
-
-  const batchProcessed = vulnerabilities.length;
-  metrics.totalProcessed += batchProcessed;
+  metrics.totalProcessed += vulnerabilities.length;
   // Update global processed count at the start of the batch
 
   for (const vuln of vulnerabilities) {
@@ -29,10 +20,8 @@ export async function processCveBatch(vulnerabilities, metrics, BAD_CVES_FILE) {
       metrics.totalSuccessful++;
     } catch (error) {
       if (error.isRejected) {
-        batchRejectedCount++;
         metrics.totalRejected++;
       } else {
-        batchFailedCount++;
         metrics.totalFailed++;
         console.error(
           `[BAD CVE] ${error.message}. Logging to ${BAD_CVES_FILE}`,
@@ -43,22 +32,5 @@ export async function processCveBatch(vulnerabilities, metrics, BAD_CVES_FILE) {
     }
   }
 
-  // Calculate batch partial failure increments
-  return [
-    goodCves,
-    {
-      batchProcessed: batchProcessed,
-      batchRejectedCount: batchRejectedCount,
-      batchFailedCount: batchFailedCount,
-      batchSuccessCount: goodCves.length,
-      batchFailedProductName:
-        metrics.totalUnknownProductName - initialFailedProductName,
-      batchUnknownSeverity:
-        metrics.totalUnknownSeverity - initialUnknownSeverity,
-      batchUnknownProduct:
-        metrics.totalUnknownProduct - initialUnknownProductName,
-      batchUnknownProductVersion:
-        metrics.totalUnknownProductVersion - initialUnknownProductVersion,
-    },
-  ];
+  return goodCves;
 }

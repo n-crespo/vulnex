@@ -187,8 +187,9 @@ async function fetchAndProcessBatch(currentStartIndex, totalResults) {
         `Progress: ${((metrics.totalProcessed / totalResults) * 100).toFixed(2)}% (${metrics.totalProcessed}/${totalResults})`,
       );
 
+      const initialMetrics = structuredClone(metrics);
       // do the processing...
-      const [goodCves, batchMetrics] = await processCveBatch(
+      const goodCves = await processCveBatch(
         rawData.vulnerabilities,
         metrics,
         BAD_CVES_FILE,
@@ -204,7 +205,7 @@ async function fetchAndProcessBatch(currentStartIndex, totalResults) {
 
       // print report on how processing this batch went
       console.log("\n--- Batch Report ---");
-      generateBatchReport(metrics, batchMetrics);
+      generateBatchReport(metrics, initialMetrics);
       return rawData.vulnerabilities.length;
     } catch (error) {
       console.error(
