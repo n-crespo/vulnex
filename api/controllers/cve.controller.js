@@ -109,6 +109,7 @@ export const getCVEs = async (req, res) => {
     const requestedVersion = req.query.version;
     const requestedPublishedStart = req.query.publishedStart;
     const requestedPublishedEnd = req.query.publishedEnd;
+    const requestedKeyword = req.query.keyword;
 
     // cves need manual filtering if version is specified. this also requires product name.
     const needsManualFiltering = requestedProductName && requestedVersion;
@@ -145,6 +146,7 @@ export const getCVEs = async (req, res) => {
     // apply constructed date filter to the main query filter if any part was set
     if (Object.keys(publishedFilter).length > 0) {
       queryFilter.published = publishedFilter;
+      console.log(`Filter: published=${JSON.stringify(publishedFilter)}`);
     }
 
     // add product name filter
@@ -158,17 +160,18 @@ export const getCVEs = async (req, res) => {
     // add severityLevel filter
     if (requestedSeverityLevel) {
       queryFilter.severityLevel = requestedSeverityLevel;
+      console.log(`Filter: severity=${requestedSeverityLevel}`);
     }
 
     let totalCount;
     let cves = {};
 
-    console.log(
-      `Fetching CVEs: Limit=${safeLimit}, Skip=${safeSkip}, Product=${requestedProductName} Severity=${requestedSeverityLevel} Version=${requestedVersion}`,
-    );
+    console.log(`Fetching CVEs: Limit=${safeLimit}, Skip=${safeSkip},`);
 
     if (needsManualFiltering) {
       console.log("In-memory filtering...");
+      console.log(`Filter: version=${requestedVersion}`);
+
       let allFilteredCves = await CVE.find(queryFilter);
       allFilteredCves = filterCvesByVersion(allFilteredCves, requestedVersion);
 
