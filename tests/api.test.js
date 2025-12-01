@@ -815,10 +815,6 @@ const runApiTests = (baseUrl, environmentName) => {
             `Description must include the keyword '${queryKeyword}' (Found: ${cve.description.substring(0, 50)}...)`,
           );
         });
-
-        console.log(
-          `Query '${queryProductName}' & Keyword '${queryKeyword}': returned: ${response.headers["x-total-count"]}, found: ${response.headers["x-total-found"]}`,
-        );
       });
     });
   });
