@@ -780,6 +780,42 @@ const runApiTests = (baseUrl, environmentName) => {
           ).to.be.true;
         });
       });
+
+      it(`GET /api/cves?productName=dompurify&keyword=svg should return CVEs for dompurify w/ 'vulnerable' in description`, async () => {
+        const queryProductName = "dompurify";
+        const queryKeyword = "svg";
+
+        const response = await publicClient.get(
+          `${baseUrl}/api/cves?productName=${queryProductName}&keyword=${queryKeyword}`,
+        );
+
+        expect(response.status).to.equal(SUCCESS_STATUS);
+
+        const cves = response.data;
+
+        // check results were returned
+        // NOTE: This assumes there is at least one dompurify CVE where the description contains the keyword.
+        expect(cves)
+          .to.be.an("array")
+          .with.lengthOf.at.least(
+            1,
+            `Expected at least one CVE for product '${queryProductName}' whose description contains '${queryKeyword}'`,
+          );
+
+        cves.forEach((cve) => {
+          // check productName filter
+          expect(cve.productName.toLowerCase()).to.include(
+            queryProductName.toLowerCase(),
+            `Product name '${cve.productName}' must include '${queryProductName}'`,
+          );
+
+          // check keyword filter (case-insensitive substring match in description)
+          expect(cve.description.toLowerCase()).to.include(
+            queryKeyword.toLowerCase(),
+            `Description must include the keyword '${queryKeyword}' (Found: ${cve.description.substring(0, 50)}...)`,
+          );
+        });
+      });
     });
   });
 };
