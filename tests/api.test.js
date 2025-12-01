@@ -528,9 +528,10 @@ const runApiTests = (baseUrl, environmentName) => {
           );
 
           // check the version applicability filter was correctly applied by the server
-          expect(isVersionApplicable(cve, queryVersion)).to.be.true(
+          expect(
+            isVersionApplicable(cve, queryVersion),
             `CVE ID ${cve.cveId} (Product: ${cve.productName}) must be vulnerable to version ${queryVersion} based on its productVersions array.`,
-          );
+          ).to.be.true;
         });
       });
     });
