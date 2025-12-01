@@ -1,56 +1,62 @@
 [
   {
-    "_id": "6928bbebbee3b0689ff6e024",
-    "cveId": "CVE-2006-4884",
-    "published": "2006-09-20T04:07:00.000Z",
-    "description": "Multiple cross-site scripting (XSS) vulnerabilities in IDevSpot iSupport 1.8 allow remote attackers to inject arbitrary web script or HTML via (1) the suser parameter in support/rightbar.php, (2) the ticket_id parameter in support/open_tickets.php, and (3) the cons_page_title parameter in index.php.  NOTE: the provenance of this information is unknown; the details are obtained from third party information.",
+    "cveId": "CVE-2025-6167",
+    "published": "2025-06-17T07:15:18.330",
+    "description": "A vulnerability classified as critical has been found in themanojdesai python-a2a up to 0.5.5. Affected is the function create_workflow of the file python_a2a/agent_flow/server/api.py. The manipulation leads to path traversal. Upgrading to version 0.5.6 is able to address this issue. It is recommended to upgrade the affected component.",
     "severityLevel": "MEDIUM",
-    "productName": "isupport",
-    "minAffectedVersion": "1.8",
-    "maxAffectedVersion": "1.8",
-    "__v": 0
+    "productName": "themanojdesai:python_a2a",
+    "productVersions": [
+      {
+        "start": "0",
+        "s_type": "i",
+        "end": "0.5.5",
+        "e_type": "i"
+      }
+    ]
   },
   {
-    "_id": "6928bbebbee3b0689ff6e025",
-    "cveId": "CVE-2006-4885",
-    "published": "2006-09-20T04:07:00.000Z",
-    "description": "PHP remote file inclusion vulnerability in Shadowed Portal 5.599 and earlier allows remote attackers to execute arbitrary PHP code via a URL in the root parameter in (1) footer.php and (2) header.php.  NOTE: the provenance of this information is unknown; the details are obtained from third party information. The bottom.php parameter is already covered by CVE-2006-4826.",
-    "severityLevel": "HIGH",
-    "productName": "shadowed_portal",
-    "patchedInVersion": "5.599",
-    "__v": 0
-  },
-  {
-    "_id": "6928bbebbee3b0689ff6e026",
-    "cveId": "CVE-2006-4886",
-    "published": "2006-09-20T04:07:00.000Z",
-    "description": "The VirusScan On-Access Scan component in McAfee VirusScan Enterprise 7.1.0 and Scan Engine 4.4.00 allows local privileged users to bypass security restrictions and disable the On-Access Scan option by opening the program via the task bar and quickly clicking the Disable button, possibly due to an interface-related race condition.",
-    "severityLevel": "LOW",
-    "productName": "scan_engine",
-    "minAffectedVersion": "4.4.00",
-    "maxAffectedVersion": "7.1.0",
-    "__v": 0
-  },
-  {
-    "_id": "6928bbebbee3b0689ff6e027",
-    "cveId": "CVE-2006-4887",
-    "published": "2006-09-20T04:07:00.000Z",
-    "description": "Apple Remote Desktop (ARD) for Mac OS X 10.2.8 and later does not drop privileges on the remote machine while installing certain applications, which allows local users to bypass authentication and gain privileges by selecting the icon during installation.  NOTE: it could be argued that the issue is not in Remote Desktop itself, but in applications that are installed while using it.",
-    "severityLevel": "HIGH",
-    "productName": "apple_remote_desktop",
-    "patchedInVersion": "10.2.8",
-    "minAffectedVersion": "2.0.0",
-    "maxAffectedVersion": "3.0.0",
-    "__v": 0
-  },
-  {
-    "_id": "6928bbebbee3b0689ff6e028",
-    "cveId": "CVE-2006-4888",
-    "published": "2006-09-20T04:07:00.000Z",
-    "description": "Microsoft Internet Explorer 6 and earlier allows remote attackers to cause a denial of service (application hang) via a CSS-formatted HTML INPUT element within a DIV element that has a larger size than the INPUT.",
+    "cveId": "CVE-2025-5291",
+    "published": "2025-06-17T12:15:27.747",
+    "description": "The Master Slider – Responsive Touch Slider plugin for WordPress is vulnerable to Stored Cross-Site Scripting via the plugin's masterslider_pb and ms_slide shortcodes in all versions up to, and including, 3.10.8 due to insufficient input sanitization and output escaping on user supplied attributes. This makes it possible for authenticated attackers, with contributor-level access and above, to inject arbitrary web scripts in pages that will execute whenever a user accesses an injected page.",
     "severityLevel": "MEDIUM",
-    "productName": "ie",
-    "patchedInVersion": "6",
-    "__v": 0
+    "productName": "averta:master_slider",
+    "productVersions": [
+      {
+        "start": "0",
+        "s_type": "i",
+        "end": "3.10.9",
+        "e_type": "e"
+      }
+    ]
+  },
+  {
+    "cveId": "CVE-2025-4879",
+    "published": "2025-06-17T14:15:33.170",
+    "description": "Local Privilege escalation allows a low-privileged user to gain SYSTEM privileges in Citrix Workspace app for Windows",
+    "severityLevel": "HIGH",
+    "productName": "citrix:workspace",
+    "productVersions": [
+      {
+        "start": "0",
+        "s_type": "i",
+        "end": "2409",
+        "e_type": "e"
+      }
+    ]
+  },
+  {
+    "cveId": "CVE-2025-45878",
+    "published": "2025-06-17T17:15:33.487",
+    "description": "A cross-site scripting (XSS) vulnerability in the report manager function of Miliaris Amigdala v2.2.6 allows attackers to execute arbitrary HTML in the context of a user's browser via a crafted payload.",
+    "severityLevel": "MEDIUM",
+    "productName": "miliaris:amygdala",
+    "productVersions": [
+      {
+        "start": "2.2.6",
+        "s_type": "i",
+        "end": "2.2.6",
+        "e_type": "i"
+      }
+    ]
   }
 ]
