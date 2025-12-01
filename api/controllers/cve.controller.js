@@ -107,6 +107,8 @@ export const getCVEs = async (req, res) => {
     const requestedProductName = req.query.productName;
     const requestedSeverityLevel = req.query.severityLevel;
     const requestedVersion = req.query.version;
+    const requestedPublishedStart = req.query.publishedStart;
+    const requestedPublishedEnd = req.query.publishedEnd;
 
     // cves need manual filtering if version is specified. this also requires product name.
     const needsManualFiltering = requestedProductName && requestedVersion;
@@ -116,6 +118,34 @@ export const getCVEs = async (req, res) => {
     const safeSkip = Math.max(0, skip);
 
     const queryFilter = {};
+    const publishedFilter = {};
+
+    // parse date range start filter
+    if (requestedPublishedStart) {
+      try {
+        // Attempt to parse the date string (e.g., '2023-01-01')
+        publishedFilter.$gte = new Date(requestedPublishedStart);
+        console.log(`Filter: publishedStart=${requestedPublishedStart}`);
+      } catch (e) {
+        console.error("Invalid publishedStart date format.");
+      }
+    }
+
+    // parse date range end filter
+    if (requestedPublishedEnd) {
+      try {
+        // Attempt to parse the date string (e.g., '2023-12-31')
+        publishedFilter.$lte = new Date(requestedPublishedEnd);
+        console.log(`Filter: publishedEnd=${requestedPublishedEnd}`);
+      } catch (e) {
+        console.error("Invalid publishedEnd date format.");
+      }
+    }
+
+    // apply constructed date filter to the main query filter if any part was set
+    if (Object.keys(publishedFilter).length > 0) {
+      queryFilter.published = publishedFilter;
+    }
 
     // add product name filter
     if (requestedProductName) {
