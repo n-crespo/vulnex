@@ -82,6 +82,73 @@ const bulkUpdatesToCVEs = [
   },
 ];
 
+// helper function to check if a specific version falls within a CVE's version ranges
+const isVersionApplicable = (cve, targetVersion) => {
+  // Must have productVersions to check applicability
+  if (!cve.productVersions || cve.productVersions.length === 0) {
+    return false;
+  }
+
+  // iterate through all version ranges for the CVE
+  return cve.productVersions.some((range) => {
+    const { start, end, s_type, e_type } = range;
+
+    // Check Start Boundary (targetVersion compared to start)
+    const startComparison = compareVersions(targetVersion, start);
+    let meetsStartCondition = false;
+    if (s_type === "i") {
+      // inclusive
+      meetsStartCondition = startComparison >= 0;
+    } else if (s_type === "e") {
+      // exclusive
+      meetsStartCondition = startComparison > 0;
+    } else {
+      // Assume inclusive if type is missing or unknown for robustness
+      meetsStartCondition = startComparison >= 0;
+    }
+
+    // Check End Boundary (targetVersion compared to end)
+    const endComparison = compareVersions(targetVersion, end);
+    let meetsEndCondition = false;
+    if (e_type === "i") {
+      // inclusive
+      meetsEndCondition = endComparison <= 0;
+    } else if (e_type === "e") {
+      // exclusive
+      meetsEndCondition = endComparison < 0;
+    } else {
+      // Assume inclusive if type is missing or unknown for robustness
+      meetsEndCondition = endComparison <= 0;
+    }
+
+    // The version is applicable if it meets both start and end conditions
+    return meetsStartCondition && meetsEndCondition;
+  });
+};
+
+// Helper function used to verify that the CVE's 'published' field falls within the specified date range.
+const isDateWithinRange = (cve, startDateStr, endDateStr) => {
+  // Parse the CVE's published date, which is stored as an ISO string.
+  const publishedDate = new Date(cve.published);
+
+  let meetsStartCondition = true;
+  let meetsEndCondition = true;
+
+  if (startDateStr) {
+    const startDate = new Date(startDateStr);
+    // Verify condition: publishedDate >= startDate
+    meetsStartCondition = publishedDate.getTime() >= startDate.getTime();
+  }
+
+  if (endDateStr) {
+    const endDate = new Date(endDateStr);
+    // Verify condition: publishedDate <= endDate
+    meetsEndCondition = publishedDate.getTime() <= endDate.getTime();
+  }
+
+  return meetsStartCondition && meetsEndCondition;
+};
+
 /**
  * Executes the full CRUD and security check sequence for a given base URL.
  * @param {string} baseUrl - The base URL of the server (e.g., http://localhost:3000)
