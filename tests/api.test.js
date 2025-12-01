@@ -428,7 +428,7 @@ const runApiTests = (baseUrl, environmentName) => {
         });
 
         console.log(
-          `Query '${queryProductName}': returned: ${response.headers["x-total-count"]}, found: ${response.headers["x-total-found"]}`,
+          `Query '${queryProductName}': returned: ${response.headers["x-page-count"]}, found: ${response.headers["x-total-count"]}`,
         );
       });
     });

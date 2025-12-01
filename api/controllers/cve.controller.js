@@ -29,7 +29,6 @@ const ALLOWED_UPDATE_FIELDS = new Set(CVE_SCHEMA_FIELDS);
 export const createCVE = async (req, res) => {
   console.log("--- [POST] Create CVE(s): ");
   const records = req.body;
-  process.env.LOGGING_ENABLED && console.log(records);
   try {
     let result;
     if (Array.isArray(records)) {
@@ -43,7 +42,6 @@ export const createCVE = async (req, res) => {
     } else {
       console.log("Attempting single record insert.");
       result = await CVE.create(records);
-      process.env.LOGGING_ENABLED && console.log(result);
       res.status(200).json(result);
     }
   } catch (error) {
@@ -112,14 +110,14 @@ export const getCVEs = async (req, res) => {
     }
 
     console.log(
-      `Fetching CVEs: Limit=${safeLimit}, Skip=${safeSkip}, Filter=${JSON.stringify(queryFilter)}`,
+      `Fetching CVEs: Limit=${safeLimit}, Skip=${safeSkip}, Product Name=${requestedProductName}`,
     );
     const cves = await CVE.find(queryFilter).skip(safeSkip).limit(safeLimit);
 
     // build the header
-    const totalCount = await CVE.countDocuments(queryFilter);
-    res.header("X-Total-Found", totalCount);
-    res.header("X-Total-Count", limit);
+    const totalFound = await CVE.countDocuments(queryFilter);
+    res.header("X-Page-Count", Math.min(limit, totalFound));
+    res.header("X-Total-Count", totalFound);
     res.header("X-Initial-Offset", skip);
     res.status(200).json(cves);
   } catch (error) {
@@ -143,7 +141,6 @@ export const getCVE = async (req, res) => {
     }
 
     console.log("Getting CVE", cveId);
-    process.env.LOGGING_ENABLED && console.log(cve);
     res.status(200).json(cve);
   } catch (error) {
     console.log("Failed: ", error.message);
