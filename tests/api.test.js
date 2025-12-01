@@ -150,6 +150,35 @@ const isDateWithinRange = (cve, startDateStr, endDateStr) => {
 };
 
 /**
+ * Checks if a given port is currently in use (a server is running on it).
+ * @param {number} port The port number to check.
+ * @returns {Promise<boolean>} Resolves to true if the port is in use, false otherwise.
+ */
+function isPortInUse(port) {
+  return new Promise((resolve) => {
+    const server = net.createServer();
+
+    // triggered if the port is ALREADY BOUND (in use).
+    server.once("error", (err) => {
+      if (err.code === "EADDRINUSE") {
+        // port already in use
+        resolve(true);
+      } else {
+        resolve(false); // Other errors treated as not-confirmed-in-use
+      }
+    });
+
+    server.once("listening", () => {
+      // port is open, close and return false
+      server.close(() => resolve(false));
+    });
+
+    // attempt to connect to the port
+    server.listen(port);
+  });
+}
+
+/**
  * Executes the full CRUD and security check sequence for a given base URL.
  * @param {string} baseUrl - The base URL of the server (e.g., http://localhost:3000)
  * @param {string} environmentName - A friendly name for the test block (e.g., 'LOCAL')
@@ -754,35 +783,6 @@ const runApiTests = (baseUrl, environmentName) => {
     });
   });
 };
-
-/**
- * Checks if a given port is currently in use (a server is running on it).
- * @param {number} port The port number to check.
- * @returns {Promise<boolean>} Resolves to true if the port is in use, false otherwise.
- */
-function isPortInUse(port) {
-  return new Promise((resolve) => {
-    const server = net.createServer();
-
-    // triggered if the port is ALREADY BOUND (in use).
-    server.once("error", (err) => {
-      if (err.code === "EADDRINUSE") {
-        // port already in use
-        resolve(true);
-      } else {
-        resolve(false); // Other errors treated as not-confirmed-in-use
-      }
-    });
-
-    server.once("listening", () => {
-      // port is open, close and return false
-      server.close(() => resolve(false));
-    });
-
-    // attempt to connect to the port
-    server.listen(port);
-  });
-}
 
 describe("Full Security and CRUD Workflow Tests", function () {
   // skip tests if api key isn't set
