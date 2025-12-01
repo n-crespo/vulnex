@@ -81,9 +81,16 @@ export const createCVE = async (req, res) => {
 /**
  * Fetch paginated CVEs via GET /api/cves/
  * Query Params:
- *   limit: max number of CVEs to return
- *   skip:  offset from CVE 0 in db to start returning
- *   productName: filter results by a specific product name ('Apache HTTP Server')
+ * limit: max number of CVEs to return (default: 100)
+ * skip:  offset from CVE 0 in db to start returning (default: 0)
+ * productName: filter results by a specific product name (e.g., 'dompurify') - case-insensitive substring match
+ * severityLevel: filter results by a specific severity level (e.g., 'CRITICAL', 'HIGH', 'MEDIUM', 'LOW') - exact match
+ *
+ * Response Headers:
+ *   `X-Page-Count`: The number of CVEs returned in the current response body.
+ *   `X-Total-Count`: The total number of documents found in the database matching the query filters.
+ *   `X-Initial-Offset`: The 'skip' value used for the query.
+ *
  * Response JSON:
  * `[ { ... }, { ... } ] // array of requested CVEs`
  */
@@ -93,38 +100,53 @@ export const getCVEs = async (req, res) => {
     // extract params from query string
     const limit = parseInt(req.query.limit) || 100; // Default limit to 100 records
     const skip = parseInt(req.query.skip) || 0; // Default skip to 0 (start from the beginning)
-    const requestedProductName = req.query.productName;
 
     // ensure non-negative parameters
     const safeLimit = Math.max(1, limit);
     const safeSkip = Math.max(0, skip);
 
     const queryFilter = {};
+
+    // add product name filter
+    const requestedProductName = req.query.productName;
     if (requestedProductName) {
-      // queryFilter.productName = requestedProductName; // Exact match filter
       queryFilter.productName = {
         $regex: new RegExp(requestedProductName),
         $options: "i", // case insensitive
       };
-      console.log(`Adding filter: productName=${requestedProductName}`);
     }
 
-    console.log(
-      `Fetching CVEs: Limit=${safeLimit}, Skip=${safeSkip}, Product=${requestedProductName}`,
-    );
-    const cves = await CVE.find(queryFilter).skip(safeSkip).limit(safeLimit);
+    // add severityLevel filter
+    const requestedSeverityLevel = req.query.severityLevel;
+    if (requestedSeverityLevel) {
+      // Per the requirement, this filter is applied regardless of productName being specified.
+      queryFilter.severityLevel = requestedSeverityLevel;
+      console.log(`Adding filter: severityLevel=${requestedSeverityLevel}`);
+    }
 
-    // build the header
-    const totalFound = await CVE.countDocuments(queryFilter);
-    res.header("X-Page-Count", Math.min(limit, totalFound));
-    res.header("X-Total-Count", totalFound);
+    // count matching records without page limits
+    const totalCount = await CVE.countDocuments(queryFilter);
+
+    console.log(
+      `Fetching CVEs: Limit=${safeLimit}, Skip=${safeSkip}, Product=${requestedProductName} Severity=${requestedSeverityLevel}`,
+    );
+
+    // execute the query
+    const cves = await CVE.find(queryFilter).skip(safeSkip).limit(safeLimit);
+    const pageCount = cves.length;
+
+    // build the headers
+    res.header("X-Page-Count", pageCount);
+    res.header("X-Total-Count", totalCount);
     res.header("X-Initial-Offset", skip);
+
     res.status(200).json(cves);
   } catch (error) {
     console.log("failed: ", error.message);
     res.status(500).json({ message: error.message });
   }
 };
+
 /** Fetch one CVE by ID via GET /api/cves/:id
  * Response JSON:
  * `{ ... } // the requested CVE`
