@@ -123,8 +123,6 @@ const runApiTests = (baseUrl, environmentName) => {
       });
     });
 
-    // --- PROTECTED POST (CREATE) TESTS ---
-
     describe(`PROTECTED POST (CREATE) ACCESS TESTS`, function () {
       it(`POST /api/cves should FAIL without API Key (401 Unauthorized)`, async () => {
         let errorStatus;
@@ -162,8 +160,6 @@ const runApiTests = (baseUrl, environmentName) => {
       });
     });
 
-    // --- PROTECTED PUT (UPDATE) TESTS ---
-
     describe(`PROTECTED PUT (UPDATE) TESTS`, function () {
       it(`PUT /api/cves/:id should FAIL without API Key (401 Unauthorized)`, async () => {
         let errorStatus;
@@ -197,7 +193,6 @@ const runApiTests = (baseUrl, environmentName) => {
       });
     });
 
-    // --- PROTECTED DELETE TESTS ---
     describe(`PROTECTED DELETE TESTS`, function () {
       it(`DELETE /api/cves/:id should FAIL without API Key (401 Unauthorized)`, async () => {
         let errorStatus;
@@ -229,8 +224,6 @@ const runApiTests = (baseUrl, environmentName) => {
       });
     });
 
-    // --- BULK CREATE (POST) TESTS ---
-
     describe(`BULK CREATE (POST) TESTS`, function () {
       it(`POST (bulk) /api/cves should PASS WITH API Key and create multiple CVEs (200 OK)`, async () => {
         const response = await protectedClient.post("/", bulkNewCVEs);
@@ -258,8 +251,6 @@ const runApiTests = (baseUrl, environmentName) => {
         }
       });
     });
-
-    // --- BULK UPDATE (PUT) TESTS ---
 
     describe(`BULK UPDATE (PUT) TESTS`, function () {
       it(`PUT /api/cves/ should FAIL without API Key (401 Unauthorized)`, async () => {
@@ -323,8 +314,6 @@ const runApiTests = (baseUrl, environmentName) => {
         expect(errorStatus).to.equal(BAD_REQUEST_STATUS);
       });
     });
-
-    // --- BULK DELETE TESTS ---
 
     describe(`BULK DELETE TESTS`, function () {
       it(`DELETE /api/cves/bulk-delete should FAIL without API Key (401 Unauthorized)`, async () => {
@@ -404,8 +393,8 @@ const runApiTests = (baseUrl, environmentName) => {
       });
     });
 
-    describe(`FILTERING TESTS`, function () {
-      it(`GET /api/cves?productName=dompurify should return only CVEs where 'productName' includes 'ios' (case-insensitive)`, async () => {
+    describe(`FILTERING TESTS (GET)`, function () {
+      it(`GET /api/cves?productName=dompurify should return only CVEs where 'productName' includes 'dompurify' (case-insensitive)`, async () => {
         const queryProductName = "dompurify";
         const response = await publicClient.get(
           `${baseUrl}/api/cves?productName=${queryProductName}`,
@@ -426,10 +415,41 @@ const runApiTests = (baseUrl, environmentName) => {
             `Product name '${c.productName}' must include '${queryProductName}'`,
           );
         });
+      });
+      it(`GET /api/cves?productName=dompurify&severityLevel=CRITICAL should return only CVEs matching both criteria`, async () => {
+        const queryProductName = "dompurify";
+        const querySeverityLevel = "CRITICAL";
 
-        console.log(
-          `Query '${queryProductName}': returned: ${response.headers["x-page-count"]}, found: ${response.headers["x-total-count"]}`,
+        const response = await publicClient.get(
+          `${baseUrl}/api/cves?productName=${queryProductName}&severityLevel=${querySeverityLevel}`,
         );
+
+        expect(response.status).to.equal(SUCCESS_STATUS);
+
+        const cves = response.data;
+
+        // ensure results were returned
+        expect(cves)
+          .to.be.an("array")
+          .with.lengthOf.at.least(
+            1,
+            `Expected at least one CVE with productName containing '${queryProductName}' and severityLevel='${querySeverityLevel}'`,
+          );
+
+        // ensure all returned CVEs have matching product name
+        cves.forEach((c) => {
+          // Check that productName includes the query string (case-insensitive)
+          expect(c.productName.toLowerCase()).to.include(
+            queryProductName.toLowerCase(),
+            `Product name '${c.productName}' must include '${queryProductName}'`,
+          );
+
+          // ensure all returned CVEs have matching severity level
+          expect(c.severityLevel).to.equal(
+            querySeverityLevel,
+            `Severity level '${c.severityLevel}' must be equal to '${querySeverityLevel}'`,
+          );
+        });
       });
     });
   });

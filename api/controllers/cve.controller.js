@@ -106,11 +106,11 @@ export const getCVEs = async (req, res) => {
         $regex: new RegExp(requestedProductName),
         $options: "i", // case insensitive
       };
-      console.log(`Adding filter: productName = ${requestedProductName}`);
+      console.log(`Adding filter: productName=${requestedProductName}`);
     }
 
     console.log(
-      `Fetching CVEs: Limit=${safeLimit}, Skip=${safeSkip}, Product Name=${requestedProductName}`,
+      `Fetching CVEs: Limit=${safeLimit}, Skip=${safeSkip}, Product=${requestedProductName}`,
     );
     const cves = await CVE.find(queryFilter).skip(safeSkip).limit(safeLimit);
 
