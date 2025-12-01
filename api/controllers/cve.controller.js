@@ -85,11 +85,13 @@ export const createCVE = async (req, res) => {
  * skip:  offset from CVE 0 in db to start returning (default: 0)
  * productName: filter results by a specific product name (e.g., 'dompurify') - case-insensitive substring match
  * severityLevel: filter results by a specific severity level (e.g., 'CRITICAL', 'HIGH', 'MEDIUM', 'LOW') - exact match
+ * version: filter results to only include CVEs applicable to this specific version (e.g., '1.0.1').
+ * NOTE: This filter is only applied if 'productName' is also provided.
  *
  * Response Headers:
- *   `X-Page-Count`: The number of CVEs returned in the current response body.
- *   `X-Total-Count`: The total number of documents found in the database matching the query filters.
- *   `X-Initial-Offset`: The 'skip' value used for the query.
+ *    `X-Page-Count`: The number of CVEs returned in the current response body.
+ *    `X-Total-Count`: The total number of documents found in the database matching ALL query filters (including version).
+ *    `X-Initial-Offset`: The 'skip' value used for the query.
  *
  * Response JSON:
  * `[ { ... }, { ... } ] // array of requested CVEs`
