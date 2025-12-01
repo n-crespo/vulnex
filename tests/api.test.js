@@ -415,10 +415,41 @@ const runApiTests = (baseUrl, environmentName) => {
             `Product name '${c.productName}' must include '${queryProductName}'`,
           );
         });
+      });
+      it(`GET /api/cves?productName=dompurify&severityLevel=CRITICAL should return only CVEs matching both criteria`, async () => {
+        const queryProductName = "dompurify";
+        const querySeverityLevel = "CRITICAL";
 
-        console.log(
-          `Query '${queryProductName}': returned: ${response.headers["x-page-count"]}, found: ${response.headers["x-total-count"]}`,
+        const response = await publicClient.get(
+          `${baseUrl}/api/cves?productName=${queryProductName}&severityLevel=${querySeverityLevel}`,
         );
+
+        expect(response.status).to.equal(SUCCESS_STATUS);
+
+        const cves = response.data;
+
+        // ensure results were returned
+        expect(cves)
+          .to.be.an("array")
+          .with.lengthOf.at.least(
+            1,
+            `Expected at least one CVE with productName containing '${queryProductName}' and severityLevel='${querySeverityLevel}'`,
+          );
+
+        // ensure all returned CVEs have matching product name
+        cves.forEach((c) => {
+          // Check that productName includes the query string (case-insensitive)
+          expect(c.productName.toLowerCase()).to.include(
+            queryProductName.toLowerCase(),
+            `Product name '${c.productName}' must include '${queryProductName}'`,
+          );
+
+          // ensure all returned CVEs have matching severity level
+          expect(c.severityLevel).to.equal(
+            querySeverityLevel,
+            `Severity level '${c.severityLevel}' must be equal to '${querySeverityLevel}'`,
+          );
+        });
       });
     });
   });
