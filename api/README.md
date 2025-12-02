@@ -224,7 +224,7 @@ reduce data storage, I discard all `Rejected` CVEs.
 
 Some previously included fields were removed from my data model for the following reasons:
 
-- `isVulnerable`: why include CVEs that aren't vulnerable? besides, ALL CVEs are vulnerable for some version of a product.
-- `dateModified`: didn't find this very relevant to our app, included `published` Date field so user can understand "age" of a CVE
-- `patchedInVersion`: extracting this info from CVEs is very unerliable as the NVD doesn't really concern itself in the PATCHes to vulnerabilities, just the vulnerabilities themselves
+- `isVulnerable`: why include CVEs that aren't vulnerable? Besides, most (if not all) CVEs are vulnerable for some version of a product.
+- `dateModified`: didn't find this very relevant to our app, included `published` Date field so user can understand "age" of a CVE.
+- `patchedInVersion`: extracting this info from CVEs is very unreliable as the NVD doesn't really concern itself in the PATCHes to vulnerabilities, just the vulnerabilities themselves.
 - `status`: besides rejected CVEs (which were discarded) this info again isn't very useful to the end user. Can always be accessed through full CVE report.
