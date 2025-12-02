@@ -24,7 +24,7 @@ async function executeDeletion() {
 
   while (true) {
     try {
-      console.log(`\n--- Fetching batch: Skip=${skip} ---`); // 1. Fetch the next page of records
+      console.log(`\n--- Fetching batch: Skip=${skip} ---`);
       const fetchUrl = `${API_URL_BASE}/api/cves?limit=${PAGE_LIMIT}&skip=${skip}`;
       const cvesResponse = await fetch(fetchUrl, {
         method: "GET",
@@ -89,7 +89,7 @@ async function executeDeletion() {
         "\nAn error occurred during API communication or deletion:",
         error.message,
       );
-      break; // Exit loop on critical error
+      break; // exit loop on critical error
     }
   }
 
@@ -108,7 +108,7 @@ rl.question(
     if (answer.trim() !== "yes, DO IT") {
       console.log("Operation cancelled.");
       rl.close();
-      process.exit(0); // Use 0 for clean exit
+      process.exit(0);
     }
     rl.close();
 

@@ -10,7 +10,7 @@ import { compareVersions } from "../../utils/version_comparator.js";
 export const extractCveData = (vulnerability, metrics) => {
   const cve = vulnerability.cve;
 
-  // Check for "Rejected" status first and discard
+  // check for "Rejected" status first and discard
   if (cve?.vulnStatus === "Rejected") {
     const rejectedError = new Error(`Rejected CVE ID: ${cve.id}`);
     rejectedError.isRejected = true;
@@ -146,7 +146,7 @@ export const extractSeverityLevel = (cveMetrics, metrics) => {
     return null;
   };
 
-  // Priority: V4.0, V3.1, V3.0, V2.0
+  // priority: V4.0, V3.1, V3.0, V2.0
   let severity = getSeverity(cveMetrics.cvssMetricV40);
   if (severity) return severity;
 
@@ -174,7 +174,7 @@ export const extractSeverityLevel = (cveMetrics, metrics) => {
 const transformRange = (match, versionInCriteria, isWildcard) => {
   const range = {};
 
-  // A safe placeholder for the lowest possible version when a range is open-ended at the start.
+  // a safe placeholder for the lowest possible version when a range is open-ended at start
   const MIN_VERSION_PLACEHOLDER = "0";
 
   const hasStart = match.versionStartIncluding || match.versionStartExcluding;
@@ -188,8 +188,8 @@ const transformRange = (match, versionInCriteria, isWildcard) => {
     range.start = match.versionStartExcluding;
     range.s_type = "e"; // exclusive (>)
   } else if (hasEnd || !isWildcard(versionInCriteria)) {
-    // If an end is specified (open-ended start) or a single version is implied,
-    // we set the start to the MIN_VERSION_PLACEHOLDER
+    // if an end is specified (open-ended start) or a single version is implied,
+    // set the start to the MIN_VERSION_PLACEHOLDER
     range.start = MIN_VERSION_PLACEHOLDER;
     range.s_type = "i";
   }
@@ -202,14 +202,14 @@ const transformRange = (match, versionInCriteria, isWildcard) => {
     range.end = match.versionEndExcluding;
     range.e_type = "e"; // exclusive (<)
   } else if (hasStart || !isWildcard(versionInCriteria)) {
-    // If a start is specified (open-ended end) or a single version is implied,
+    // if a start is specified (open-ended end) or a single version is implied,
     // we use a large version string as the placeholder for "unlimited".
     range.end = "9999.9999.9999";
-    range.e_type = "i"; // Treat max placeholder as inclusive
+    range.e_type = "i"; // treat max placeholder as inclusive
   }
 
   // --- Handle Single Version (versionEquals) Fallback ---
-  // If the CPE has NO version constraints, but a concrete version in the criteria:
+  // if the CPE has NO version constraints, but a concrete version in the criteria:
   if (!hasStart && !hasEnd && !isWildcard(versionInCriteria)) {
     range.start = versionInCriteria;
     range.end = versionInCriteria;
@@ -217,7 +217,7 @@ const transformRange = (match, versionInCriteria, isWildcard) => {
     range.e_type = "i";
   }
 
-  // Ensure we captured a valid start/end combination
+  // ensure we captured a valid start/end combination
   if (range.start && range.end) {
     return range;
   }
@@ -245,37 +245,37 @@ const mergeVulnerableRanges = (ranges) => {
     const current = ranges[i];
     const lastMerged = merged[merged.length - 1];
 
-    // Check if the current range starts before or at the end of the last merged range.
-    // If compareVersions(current.start, lastMerged.end) <= 0, they overlap or are contiguous.
-    // We must handle the type ('i' vs 'e') to check for true contiguity (e.g., [1, 2e] and [2i, 3e] are contiguous).
+    // check if the current range starts before or at the end of the last merged range.
+    // if compareVersions(current.start, lastMerged.end) <= 0, they overlap or are contiguous.
+    // we must handle the type ('i' vs 'e') to check for true contiguity (e.g., [1, 2e] and [2i, 3e] are contiguous).
 
     let isOverlappingOrContiguous = false;
 
     const comparison = compareVersions(current.start, lastMerged.end);
 
     if (comparison < 0) {
-      // Current start is definitely before the last end (they overlap)
+      // current start is definitely before the last end (they overlap)
       isOverlappingOrContiguous = true;
     } else if (comparison === 0) {
-      // Starts exactly at the last end. Contiguous if one end is 'i' or both are 'e'.
-      // Ex: [1, 5i] and [5i, 10] -> Contiguous.
-      // Ex: [1, 5e] and [5i, 10] -> Contiguous (v5 is skipped in the first, included in the second).
-      // Ex: [1, 5e] and [5e, 10] -> DISJOINT (v5 is missing).
+      // contiguous if one end is 'i' or both are 'e'.
+      // ex: [1, 5i] and [5i, 10] -> Contiguous
+      // ex: [1, 5e] and [5i, 10] -> Contiguous (v5 is skipped in the first, included in the second)
+      // ex: [1, 5e] and [5e, 10] -> DISJOINT (v5 is missing)
       if (lastMerged.e_type === "i" || current.s_type === "i") {
         isOverlappingOrContiguous = true;
       }
     }
 
     if (isOverlappingOrContiguous) {
-      // Merge: Update the end of the last merged range if the current range extends further.
+      // update the end of the last merged range if the current range extends further
       if (compareVersions(current.end, lastMerged.end) > 0) {
         lastMerged.end = current.end;
-        // Keep the more restrictive type: if the current one is 'e', and it extends further, use 'e'.
+        // keep the more restrictive type: if the current one is 'e', and it extends further, use 'e'
         lastMerged.e_type = current.e_type;
       }
-      // If the current range ends before the last one, keep the last one's boundary.
+      // if the current range ends before the last one, keep the last one's boundary
     } else {
-      // Disjoint: Add the current range to the merged list.
+      // add the current range to the merged list
       merged.push(current);
     }
   }
@@ -315,11 +315,11 @@ export const extractProductDetails = (cve, metrics) => {
       const parts = match.criteria ? match.criteria.split(":") : [];
 
       if (parts.length >= 6) {
-        // Capture the product name immediately (before version validation)
+        // capture the product name immediately (before version validation)
         captureProductName(parts);
         const versionInCriteria = parts[5];
 
-        // Attempt to create the standardized range
+        // attempt to create the standardized range
         const standardizedRange = transformRange(
           match,
           versionInCriteria,
@@ -333,11 +333,11 @@ export const extractProductDetails = (cve, metrics) => {
     });
   };
 
-  // Iterate over the primary nodes in the first configuration block
+  // iterate over the primary nodes in the first configuration block
   for (const node of firstConfigNodes) {
     processCpeMatches(node.cpeMatch);
 
-    // Check for one level of nested nodes
+    // check for one level of nested nodes
     if (node.nodes && node.nodes.length > 0) {
       for (const nestedNode of node.nodes) {
         processCpeMatches(nestedNode.cpeMatch);
@@ -345,15 +345,15 @@ export const extractProductDetails = (cve, metrics) => {
     }
   }
 
-  // --- Final Validation ---
+  // --- Validation ---
 
-  // 1. Return null if product name is missing
+  // return null if product name is missing
   if (!firstFullProductName) {
     metrics.totalUnknownProductName++;
     return null;
   }
 
-  // 2. DISCARD the CVE if no actionable version ranges were successfully extracted.
+  // discard CVE if no version ranges were extracted
   if (vulnerableRanges.length === 0) {
     metrics.totalUnknownProductVersion++;
     return null;

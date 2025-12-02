@@ -105,10 +105,10 @@ async function fetchAllCVEs() {
       });
       promises.push(promise);
 
-      // No explicit global API rate limit timeout
+      // no explicit global API rate limit timeout
     }
 
-    // Wait for all started promises to resolve
+    // wait for all started promises to resolve
     await Promise.all(promises);
   };
 
@@ -117,7 +117,6 @@ async function fetchAllCVEs() {
   } catch (e) {
     console.error("An error occurred during concurrent execution:", e.message);
   } finally {
-    // Ensure the stream is closed after all work is done
     outputStream.end();
   }
 
@@ -167,7 +166,7 @@ async function fetchAndProcessBatch(currentStartIndex, totalResults) {
         await new Promise((resolve) => setTimeout(resolve, jitterDelay));
 
         delay = Math.min(delay * 2.5, 60000);
-        continue; // Go to the next attempt
+        continue; // go to next attempt
       }
 
       if (!response.ok) {
