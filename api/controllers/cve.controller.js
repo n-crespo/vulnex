@@ -81,18 +81,21 @@ export const createCVE = async (req, res) => {
 
 /**
  * Fetch paginated CVEs via GET /api/cves/
+ *
  * Query Params:
- * limit: max number of CVEs to return (default: 100)
- * skip:  offset from CVE 0 in db to start returning (default: 0)
- * productName: filter results by a specific product name (e.g., 'dompurify') - case-insensitive substring match
- * severityLevel: filter results by a specific severity level (e.g., 'CRITICAL', 'HIGH', 'MEDIUM', 'LOW') - exact match
- * version: filter results to only include CVEs applicable to this specific version (e.g., '1.0.1').
- * NOTE: This filter is only applied if 'productName' is also provided.
+ *   limit: max number of CVEs to return (default: 100)
+ *   skip:  offset from CVE 0 in db to start returning (default: 0)
+ *   productName: filter results by a specific product name (e.g., 'dompurify') - case-insensitive substring match
+ *   severityLevel: filter results by a specific severity level (e.g., 'CRITICAL', 'HIGH', 'MEDIUM', 'LOW') - exact match
+ *   version: filter results to only include CVEs applicable to this specific version (e.g., '1.0.1'). This filter is only applied if 'productName' is also provided.
+ *   publishedStart: filter results to include only CVEs published on or after this date (e.g., '2023-01-01') - exact date match.
+ *   publishedEnd: filter results to include only CVEs published on or before this date (e.g., '2023-12-31') - exact date match.
+ *   keyword: filter results by a keyword within the CVE description (e.g., 'injection') - case-insensitive substring match.
  *
  * Response Headers:
- *    `X-Page-Count`: The number of CVEs returned in the current response body.
- *    `X-Total-Count`: The total number of documents found in the database matching ALL query filters (including version).
- *    `X-Initial-Offset`: The 'skip' value used for the query.
+ *   `X-Page-Count`: The number of CVEs returned in the current response body.
+ *   `X-Total-Count`: The total number of documents found in the database matching ALL query filters (including version).
+ *   `X-Initial-Offset`: The 'skip' value used for the query.
  *
  * Response JSON:
  * `[ { ... }, { ... } ] // array of requested CVEs`
