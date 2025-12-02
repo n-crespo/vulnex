@@ -457,335 +457,351 @@ const runApiTests = (baseUrl, environmentName) => {
     });
 
     describe(`FILTERING TESTS (GET)`, function () {
-      // product name filtering
-      it(`GET /api/cves?productName=dompurify should return CVEs with specified product (case-insensitive)`, async () => {
-        const queryProductName = "dompurify";
-        const response = await publicClient.get(
-          `${baseUrl}/api/cves?productName=${queryProductName}`,
-        );
-        expect(response.status).to.equal(SUCCESS_STATUS);
-
-        const cves = response.data;
-        expect(cves)
-          .to.be.an("array")
-          // NOTE: this assumes there are CVEs with `dompurify` in the productName
-          // (reasonable assumption, there are many)
-          .with.lengthOf.at.least(1, "The array of CVEs should not be empty");
-
-        cves.forEach((c) => {
-          // check that productName includes the query string (ignoring case)
-          expect(c.productName.toLowerCase()).to.include(
-            queryProductName.toLowerCase(),
-            `Product name '${c.productName}' must include '${queryProductName}'`,
+      describe("productName", function () {
+        // product name filtering
+        it(`GET /api/cves?productName=dompurify should return CVEs with specified product (case-insensitive)`, async () => {
+          const queryProductName = "dompurify";
+          const response = await publicClient.get(
+            `${baseUrl}/api/cves?productName=${queryProductName}`,
           );
-        });
-      });
+          expect(response.status).to.equal(SUCCESS_STATUS);
 
-      // severity level filtering
-      it(`GET /api/cves?productName=dompurify&severityLevel=CRITICAL should return CVEs with specified product name/severity`, async () => {
-        const queryProductName = "dompurify";
-        const querySeverityLevel = "CRITICAL";
+          const cves = response.data;
+          expect(cves)
+            .to.be.an("array")
+            // NOTE: this assumes there are CVEs with `dompurify` in the productName
+            // (reasonable assumption, there are many)
+            .with.lengthOf.at.least(1, "The array of CVEs should not be empty");
 
-        const response = await publicClient.get(
-          `${baseUrl}/api/cves?productName=${queryProductName}&severityLevel=${querySeverityLevel}`,
-        );
-
-        expect(response.status).to.equal(SUCCESS_STATUS);
-
-        const cves = response.data;
-
-        // ensure results were returned
-        expect(cves)
-          .to.be.an("array")
-          .with.lengthOf.at.least(
-            1,
-            `Expected at least one CVE with productName containing '${queryProductName}' and severityLevel='${querySeverityLevel}'`,
-          );
-
-        // ensure all returned CVEs have matching product name
-        cves.forEach((c) => {
-          // Check that productName includes the query string (case-insensitive)
-          expect(c.productName.toLowerCase()).to.include(
-            queryProductName.toLowerCase(),
-            `Product name '${c.productName}' must include '${queryProductName}'`,
-          );
-
-          // ensure all returned CVEs have matching severity level
-          expect(c.severityLevel).to.equal(
-            querySeverityLevel,
-            `Severity level '${c.severityLevel}' must be equal to '${querySeverityLevel}'`,
-          );
-        });
-      });
-
-      // version filtering
-      it(`GET /api/cves?productName=dompurify&version=3.0.0 should return CVEs with specified product/version/severity`, async () => {
-        const queryProductName = "dompurify";
-        const queryVersion = "3.0.0";
-
-        const response = await publicClient.get(
-          `${baseUrl}/api/cves?productName=${queryProductName}&version=${queryVersion}`,
-        );
-
-        // check HTTP Status
-        expect(response.status).to.equal(SUCCESS_STATUS);
-
-        const cves = response.data;
-
-        // check that results were returned
-        expect(cves)
-          .to.be.an("array")
-          .with.lengthOf.at.least(
-            1,
-            `Expected at least one CVE for product '${queryProductName}' applicable to version '${queryVersion}'`,
-          );
-
-        // iterate and check ALL filtering conditions
-        cves.forEach((cve) => {
-          // check productName includes the query string (case-insensitive)
-          expect(cve.productName.toLowerCase()).to.include(
-            queryProductName.toLowerCase(),
-            `Product name '${cve.productName}' must include '${queryProductName}'`,
-          );
-
-          // check the version applicability filter was correctly applied by the server
-          expect(
-            isVersionApplicable(cve, queryVersion),
-            `CVE ID ${cve.cveId} (Product: ${cve.productName}) must be vulnerable to version ${queryVersion} based on its productVersions array.`,
-          ).to.be.true;
-        });
-      });
-
-      it(`GET /api/cves?productName=dompurify&version=3.0.0&severityLevel=CRITICAL should return CVEs with specified product/version/severity`, async () => {
-        const queryProductName = "dompurify";
-        const queryVersion = "3.0.0";
-        const querySeverityLevel = "CRITICAL";
-
-        // helper function to check if a specific version falls within a CVE's version ranges
-        const isVersionApplicable = (cve, targetVersion) => {
-          // Must have productVersions to check applicability
-          if (!cve.productVersions || cve.productVersions.length === 0) {
-            return false;
-          }
-
-          // iterate through all version ranges for the CVE
-          return cve.productVersions.some((range) => {
-            const { start, end, s_type, e_type } = range;
-
-            // Check Start Boundary (targetVersion compared to start)
-            const startComparison = compareVersions(targetVersion, start);
-            let meetsStartCondition = false;
-            if (s_type === "i") {
-              // inclusive
-              meetsStartCondition = startComparison >= 0;
-            } else if (s_type === "e") {
-              // exclusive
-              meetsStartCondition = startComparison > 0;
-            } else {
-              // Assume inclusive if type is missing or unknown for robustness
-              meetsStartCondition = startComparison >= 0;
-            }
-
-            // Check End Boundary (targetVersion compared to end)
-            const endComparison = compareVersions(targetVersion, end);
-            let meetsEndCondition = false;
-            if (e_type === "i") {
-              // inclusive
-              meetsEndCondition = endComparison <= 0;
-            } else if (e_type === "e") {
-              // exclusive
-              meetsEndCondition = endComparison < 0;
-            } else {
-              // Assume inclusive if type is missing or unknown for robustness
-              meetsEndCondition = endComparison <= 0;
-            }
-
-            // The version is applicable if it meets both start and end conditions
-            return meetsStartCondition && meetsEndCondition;
+          cves.forEach((c) => {
+            // check that productName includes the query string (ignoring case)
+            expect(c.productName.toLowerCase()).to.include(
+              queryProductName.toLowerCase(),
+              `Product name '${c.productName}' must include '${queryProductName}'`,
+            );
           });
-        };
+        });
+      });
 
-        const response = await publicClient.get(
-          `${baseUrl}/api/cves?productName=${queryProductName}&version=${queryVersion}&severityLevel=${querySeverityLevel}`,
-        );
+      describe("productName & severityLevel", function () {
+        // severity level filtering
+        it(`GET /api/cves?productName=dompurify&severityLevel=CRITICAL should return CVEs with specified product name/severity`, async () => {
+          const queryProductName = "dompurify";
+          const querySeverityLevel = "CRITICAL";
 
-        // check HTTP Status
-        expect(response.status).to.equal(SUCCESS_STATUS);
-
-        const cves = response.data;
-
-        // check that results were returned
-        expect(cves)
-          .to.be.an("array")
-          .with.lengthOf.at.least(
-            1,
-            `Expected at least one CVE for product '${queryProductName}' applicable to version '${queryVersion}'`,
+          const response = await publicClient.get(
+            `${baseUrl}/api/cves?productName=${queryProductName}&severityLevel=${querySeverityLevel}`,
           );
 
-        // iterate and check ALL filtering conditions
-        cves.forEach((cve) => {
-          // check productName includes the query string (case-insensitive)
-          expect(cve.productName.toLowerCase()).to.include(
-            queryProductName.toLowerCase(),
-            `Product name '${cve.productName}' must include '${queryProductName}'`,
+          expect(response.status).to.equal(SUCCESS_STATUS);
+
+          const cves = response.data;
+
+          // ensure results were returned
+          expect(cves)
+            .to.be.an("array")
+            .with.lengthOf.at.least(
+              1,
+              `Expected at least one CVE with productName containing '${queryProductName}' and severityLevel='${querySeverityLevel}'`,
+            );
+
+          // ensure all returned CVEs have matching product name
+          cves.forEach((c) => {
+            // Check that productName includes the query string (case-insensitive)
+            expect(c.productName.toLowerCase()).to.include(
+              queryProductName.toLowerCase(),
+              `Product name '${c.productName}' must include '${queryProductName}'`,
+            );
+
+            // ensure all returned CVEs have matching severity level
+            expect(c.severityLevel).to.equal(
+              querySeverityLevel,
+              `Severity level '${c.severityLevel}' must be equal to '${querySeverityLevel}'`,
+            );
+          });
+        });
+      });
+
+      describe("productName & version", function () {
+        // version filtering
+        it(`GET /api/cves?productName=dompurify&version=3.0.0 should return CVEs with specified product/version/severity`, async () => {
+          const queryProductName = "dompurify";
+          const queryVersion = "3.0.0";
+
+          const response = await publicClient.get(
+            `${baseUrl}/api/cves?productName=${queryProductName}&version=${queryVersion}`,
           );
 
-          // check the version applicability filter was correctly applied by the server
-          expect(
-            isVersionApplicable(cve, queryVersion),
-            `CVE ID ${cve.cveId} (Product: ${cve.productName}) must be vulnerable to version ${queryVersion} based on its productVersions array.`,
-          ).to.be.true;
+          // check HTTP Status
+          expect(response.status).to.equal(SUCCESS_STATUS);
 
-          expect(cve.severityLevel).to.equal(
-            querySeverityLevel,
-            `Severity level '${cve.severityLevel}' must be equal to '${querySeverityLevel}'`,
+          const cves = response.data;
+
+          // check that results were returned
+          expect(cves)
+            .to.be.an("array")
+            .with.lengthOf.at.least(
+              1,
+              `Expected at least one CVE for product '${queryProductName}' applicable to version '${queryVersion}'`,
+            );
+
+          // iterate and check ALL filtering conditions
+          cves.forEach((cve) => {
+            // check productName includes the query string (case-insensitive)
+            expect(cve.productName.toLowerCase()).to.include(
+              queryProductName.toLowerCase(),
+              `Product name '${cve.productName}' must include '${queryProductName}'`,
+            );
+
+            // check the version applicability filter was correctly applied by the server
+            expect(
+              isVersionApplicable(cve, queryVersion),
+              `CVE ID ${cve.cveId} (Product: ${cve.productName}) must be vulnerable to version ${queryVersion} based on its productVersions array.`,
+            ).to.be.true;
+          });
+        });
+      });
+
+      describe("productName & version & severityLevel", function () {
+        it(`GET /api/cves?productName=dompurify&version=3.0.0&severityLevel=CRITICAL should filter by product/version/severity`, async () => {
+          const queryProductName = "dompurify";
+          const queryVersion = "3.0.0";
+          const querySeverityLevel = "CRITICAL";
+
+          // helper function to check if a specific version falls within a CVE's version ranges
+          const isVersionApplicable = (cve, targetVersion) => {
+            // Must have productVersions to check applicability
+            if (!cve.productVersions || cve.productVersions.length === 0) {
+              return false;
+            }
+
+            // iterate through all version ranges for the CVE
+            return cve.productVersions.some((range) => {
+              const { start, end, s_type, e_type } = range;
+
+              // Check Start Boundary (targetVersion compared to start)
+              const startComparison = compareVersions(targetVersion, start);
+              let meetsStartCondition = false;
+              if (s_type === "i") {
+                // inclusive
+                meetsStartCondition = startComparison >= 0;
+              } else if (s_type === "e") {
+                // exclusive
+                meetsStartCondition = startComparison > 0;
+              } else {
+                // Assume inclusive if type is missing or unknown for robustness
+                meetsStartCondition = startComparison >= 0;
+              }
+
+              // Check End Boundary (targetVersion compared to end)
+              const endComparison = compareVersions(targetVersion, end);
+              let meetsEndCondition = false;
+              if (e_type === "i") {
+                // inclusive
+                meetsEndCondition = endComparison <= 0;
+              } else if (e_type === "e") {
+                // exclusive
+                meetsEndCondition = endComparison < 0;
+              } else {
+                // Assume inclusive if type is missing or unknown for robustness
+                meetsEndCondition = endComparison <= 0;
+              }
+
+              // The version is applicable if it meets both start and end conditions
+              return meetsStartCondition && meetsEndCondition;
+            });
+          };
+
+          const response = await publicClient.get(
+            `${baseUrl}/api/cves?productName=${queryProductName}&version=${queryVersion}&severityLevel=${querySeverityLevel}`,
           );
+
+          // check HTTP Status
+          expect(response.status).to.equal(SUCCESS_STATUS);
+
+          const cves = response.data;
+
+          // check that results were returned
+          expect(cves)
+            .to.be.an("array")
+            .with.lengthOf.at.least(
+              1,
+              `Expected at least one CVE for product '${queryProductName}' applicable to version '${queryVersion}'`,
+            );
+
+          // iterate and check ALL filtering conditions
+          cves.forEach((cve) => {
+            // check productName includes the query string (case-insensitive)
+            expect(cve.productName.toLowerCase()).to.include(
+              queryProductName.toLowerCase(),
+              `Product name '${cve.productName}' must include '${queryProductName}'`,
+            );
+
+            // check the version applicability filter was correctly applied by the server
+            expect(
+              isVersionApplicable(cve, queryVersion),
+              `CVE ID ${cve.cveId} (Product: ${cve.productName}) must be vulnerable to version ${queryVersion} based on its productVersions array.`,
+            ).to.be.true;
+
+            expect(cve.severityLevel).to.equal(
+              querySeverityLevel,
+              `Severity level '${cve.severityLevel}' must be equal to '${querySeverityLevel}'`,
+            );
+          });
         });
       });
 
       // date filtering
-      it(`GET /api/cves?productName=dompurify&version=3.0.0&publishedStart=2024-01-01 should filter by start date`, async () => {
-        const queryProductName = "dompurify";
-        const queryVersion = "3.0.0";
-        const queryPublishedStart = "2024-10-01";
-        const queryPublishedEnd = undefined; // no end date
+      describe("productName & version & publishedStart", function () {
+        it(`GET /api/cves?productName=dompurify&version=3.0.0&publishedStart=2024-01-01 should filter by start date`, async () => {
+          const queryProductName = "dompurify";
+          const queryVersion = "3.0.0";
+          const queryPublishedStart = "2024-10-01";
+          const queryPublishedEnd = undefined; // no end date
 
-        const response = await publicClient.get(
-          `${baseUrl}/api/cves?productName=${queryProductName}&version=${queryVersion}&publishedStart=${queryPublishedStart}`,
-        );
-
-        expect(response.status).to.equal(SUCCESS_STATUS);
-
-        const cves = response.data;
-
-        expect(cves)
-          .to.be.an("array")
-          .with.lengthOf.at.least(
-            1,
-            `Expected results after applying publishedStart filter.`,
+          const response = await publicClient.get(
+            `${baseUrl}/api/cves?productName=${queryProductName}&version=${queryVersion}&publishedStart=${queryPublishedStart}`,
           );
 
-        cves.forEach((cve) => {
-          // Check existing filters (Product, Version)
-          expect(cve.productName.toLowerCase()).to.include(
-            queryProductName.toLowerCase(),
-          );
-          expect(isVersionApplicable(cve, queryVersion)).to.be.true;
+          expect(response.status).to.equal(SUCCESS_STATUS);
 
-          // Check Date Filter
-          expect(
-            isDateWithinRange(cve, queryPublishedStart, queryPublishedEnd),
-            `CVE ID ${cve.cveId} must be published on or after ${queryPublishedStart}`,
-          ).to.be.true;
+          const cves = response.data;
+
+          expect(cves)
+            .to.be.an("array")
+            .with.lengthOf.at.least(
+              1,
+              `Expected results after applying publishedStart filter.`,
+            );
+
+          cves.forEach((cve) => {
+            // Check existing filters (Product, Version)
+            expect(cve.productName.toLowerCase()).to.include(
+              queryProductName.toLowerCase(),
+            );
+            expect(isVersionApplicable(cve, queryVersion)).to.be.true;
+
+            // Check Date Filter
+            expect(
+              isDateWithinRange(cve, queryPublishedStart, queryPublishedEnd),
+              `CVE ID ${cve.cveId} must be published on or after ${queryPublishedStart}`,
+            ).to.be.true;
+          });
         });
       });
 
-      it(`GET /api/cves?productName=dompurify&version=3.0.0&publishedEnd=2024-06-30 should filter by end date`, async () => {
-        const queryProductName = "dompurify";
-        const queryVersion = "3.0.0";
-        const queryPublishedStart = undefined; // No start date
-        const queryPublishedEnd = "2024-10-30";
+      describe("productName & version & publishedEnd", function () {
+        it(`GET /api/cves?productName=dompurify&version=3.0.0&publishedEnd=2024-06-30 should filter by end date`, async () => {
+          const queryProductName = "dompurify";
+          const queryVersion = "3.0.0";
+          const queryPublishedStart = undefined; // No start date
+          const queryPublishedEnd = "2024-10-30";
 
-        const response = await publicClient.get(
-          `${baseUrl}/api/cves?productName=${queryProductName}&version=${queryVersion}&publishedEnd=${queryPublishedEnd}`,
-        );
-
-        expect(response.status).to.equal(SUCCESS_STATUS);
-
-        const cves = response.data;
-
-        expect(cves)
-          .to.be.an("array")
-          .with.lengthOf.at.least(
-            1,
-            `Expected results after applying publishedEnd filter.`,
+          const response = await publicClient.get(
+            `${baseUrl}/api/cves?productName=${queryProductName}&version=${queryVersion}&publishedEnd=${queryPublishedEnd}`,
           );
 
-        cves.forEach((cve) => {
-          // Check existing filters (Product, Version)
-          expect(cve.productName.toLowerCase()).to.include(
-            queryProductName.toLowerCase(),
-          );
-          expect(isVersionApplicable(cve, queryVersion)).to.be.true;
+          expect(response.status).to.equal(SUCCESS_STATUS);
 
-          // Check Date Filter
-          expect(
-            isDateWithinRange(cve, queryPublishedStart, queryPublishedEnd),
-            `CVE ID ${cve.cveId} must be published on or before ${queryPublishedEnd}`,
-          ).to.be.true;
+          const cves = response.data;
+
+          expect(cves)
+            .to.be.an("array")
+            .with.lengthOf.at.least(
+              1,
+              `Expected results after applying publishedEnd filter.`,
+            );
+
+          cves.forEach((cve) => {
+            // Check existing filters (Product, Version)
+            expect(cve.productName.toLowerCase()).to.include(
+              queryProductName.toLowerCase(),
+            );
+            expect(isVersionApplicable(cve, queryVersion)).to.be.true;
+
+            // Check Date Filter
+            expect(
+              isDateWithinRange(cve, queryPublishedStart, queryPublishedEnd),
+              `CVE ID ${cve.cveId} must be published on or before ${queryPublishedEnd}`,
+            ).to.be.true;
+          });
         });
       });
 
-      it(`GET /api/cves?productName=dompurify&version=3.0.0&publishedStart=2024-01-01&publishedEnd=2024-06-30 should filter by both start and end dates`, async () => {
-        const queryProductName = "dompurify";
-        const queryVersion = "3.0.0";
-        const queryPublishedStart = "2024-10-01";
-        const queryPublishedEnd = "2024-10-30";
+      describe("productName & version & published RANGE", function () {
+        it(`GET /api/cves?productName=dompurify&version=3.0.0&publishedStart=2024-01-01&publishedEnd=2024-06-30 should filter by date range`, async () => {
+          const queryProductName = "dompurify";
+          const queryVersion = "3.0.0";
+          const queryPublishedStart = "2024-10-01";
+          const queryPublishedEnd = "2024-10-30";
 
-        const response = await publicClient.get(
-          `${baseUrl}/api/cves?productName=${queryProductName}&version=${queryVersion}&publishedStart=${queryPublishedStart}&publishedEnd=${queryPublishedEnd}`,
-        );
-
-        expect(response.status).to.equal(SUCCESS_STATUS);
-
-        const cves = response.data;
-
-        expect(cves)
-          .to.be.an("array")
-          .with.lengthOf.at.least(
-            1,
-            `Expected results after applying both date filters.`,
+          const response = await publicClient.get(
+            `${baseUrl}/api/cves?productName=${queryProductName}&version=${queryVersion}&publishedStart=${queryPublishedStart}&publishedEnd=${queryPublishedEnd}`,
           );
 
-        cves.forEach((cve) => {
-          // Check existing filters (Product, Version)
-          expect(cve.productName.toLowerCase()).to.include(
-            queryProductName.toLowerCase(),
-          );
-          expect(isVersionApplicable(cve, queryVersion)).to.be.true;
+          expect(response.status).to.equal(SUCCESS_STATUS);
 
-          // Check Date Filter
-          expect(
-            isDateWithinRange(cve, queryPublishedStart, queryPublishedEnd),
-            `CVE ID ${cve.cveId} must be published between ${queryPublishedStart} and ${queryPublishedEnd} (inclusive).`,
-          ).to.be.true;
+          const cves = response.data;
+
+          expect(cves)
+            .to.be.an("array")
+            .with.lengthOf.at.least(
+              1,
+              `Expected results after applying both date filters.`,
+            );
+
+          cves.forEach((cve) => {
+            // Check existing filters (Product, Version)
+            expect(cve.productName.toLowerCase()).to.include(
+              queryProductName.toLowerCase(),
+            );
+            expect(isVersionApplicable(cve, queryVersion)).to.be.true;
+
+            // Check Date Filter
+            expect(
+              isDateWithinRange(cve, queryPublishedStart, queryPublishedEnd),
+              `CVE ID ${cve.cveId} must be published between ${queryPublishedStart} and ${queryPublishedEnd} (inclusive).`,
+            ).to.be.true;
+          });
         });
       });
 
       // keyword filtering
-      it(`GET /api/cves?productName=dompurify&keyword=svg should return CVEs for dompurify w/ 'svg' in description`, async () => {
-        const queryProductName = "dompurify";
-        const queryKeyword = "svg";
+      describe("productName & keyword", function () {
+        it(`GET /api/cves?productName=dompurify&keyword=svg should return CVEs for dompurify w/ 'svg' in description`, async () => {
+          const queryProductName = "dompurify";
+          const queryKeyword = "svg";
 
-        const response = await publicClient.get(
-          `${baseUrl}/api/cves?productName=${queryProductName}&keyword=${queryKeyword}`,
-        );
-
-        expect(response.status).to.equal(SUCCESS_STATUS);
-
-        const cves = response.data;
-
-        // check results were returned
-        // NOTE: This assumes there is at least one dompurify CVE where the description contains the keyword.
-        expect(cves)
-          .to.be.an("array")
-          .with.lengthOf.at.least(
-            1,
-            `Expected at least one CVE for product '${queryProductName}' whose description contains '${queryKeyword}'`,
+          const response = await publicClient.get(
+            `${baseUrl}/api/cves?productName=${queryProductName}&keyword=${queryKeyword}`,
           );
 
-        cves.forEach((cve) => {
-          // check productName filter
-          expect(cve.productName.toLowerCase()).to.include(
-            queryProductName.toLowerCase(),
-            `Product name '${cve.productName}' must include '${queryProductName}'`,
-          );
+          expect(response.status).to.equal(SUCCESS_STATUS);
 
-          // check keyword filter (case-insensitive substring match in description)
-          expect(cve.description.toLowerCase()).to.include(
-            queryKeyword.toLowerCase(),
-            `Description must include the keyword '${queryKeyword}' (Found: ${cve.description.substring(0, 50)}...)`,
-          );
+          const cves = response.data;
+
+          // check results were returned
+          // NOTE: This assumes there is at least one dompurify CVE where the description contains the keyword.
+          expect(cves)
+            .to.be.an("array")
+            .with.lengthOf.at.least(
+              1,
+              `Expected at least one CVE for product '${queryProductName}' whose description contains '${queryKeyword}'`,
+            );
+
+          cves.forEach((cve) => {
+            // check productName filter
+            expect(cve.productName.toLowerCase()).to.include(
+              queryProductName.toLowerCase(),
+              `Product name '${cve.productName}' must include '${queryProductName}'`,
+            );
+
+            // check keyword filter (case-insensitive substring match in description)
+            expect(cve.description.toLowerCase()).to.include(
+              queryKeyword.toLowerCase(),
+              `Description must include the keyword '${queryKeyword}' (Found: ${cve.description.substring(0, 50)}...)`,
+            );
+          });
         });
       });
     });
