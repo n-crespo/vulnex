@@ -30,8 +30,9 @@ router.post("/", authenticateWriteAccess, createCVE);
 
 // bulk update a CVE
 router.put("/", authenticateWriteAccess, bulkUpdateCVEs);
-// update a CVE by ID
-router.put("/:cveId", authenticateWriteAccess, updateCVE);
+
+// update a CVE by ID. Deprecated in favor of PUT to /api/cves (above)
+// router.put("/:cveId", authenticateWriteAccess, updateCVE);
 
 // bulk delete CVEs
 router.delete("/bulk-delete", authenticateWriteAccess, bulkDeleteCVEs);

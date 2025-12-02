@@ -240,7 +240,8 @@ export const getCVE = async (req, res) => {
   }
 };
 
-/** Update one CVE by ID via POST /api/cves/:id
+/** Update one CVE by ID via POST /api/cves/:id.
+ * @deprecated Use POST /api/cves instead.
  * Request Body:
  * `{ ... } // CVE info to update`
  * Response JSON:
