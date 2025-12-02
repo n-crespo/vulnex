@@ -3,7 +3,7 @@ import {
   getCVEs,
   getCVE,
   createCVE,
-  updateCVE,
+  // updateCVE,
   deleteCVE,
   bulkDeleteCVEs,
   bulkUpdateCVEs,
