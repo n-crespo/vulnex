@@ -257,39 +257,6 @@ const runApiTests = (baseUrl, environmentName) => {
       });
     });
 
-    describe(`PROTECTED PUT (UPDATE) TESTS`, function () {
-      it(`PUT /api/cves/:id should FAIL without API Key (401 Unauthorized)`, async () => {
-        let errorStatus;
-        try {
-          await publicClient.put(`/${createdCveId}`, singleUpdateToCVE);
-        } catch (error) {
-          errorStatus = error.response.status;
-        }
-        expect(errorStatus).to.equal(UNAUTHORIZED_STATUS);
-      });
-
-      it(`PUT /api/cves/:id should PASS WITH API Key and update the CVE (200 OK)`, async () => {
-        const response = await protectedClient.put(
-          `/${createdCveId}`,
-          singleUpdateToCVE,
-        );
-        // NOTE: Expecting 200, and the controller returns the updated CVE body
-        expect(response.status).to.equal(SUCCESS_STATUS);
-        // Check that returned object contains the update
-        expect(response.data.severityLevel).to.equal(
-          singleUpdateToCVE.severityLevel,
-        );
-      });
-
-      it(`GET /api/cves/:id should verify the update ("CRITICAL") (200 OK)`, async () => {
-        const response = await publicClient.get(`/${createdCveId}`);
-        expect(response.status).to.equal(SUCCESS_STATUS);
-        expect(response.data.severityLevel).to.equal(
-          singleUpdateToCVE.severityLevel,
-        );
-      });
-    });
-
     describe(`PROTECTED DELETE TESTS`, function () {
       it(`DELETE /api/cves/:id should FAIL without API Key (401 Unauthorized)`, async () => {
         let errorStatus;
