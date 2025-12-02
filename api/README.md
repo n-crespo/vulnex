@@ -14,6 +14,10 @@ You can now send HTTP requests to `localhost:3000`.
 
 ## API Interface + Routes
 
+> [!NOTE]
+> Many of these routes return CVE objects. See the [CVE JSON
+> schema](../schemas/cve.schema.json) to know what to expect form these.
+
 The following assumes that the API's base URL is pre-pended to every string.
 (ex. `localhost:3000/api/cves` or `https://vulnex-api.onrender.com/api/cves`)
 
@@ -127,104 +131,3 @@ DELETE
 
 Database: MongoDB, managed with `mongoose` in JavaScript \
 API: expressJS, [deployed](https://vulnex-api.onrender.com/) with Render
-
-## The CVE Data Model
-
-A **CVE (Common Vulnerabilities and Exposures)** record contains the following
-essential fields. Restricting CVEs stored in our database to these fields only
-allows us to reduce our data storage requirements by over 50x. This is
-especially important because of the 512MB data limit on MongoDB's free tier and
-the fact that there are over 300k CVEs summing to ~7GB of data in total.
-
-> [!NOTE]
-> For more condensed documentation, see the [CVE JSON
-> schema](../schemas/cve.schema.json).
-
-- `cveId`: The unique identifier of the CVE record.
-  - _Type_: String
-  - _Regex_: `/^(CVE|VUL|TEST)-\d{4}-\d{4,}$/i`
-- `published`: The date on which the CVE record was first published (Modified ISO 8601 format).
-  - _Type_: Date
-  - _Example_: `1988-10-01T04:00:00.000`
-- `description`: A brief description of the CVE.
-  - _Type_: String
-  - _Regex_: `none`
-- `severityLevel`: Categorical value that displays the severity of the vulnerability.
-  - _Type_: String
-  - _Enum_: `["NONE", "LOW", "MEDIUM", "HIGH", "CRITICAL", "UNKNOWN"]`
-- `productName`: The name of the software that this CVE affects.
-  - _Type_: String
-- `productVersions`: An object containing information about what versions of the product are vulnerable.
-  - _Type_: Array of Objects (Object definition below)
-  - ```json
-    {
-      "type": "object",
-      "properties": {
-        "start": {
-          "type": "string",
-          "description": "Start of version range"
-        },
-        "end": {
-          "type": "string",
-          "description": "End of version range"
-        },
-        "s_type": {
-          "type": "string",
-          "enum": ["i", "e"],
-          "description": "Start is inclusive (i) or exclusive (e)"
-        },
-        "e_type": {
-          "type": "string",
-          "enum": ["i", "e"],
-          "description": "End is inclusive (i) or exclusive (e)"
-        }
-      },
-      "required": ["start", "end", "s_type", "e_type"]
-    }
-    ```
-
-> [!NOTE]
-> All fields above are required for every record. Similarly, any fields pushed
-> to the database besides the above will be discarded.
-
-Putting this all together, an example of a CVE in our database looks like this:
-
-```json
-{
-  "cveId": "CVE-2025-45878",
-  "published": "2025-06-17T17:15:33.487",
-  "description": "A cross-site scripting (XSS) vulnerability in the report manager function of Miliaris Amigdala v2.2.6 allows attackers to execute arbitrary HTML in the context of a user's browser via a crafted payload.",
-  "severityLevel": "MEDIUM",
-  "productName": "miliaris:amygdala",
-  "productVersions": [
-    {
-      "start": "2.2.6",
-      "s_type": "i",
-      "end": "2.2.6",
-      "e_type": "i"
-    }
-  ]
-}
-```
-
-## Discarded CVEs
-
-Here are some definitions of what the `status` field means (from NVD docs). To
-reduce data storage, I discard all `Rejected` CVEs.
-
-| Status Value              | Meaning                                         |
-| :------------------------ | :---------------------------------------------- |
-| **`Received`**            | Recently published to the CVE List.             |
-| **`Awaiting Analysis`**   | Marked for NVD enrichment efforts.              |
-| **`Undergoing Analysis`** | Currently being enriched (CVSS, CWE, CPE data). |
-| **`Analyzed`**            | Enrichment is complete.                         |
-| **`Modified`**            | Updated after NVD enrichment.                   |
-| **`Deferred`**            | Not prioritized for NVD enrichment.             |
-| **`Rejected`**            | Marked Rejected in the CVE List.                |
-
-Some previously included fields were removed from my data model for the following reasons:
-
-- `isVulnerable`: why include CVEs that aren't vulnerable? Besides, most (if not all) CVEs are vulnerable for some version of a product.
-- `dateModified`: didn't find this very relevant to our app, included `published` Date field so user can understand "age" of a CVE.
-- `patchedInVersion`: extracting this info from CVEs is very unreliable as the NVD doesn't really concern itself in the PATCHes to vulnerabilities, just the vulnerabilities themselves.
-- `status`: besides rejected CVEs (which were discarded) this info again isn't very useful to the end user. Can always be accessed through full CVE report.
