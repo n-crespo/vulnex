@@ -270,7 +270,7 @@ export const updateCVE = async (req, res) => {
 };
 
 /** Bulk update CVEs via PUT /api/cves/
- * Request body: `[ { cveId: "ID-1", update: { status: "Published" } }, { cveId: "ID-2", update: { severity: "LOW" } } ]`
+ * Request body: `[ { cveId: "ID-1", update: { severity: "LOW" } }, { cveId: "ID-2", update: { severity: "LOW" } } ]`
  * Response JSON:
  * ```
  * {
