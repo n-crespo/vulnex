@@ -1,13 +1,12 @@
 {
   "name": "data-sync",
   "version": "1.0.0",
-  "description": "",
+  "description": "VulnEx module for updating and deleting from the database of modified CVE records.",
   "license": "ISC",
-  "author": "",
+  "author": "Nicolas Crespo",
   "type": "module",
   "main": "sync_data.js",
   "scripts": {
-    "dev": "node sync_data.js",
     "fetch": "node index.js",
     "delete": "node delete.js"
   }

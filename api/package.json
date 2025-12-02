@@ -1,9 +1,9 @@
 {
   "name": "vulnex-api",
   "version": "1.0.0",
-  "description": "",
+  "description": "VulnEx API for interacting with the database through a CRUD API.",
   "license": "ISC",
-  "author": "",
+  "author": "Nicolas Crespo",
   "type": "module",
   "main": "index.js",
   "scripts": {
