@@ -5,7 +5,16 @@ import bcrypt from "bcryptjs";
 const newReturningUserSchema = new Schema({
   email: { type: String, required: true, unique: true },
   passwordHash: { type: String, required: true },
-  foundCVEs: [{ type: String }],
+  foundCVEs: {
+    type: [
+      {
+        ids: { type: [String], required: true }, // an array of CVE IDs
+        timestamp: { type: Date, required: true }, // time that the user made the upload
+        filename: { type: String, required: true }, // name of the file that the user uploaded
+      },
+    ],
+    default: [],
+  },
 });
 
 // store the password in a hashed format for user security protection
