@@ -31,7 +31,6 @@ export default function App() {
   const handleApplyFilters = async (filters) => {
     setIsLoading(true);
     setError(null);
-    setCves([]); // Clear current list while loading
 
     try {
       let url = `${API_BASE_URL}/api/cves`;
@@ -62,7 +61,11 @@ export default function App() {
       const response = await fetch(url);
 
       if (!response.ok) {
-        if (response.status === 404) throw new Error("No CVEs found matching your criteria.");
+        // If 404, it means no results found. We clear the list.
+        if (response.status === 404) {
+             setCves([]); 
+             return; 
+        }
         throw new Error("Failed to fetch CVEs");
       }
 
@@ -196,9 +199,7 @@ export default function App() {
         {activeTab === 'explore' ? (
           <div className="space-y-4">
             
-            {/* Loading / Error States */}
-            {isLoading && <p className="text-center text-gray-500 mt-4">Loading vulnerabilities...</p>}
-            
+            {/* Error States */}
             {error && (
               <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded relative" role="alert">
                 <strong className="font-bold">Error: </strong>
@@ -206,12 +207,14 @@ export default function App() {
               </div>
             )}
 
-            {!isLoading && !error && (
-              <CVEFeed 
-                cves={cves} // pass the real fetched data
-                onApplyFilters={handleApplyFilters}
-              />
-            )}
+            {/* Loading State - Animate pulse instead of hiding content */}
+            {isLoading && <p className="text-center text-gray-500 mt-4 animate-pulse">Updating results...</p>}
+
+            {/* Always render CVEFeed so FilterPanel doesn't reset */}
+            <CVEFeed 
+              cves={cves} // pass the real fetched data
+              onApplyFilters={handleApplyFilters}
+            />
 
           </div>
         ) : (
