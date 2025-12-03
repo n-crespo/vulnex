@@ -9,14 +9,22 @@ function CVEFeed({ cves, onApplyFilters }) {
       <FilterPanel onApplyFilters={onApplyFilters} />
 
       {/* CVE Cards */}    
-    <div className="space-y-4">
-      {/* Section Header */}
-      <h2 className="text-2xl font-bold text-gray-900">Recent Vulnerabilities</h2>
-      
-      {/* Map through CVEs and render a CVECard for each one */}
-      {cves.slice(0,4).map((cve) => (
-        <CVECard key={cve.id} cve={cve} />
-      ))}
+      <div className="space-y-4">
+        {/* Section Header */}
+        <h2 className="text-2xl font-bold text-gray-900">
+          {cves.length > 0 ? "Recent Vulnerabilities" : "No Vulnerabilities Found"}
+        </h2>
+        
+        {/* CHANGED: Removed .slice(0,4) so it shows ALL fetched CVEs */}
+        {cves.map((cve) => (
+          <CVECard key={cve.id || cve.cveId} cve={cve} />
+        ))}
+
+        {cves.length === 0 && (
+          <div className="text-center py-10 text-gray-500 bg-white rounded-lg border border-gray-200">
+            No vulnerabilities match your criteria.
+          </div>
+        )}
       </div>
     </div>
   );
