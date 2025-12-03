@@ -65,11 +65,14 @@ POST
   - Request Body:
     `[ { ... } { ... } ] // an array of CVEs to add`
   - Response JSON:
+    - message: success message
+    - out: number of records created
+    - data: array of newly created CVE records
     ```json
     {
-      "message": // success message
-      "count": // number of records created
-      "data": [ { ... }, { ... } ] // array of newly created CVE records
+      "message": "Success Message",
+      "count": 1,
+      "data": [{}, {}]
     }
     ```
 
@@ -86,12 +89,15 @@ PUT
   ]
   ```
 - Response:
+  - matchedCount: number of CVEs found and attempted to update
+  - modifiedCount: number of CVEs successfully modified
+  - errors: array of collected errors
   ```json
   {
     "message": "Success Message",
-    "matchedCount": 2, // Number of CVEs found and attempted to update
-    "modifiedCount": 2 // Number of CVEs successfully modified
-    "errors": [...] // an optional array of collected errors
+    "matchedCount": 2,
+    "modifiedCount": 2,
+    "errors": []
   }
   ```
 
@@ -119,11 +125,13 @@ DELETE
 
 - Request body: `{ "cveIds": ["CVE-ID-1", "CVE-ID-2", ...] }`
 - Response:
+  - deletedCount: number of CVEs successfully deleted
+  - requestedCount: number of CVEs requested for deletion
   ```json
   {
-    "message": "Success Message"
-    "deletedCount": 2 // Number of CVEs successfully deleted
-    "requestedCount": 2 // Number of CVEs requested for deletion
+    "message": "Success Message",
+    "deletedCount": 2,
+    "requestedCount": 2
   }
   ```
 
