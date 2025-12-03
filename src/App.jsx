@@ -1,16 +1,92 @@
-import { useState } from "react";
-import { Search, ShieldAlert, Upload, ListFilter, User, LogOut } from "lucide-react";
+import { useState, useEffect } from "react";
+import { ShieldAlert, Upload, User, LogOut } from "lucide-react";
 import CVEFeed from "./components/CVEFeed";
 import AuthModel from "./components/AuthModel";
 
 export default function App() {
   const [activeTab, setActiveTab] = useState("explore");
   const [jsonLocalDataUploaded, setJsonLocalDataUploaded] = useState(null);
-  const [isLoginModuleOpen, setIsLoginModuleOpen] = useState(false);
-  const [user, setUser] = useState(null); // null = not logged in
-
+  
+  // Auth States
   const [doAuthModel, setDoAuthModel] = useState(false);
   const [userLoginSessionToken, setUserLoginSessionToken] = useState(null); // null = not logged in
+  const [user, setUser] = useState(null); // null = not logged in
+
+  // CVE Data States
+  const [cves, setCves] = useState([]); // Stores the fetched CVEs
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  // API Base URL (Dynamic based on environment)
+  const API_BASE_URL = (import.meta.env.DEV 
+    ? "http://localhost:3000" 
+    : "https://vulnex-cpckbefubudnhab6.eastus2-01.azurewebsites.net").replace(/\/$/, "");
+
+  // Initial fetch on mount
+  useEffect(() => {
+    handleApplyFilters({}); // Fetch all (default limit: 100) on load
+  }, []);
+
+  // --- API Fetching Logic ---
+  const handleApplyFilters = async (filters) => {
+    setIsLoading(true);
+    setError(null);
+    setCves([]); // Clear current list while loading
+
+    try {
+      let url = `${API_BASE_URL}/api/cves`;
+      
+      // LOGIC: If a specific CVE ID is provided, use the ID endpoint: /api/cves/:id
+      // Otherwise use the general query parameters
+      if (filters.cveId) {
+        url = `${url}/${filters.cveId}`;
+      } else {
+        // Construct Query Parameters for general search
+        const params = new URLSearchParams();
+        
+        // Add filters if they exist (keys match cve.controller.js)
+        if (filters.productName) params.append("productName", filters.productName);
+        if (filters.version) params.append("version", filters.version);
+        if (filters.severityLevel) params.append("severityLevel", filters.severityLevel);
+        if (filters.keyword) params.append("keyword", filters.keyword);
+        if (filters.publishedStart) params.append("publishedStart", filters.publishedStart);
+        if (filters.publishedEnd) params.append("publishedEnd", filters.publishedEnd);
+        
+        // Default limit to 100 results
+        params.append("limit", "100");
+
+        url = `${url}?${params.toString()}`;
+      }
+
+      console.log("Fetching from:", url);
+      const response = await fetch(url);
+
+      if (!response.ok) {
+        if (response.status === 404) throw new Error("No CVEs found matching your criteria.");
+        throw new Error("Failed to fetch CVEs");
+      }
+
+      const data = await response.json();
+
+      // NORMALIZATION: 
+      // The ID endpoint returns a single object { ... }
+      // The Search endpoint returns an array [ { ... }, { ... } ]
+      // We enforce an array in state so .map() in CVEFeed always works.
+      if (Array.isArray(data)) {
+        setCves(data);
+      } else if (data && typeof data === 'object') {
+        setCves([data]); // Wrap single object in array
+      } else {
+        setCves([]);
+      }
+
+    } catch (err) {
+      console.error("Fetch error:", err);
+      setError(err.message);
+    } finally {
+      setIsLoading(false);
+    }
+  }
 
   // successful login function:
   const doLoginSuccess = (newToken) => {
@@ -24,56 +100,11 @@ export default function App() {
     setActiveTab("explore"); // switch back to the explore tab after logging out
   }
 
-  // Placeholder CVE data -------------------------------------------------------
-  const placeholderCVEs = [
-    {
-      id: "CVE-0000-0000",
-      title: "Title Placeholder",
-      severity: "Critical",
-      score: 9.9,
-      package: "...",
-      version: "< 0.12.3",
-      description: "Description...",
-      published: "XXXX-XX-XX",
-    },
-    {
-      id: 'CVE-0000-0001',
-      title: 'Title Placeholder',
-      severity: 'High',
-      score: 8,
-      package: "...",
-      version: "< 0.12.3",
-      description: "Description...",
-      published: "XXXX-XX-XX",
-    },
-    {
-      id: 'CVE-0000-0002',
-      title: 'Title Placeholder',
-      severity: 'Medium',
-      score: 6,
-      package: "...",
-      version: "< 0.12.3",
-      description: "Description...",
-      published: "XXXX-XX-XX",
-    },
-    {
-      id: 'CVE-0000-0003',
-      title: 'Title Placeholder',
-      severity: 'Low',
-      score: 2,
-      package: "...",
-      version: "< 0.12.3",
-      description: "Description...",
-      published: "XXXX-XX-XX",
-    },
-  ];
-
   // a function to upload a local json file:
   const uploadJSONFile = (event) => {
     const jsonFile = event.target.files[0];
-    if (!jsonFile) {
-      return;
-    }
+    if (!jsonFile) return;
+    
     const fileReader = new FileReader();
     fileReader.onload = () => {
       try {
@@ -85,30 +116,6 @@ export default function App() {
     };
     fileReader.readAsText(jsonFile);
   }
-
-    // Login Handler
-
-    // Handle successful login
-    const handleLogin = (userData) => {
-      setUser(userData);
-      console.log('User logged in:', userData);
-    };
-
-    // Handle logout
-    const handleLogout = () => {
-      setUser(null);
-      console.log('User logged out');
-    };
-
-
-    // Handle Filter Application
-    const handleApplyFilters = (filters) => {
-      console.log('Filters received in App.jsx:', filters);
-      // TODO: Implement API calls with these filters to backend
-      // FOR NOW: Logging to console
-    }
-
-  // --------------------------------------------------------------------------------------
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -188,13 +195,23 @@ export default function App() {
       <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
         {activeTab === 'explore' ? (
           <div className="space-y-4">
+            
+            {/* Loading / Error States */}
+            {isLoading && <p className="text-center text-gray-500 mt-4">Loading vulnerabilities...</p>}
+            
+            {error && (
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded relative" role="alert">
+                <strong className="font-bold">Error: </strong>
+                <span className="block sm:inline">{error}</span>
+              </div>
+            )}
 
-            {/* CVE Feed */}
-            <CVEFeed 
-              cves={placeholderCVEs}
-              onApplyFilters={handleApplyFilters}
-            />
-
+            {!isLoading && !error && (
+              <CVEFeed 
+                cves={cves} // pass the real fetched data
+                onApplyFilters={handleApplyFilters}
+              />
+            )}
 
           </div>
         ) : (
@@ -231,11 +248,11 @@ export default function App() {
               </div>
             </div>
 
-            {/* Placeholder for results */}
             <div className="bg-white rounded-lg shadow-sm p-8 text-center text-gray-500">
               {jsonLocalDataUploaded ? (
                 // display the result if something was uploaded
-                <pre>{JSON.stringify(jsonLocalDataUploaded, null, 2)}</pre>
+                <pre className="text-left bg-gray-100 p-4 rounded overflow-auto">
+                {JSON.stringify(jsonLocalDataUploaded, null, 2)}</pre>
               ) : (
                 <p>Upload a package.json file to see vulnerability analysis</p>
               )}
