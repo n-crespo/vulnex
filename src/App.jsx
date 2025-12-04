@@ -4,9 +4,19 @@ import Header from "./components/Header";
 import AnalyzeView from "./components/AnalyzeView";
 import ExploreView from "./components/ExploreView";
 import { useCveData } from "./hooks/useCveData";
+import { useAuth } from "./hooks/useAuth";
 
 export default function App() {
   const [activeTab, setActiveTab] = useState("explore");
+
+  // custom hook for authentication logic
+  const {
+    doAuthModel,
+    setDoAuthModel,
+    userLoginSessionToken,
+    doLoginSuccess,
+    doLogoutAndClearSessionToken,
+  } = useAuth(setActiveTab); // pass setActiveTab into the hook so it can manage the tab switch on logout
 
   // custom hook for data logic
   const {
@@ -19,23 +29,6 @@ export default function App() {
     handleNextPage,
     handlePrevPage,
   } = useCveData();
-
-  // Auth States
-  const [doAuthModel, setDoAuthModel] = useState(false);
-  const [userLoginSessionToken, setUserLoginSessionToken] = useState(null); // null = not logged in
-  // const [user, setUser] = useState(null); // null = not logged in
-
-  // successful login function:
-  const doLoginSuccess = (newToken) => {
-    setUserLoginSessionToken(newToken);
-    setDoAuthModel(false);
-  };
-
-  // function for logging out/nulling the token:
-  const doLogoutAndClearSessionToken = () => {
-    setUserLoginSessionToken(null);
-    setActiveTab("explore"); // switch back to the explore tab after logging out
-  };
 
   return (
     <div className="min-h-screen bg-gray-50">
