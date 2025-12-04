@@ -1,33 +1,23 @@
-// CVE Feed Component (displays feed of CVE cards, receives CVE objects as props)
 import CVECard from "./CVECard";
 import FilterPanel from "./FilterPanel";
 import { ArrowRight, ArrowLeft } from "lucide-react";
 
-function CVEFeed({
-  cves,
-  onApplyFilters,
-  totalCount,
-  onNextPage,
-  onPrevPage,
-  page,
-}) {
+function CVEFeed({ cves, totalCount, onNextPage, onPrevPage, page }) {
   // Logic to show buttons
   const itemsPerPage = 25;
 
   // Show Next Page if we have a full page of items
-  // (We check length === 25 to see if there might be more)
   const showNextPage = cves.length === itemsPerPage;
   // Show Prev Page if we are not on page 0
   const showPrevPage = page > 0;
 
-  // Calculate Range logic (Showing start-end of total)
+  // Calculate Range logic
   const startRange = page * itemsPerPage + 1;
   const endRange = startRange + cves.length - 1;
 
   return (
     <div className="space-y-8">
-      {/* Filter Panel */}
-      <FilterPanel onApplyFilters={onApplyFilters} />
+      <FilterPanel />
 
       {/* CVE Cards */}
       <div className="space-y-4">
@@ -93,7 +83,7 @@ function CVEFeed({
             </button>
           )}
 
-          {/* NEXT PAGE BUTTON (Fetches new batch) */}
+          {/* NEXT PAGE BUTTON */}
           {showNextPage && (
             <button
               onClick={onNextPage}
@@ -110,4 +100,3 @@ function CVEFeed({
 }
 
 export default CVEFeed;
-

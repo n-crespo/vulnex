@@ -1,17 +1,16 @@
 import { useState } from "react";
 import { X } from "lucide-react";
+import { useAuthContext } from "../context/AuthContext";
 
-// this is the auth model for Logging in and/or Registering
-export default function AuthModel({
-  closeTheAuthForm,
-  whenUserLoginIsSuccessful,
-}) {
+export default function AuthModel() {
+  // Access global state and functions from the context
+  const { setDoAuthModel, doLoginSuccess } = useAuthContext();
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [newUserRegistering, setNewUserRegistering] = useState(false);
   const [noticeBoardMessage, setNoticeBoardMessage] = useState("");
 
-  // the userButtonSubmit function handles button clicks for logging in or registering:
   const userButtonSubmit = async (e) => {
     e.preventDefault();
     setNoticeBoardMessage("");
@@ -21,24 +20,23 @@ export default function AuthModel({
       ? ""
       : "https://vulnex-api.onrender.com";
 
-    LOCAL_VS_AZURE_ONLINE_PATH = LOCAL_VS_AZURE_ONLINE_PATH.replace(/\/$/, ""); // ensure / is not trailing
+    LOCAL_VS_AZURE_ONLINE_PATH = LOCAL_VS_AZURE_ONLINE_PATH.replace(/\/$/, "");
 
     const trailingEndOfPath = newUserRegistering
       ? "/api/users/register"
       : "/api/users/login";
-    // this path will be called by the Login or Register button
+
     const loggingInOrRegisteringPath =
       LOCAL_VS_AZURE_ONLINE_PATH + trailingEndOfPath;
 
     try {
-      // waiting for user to login or register
       const newUserOrLoginResponse = await fetch(loggingInOrRegisteringPath, {
-        method: "POST", // this is a post request that sends the data to the mongoDB
-        headers: { "Content-Type": "application/json" }, // this specifies JSON inbound
-        body: JSON.stringify({ email, password }), // email and password get sent to mongoDB
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
       });
 
-      const data = await newUserOrLoginResponse.json(); // this gets the json response
+      const data = await newUserOrLoginResponse.json();
 
       if (!newUserOrLoginResponse.ok) {
         throw new Error(
@@ -52,22 +50,21 @@ export default function AuthModel({
         setNewUserRegistering(false);
         setNoticeBoardMessage("Successfully registered. You may Login.");
       } else {
-        // if not registering, then login was success
-        whenUserLoginIsSuccessful(data.loginSessionToken); // keep the user logged in with their session token
-        closeTheAuthForm(); // then close
+        // Use the context function to handle success
+        // Note: doLoginSuccess inside AuthContext also handles closing the modal
+        doLoginSuccess(data.loginSessionToken);
       }
     } catch (err) {
-      // post any errors
       setNoticeBoardMessage(err.message);
     }
   };
 
-  // return the Auth model jsx for button rendering to the UI
   return (
     <div className="fixed inset-0 flex items-start justify-end z-50 pr-4 mt-16">
       <div className="relative p-6 bg-white rounded-lg w-96 shadow-xl border border-gray-200 mt-2">
         <button
-          onClick={closeTheAuthForm}
+          // Use the context setter to close the modal
+          onClick={() => setDoAuthModel(false)}
           className="absolute top-4 right-4 text-gray-500"
         >
           <X size={20} />
@@ -83,7 +80,6 @@ export default function AuthModel({
           </div>
         )}
 
-        {/* create a basic form for logging in and registering with a submit button*/}
         <form onSubmit={userButtonSubmit} className="flex flex-col space-y-4">
           <input
             type="email"
@@ -101,7 +97,6 @@ export default function AuthModel({
             onChange={(userInput) => setPassword(userInput.target.value)}
             required
           />
-          {/* button for submitting login/register: */}
           <button
             type="submit"
             className="w-full text-white py-2 rounded bg-blue-600"
@@ -110,7 +105,6 @@ export default function AuthModel({
           </button>
         </form>
 
-        {/* button to switch between logging in and registering: */}
         <button
           onClick={() => {
             setNewUserRegistering(!newUserRegistering);

@@ -1,8 +1,11 @@
-import { useState } from "react";
+import { useState, memo } from "react";
 import { Search, Filter, X, AlertCircle } from "lucide-react";
+import { useCveDataContext } from "../context/CveDataContext";
 
-function FilterPanel({ onApplyFilters }) {
-  // --- States --- (updated names to match backend variables)
+function FilterPanel() {
+  const { handleApplyFilters } = useCveDataContext();
+
+  // --- States ---
   const [cveId, setCveId] = useState("");
   const [productName, setProductName] = useState("");
   const [version, setVersion] = useState("");
@@ -25,7 +28,6 @@ function FilterPanel({ onApplyFilters }) {
     { label: "Custom Range", value: "custom" },
   ];
 
-  // Severity Options
   const severityOptions = ["NONE", "LOW", "MEDIUM", "HIGH", "CRITICAL"];
 
   // --- Handlers ---
@@ -80,7 +82,7 @@ function FilterPanel({ onApplyFilters }) {
     };
 
     console.log("Applied Filters:", filters);
-    onApplyFilters(filters);
+    handleApplyFilters(filters);
   };
 
   const handleClearAll = () => {
@@ -98,7 +100,6 @@ function FilterPanel({ onApplyFilters }) {
 
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-      {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center space-x-2">
           <Filter className="w-5 h-5 text-gray-700" />
@@ -116,7 +117,6 @@ function FilterPanel({ onApplyFilters }) {
       <div className="space-y-6 mb-6">
         {/* Row 1: CVE ID & Severity */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* CVE ID */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               CVE ID (Exact)
@@ -133,7 +133,6 @@ function FilterPanel({ onApplyFilters }) {
             </div>
           </div>
 
-          {/* Severity Dropdown */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Severity Level
@@ -155,7 +154,6 @@ function FilterPanel({ onApplyFilters }) {
 
         {/* Row 2: Product & Version */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Product Name */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Product Name (Regex supported)
@@ -166,13 +164,12 @@ function FilterPanel({ onApplyFilters }) {
               value={productName}
               onChange={(e) => {
                 setProductName(e.target.value);
-                if (e.target.value) setVersionError(""); // clear error if user starts typing product
+                if (e.target.value) setVersionError("");
               }}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-600 focus:border-transparent text-sm"
             />
           </div>
 
-          {/* Version */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Version
@@ -194,7 +191,6 @@ function FilterPanel({ onApplyFilters }) {
 
         {/* Row 3: Keyword & Date */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Keyword */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Keyword Search
@@ -211,7 +207,6 @@ function FilterPanel({ onApplyFilters }) {
             </div>
           </div>
 
-          {/* Date Filter */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Published Date
@@ -228,7 +223,6 @@ function FilterPanel({ onApplyFilters }) {
               ))}
             </select>
 
-            {/* Custom Date Inputs */}
             {dateOption === "custom" && (
               <div className="mt-3 grid grid-cols-2 gap-2">
                 <div>
@@ -258,7 +252,6 @@ function FilterPanel({ onApplyFilters }) {
         </div>
       </div>
 
-      {/* Footer Buttons */}
       <div className="flex justify-end space-x-3">
         <button
           onClick={handleClearAll}
@@ -277,5 +270,4 @@ function FilterPanel({ onApplyFilters }) {
   );
 }
 
-export default FilterPanel;
-
+export default memo(FilterPanel);
