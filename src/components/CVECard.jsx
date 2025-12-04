@@ -36,7 +36,19 @@ function CVECard({ cve }) {
         <div className="flex-1">
           {/* CVE Header: ID and Severity */}
           <div className="flex items-center space-x-3 mb-2">
-            <h3 className="text-lg font-semibold text-gray-900">{cve.cveId}</h3>
+
+            {/* LINK TO NIST DATABASE */}
+            <h3 className="text-lg font-semibold">
+              <a 
+                href={`https://nvd.nist.gov/vuln/detail/${cve.cveId}`}
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-blue-600 hover:text-red-800 hover:underline"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {cve.cveId}
+              </a>
+            </h3>
             
             <span className={`px-3 py-1 rounded-full text-xs font-bold border ${getSeverityColor(cve.severityLevel)}`}>
               {cve.severityLevel}
