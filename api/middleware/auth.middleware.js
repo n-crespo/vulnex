@@ -1,5 +1,5 @@
 import jwt from "jsonwebtoken";
-import newUserLoginModel from "../models/newUserLogin.model";
+import newUserLoginModel from "../models/newUserLogin.model.js";
 
 // note: since requests are sent via HTTPS the API key is secure
 const API_SECRET_KEY = process.env.API_SECRET_KEY;
