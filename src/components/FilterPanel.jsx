@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, memo } from "react";
 import { Search, Filter, X, AlertCircle } from "lucide-react";
 import { useCveDataContext } from "../context/CveDataContext";
 
@@ -270,4 +270,4 @@ function FilterPanel() {
   );
 }
 
-export default FilterPanel;
+export default memo(FilterPanel);
