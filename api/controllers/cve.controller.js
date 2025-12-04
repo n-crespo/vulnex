@@ -28,7 +28,7 @@ const ALLOWED_UPDATE_FIELDS = new Set(CVE_SCHEMA_FIELDS);
  *```
  */
 export const createCVE = async (req, res) => {
-  console.log("--- [POST] Create CVE(s): ");
+  console.log("--- [POST] Create CVE(s): ---");
   const records = req.body;
   try {
     let result;
@@ -101,7 +101,7 @@ export const createCVE = async (req, res) => {
  * `[ { ... }, { ... } ] // array of requested CVEs`
  */
 export const getCVEs = async (req, res) => {
-  console.log(`--- [GET] Get CVEs`);
+  console.log(`--- [GET] Get CVEs ---`);
   try {
     // extract params from query string
     const limit = parseInt(req.query.limit) || 100; // Default limit to 100 records
@@ -224,7 +224,7 @@ export const getCVEs = async (req, res) => {
 export const getCVE = async (req, res) => {
   try {
     const { cveId } = req.params;
-    console.log("--- [GET] Get CVE: ", cveId);
+    console.log("--- [GET] Get CVE: ---", cveId);
     const cve = await CVE.findOne({ cveId: cveId });
 
     if (!cve) {
@@ -251,7 +251,7 @@ export const updateCVE = async (req, res) => {
   try {
     const { cveId } = req.params;
     console.log(
-      `--- [PUT] Update CVE ${cveId} with ${JSON.stringify(req.body)}`,
+      `--- [PUT] Update CVE ${cveId} with ${JSON.stringify(req.body)} ---`,
     );
     const cve = await CVE.findOneAndUpdate({ cveId: cveId }, req.body);
 
@@ -285,7 +285,7 @@ export const updateCVE = async (req, res) => {
 export const bulkUpdateCVEs = async (req, res) => {
   const updates = req.body;
   console.log(
-    `--- [PUT] Bulk Update CVEs: ${updates ? updates.length : 0} records`,
+    `--- [PUT] Bulk Update CVEs: ${updates ? updates.length : 0} records ---`,
   );
 
   if (!Array.isArray(updates) || updates.length === 0) {
@@ -389,7 +389,7 @@ export const bulkUpdateCVEs = async (req, res) => {
  * `{ message: "Success message" }`
  */
 export const deleteCVE = async (req, res) => {
-  console.log(`--- [DELETE] Delete CVE: ${JSON.stringify(req.params)}`);
+  console.log(`--- [DELETE] Delete CVE: ${JSON.stringify(req.params)} ---`);
   try {
     const { cveId } = req.params;
     const cve = await CVE.findOneAndDelete({ cveId: cveId });
@@ -422,7 +422,7 @@ export const bulkDeleteCVEs = async (req, res) => {
   const { cveIds } = req.body;
   console.log(cveIds);
   console.log(
-    `--- [DELETE] Bulk Delete CVEs: ${cveIds ? cveIds.length : 0} IDs`,
+    `--- [DELETE] Bulk Delete CVEs: ${cveIds ? cveIds.length : 0} IDs ---`,
   );
 
   if (!Array.isArray(cveIds) || cveIds.length === 0) {
