@@ -29,7 +29,7 @@ export default function App() {
 
   // Initial fetch on mount
   useEffect(() => {
-    handleApplyFilters({}); // Fetch all (default limit: 50) on load
+    handleApplyFilters({}); // Fetch all (default limit: 25) on load
   }, []);
 
   // --- API Fetching Logic ---
@@ -56,9 +56,9 @@ export default function App() {
         if (filters.publishedStart) params.append("publishedStart", filters.publishedStart);
         if (filters.publishedEnd) params.append("publishedEnd", filters.publishedEnd);
         
-        // Fetch 50 at a time
-        params.append("limit", "50");
-        params.append("skip", (pageNumber * 50).toString());
+        // Fetch 25 at a time 
+        params.append("limit", "25");
+        params.append("skip", (pageNumber * 25).toString());
 
         url = `${url}?${params.toString()}`;
       }

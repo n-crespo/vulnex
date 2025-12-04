@@ -1,31 +1,22 @@
 // CVE Feed Component (displays feed of CVE cards, receives CVE obejcts as props)
-import { useState, useEffect } from 'react';
 import CVECard from './CVECard';
 import FilterPanel from './FilterPanel';
-import { ChevronDown, ArrowRight, ArrowLeft } from 'lucide-react'; // Imports for buttons
+import { ArrowRight, ArrowLeft } from 'lucide-react';
 
 function CVEFeed({ cves, onApplyFilters, totalCount, onNextPage, onPrevPage, page }) { 
-  // Local state to control "Load More" (25 vs 50)
-  const [visibleCount, setVisibleCount] = useState(25);
-
-  // Whenever we receive new CVEs (e.g. Next/Prev Page clicked), reset view to 25
-  useEffect(() => {
-    setVisibleCount(25);
-  }, [cves]);
-
-  const handleLoadMore = () => {
-    setVisibleCount(50); // Reveal the rest of the current batch
-  };
-
+  
   // Logic to show buttons
-  const showLoadMore = visibleCount < cves.length;
-  // Show Next Page if we have shown all fetched items AND there are 50 items (full page)
-  const showNextPage = !showLoadMore && cves.length === 50;
+  const itemsPerPage = 25;
+
+  // Show Next Page if we have a full page of items
+  // (We check length === 25 to see if there might be more)
+  const showNextPage = cves.length === itemsPerPage; 
   // Show Prev Page if we are not on page 0
   const showPrevPage = page > 0;
 
-  // Calculate how many CVEs currently on screen
-  const currentShown = Math.min(visibleCount, cves.length);
+  // Calculate Range logic (Showing start-end of total)
+  const startRange = (page * itemsPerPage) + 1;
+  const endRange = startRange + cves.length - 1;
 
   return (
     <div className="space-y-8">
@@ -41,10 +32,10 @@ function CVEFeed({ cves, onApplyFilters, totalCount, onNextPage, onPrevPage, pag
               {cves.length > 0 ? "Vulnerabilities" : "No Vulnerabilities Found"}
             </h2>
           
-            {/* Display CVEs "Showing X of Y" */}
+            {/* Display CVEs "Showing X-Y of Z" */}
             {totalCount > 0 && (
               <span className="text-lg text-gray-500 font-medium">
-                (Showing {currentShown} of {totalCount} found) - Page {page + 1}
+                (Showing {startRange}-{endRange} of {totalCount} found)
               </span>
             )}
           </div>
@@ -72,8 +63,8 @@ function CVEFeed({ cves, onApplyFilters, totalCount, onNextPage, onPrevPage, pag
           </div>
         </div>
         
-        {/* Slice the array to only show visibleCount */}
-        {cves.slice(0, visibleCount).map((cve) => (
+        {/* Render CVEs */}
+        {cves.map((cve) => (
           <CVECard key={cve.id || cve.cveId} cve={cve} />
         ))}
 
@@ -94,17 +85,6 @@ function CVEFeed({ cves, onApplyFilters, totalCount, onNextPage, onPrevPage, pag
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
               Previous Page
-            </button>
-          )}
-
-          {/* LOAD MORE BUTTON (25 -> 50) */}
-          {showLoadMore && (
-            <button 
-              onClick={handleLoadMore}
-              className="flex items-center px-6 py-2 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-full font-medium transition-colors"
-            >
-              <ChevronDown className="w-4 h-4 mr-2" />
-              Load More (Show 50)
             </button>
           )}
 
