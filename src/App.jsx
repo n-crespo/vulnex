@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
-import { ShieldAlert, Upload, User, LogOut } from "lucide-react";
+import { Upload } from "lucide-react";
 import CVEFeed from "./components/CVEFeed";
 import AuthModel from "./components/AuthModel";
+import Header from "./components/Header";
 
 export default function App() {
   const [activeTab, setActiveTab] = useState("explore");
@@ -163,69 +164,13 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Sticky Header */}
-      <header className="sticky top-0 z-50 bg-gray-900 border-b border-gray-200 shadow-lg">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="relative flex items-center justify-between h-16">
-            {/* Logo */}
-            <div className="flex items-center space-x-2">
-              <ShieldAlert className="w-10 h-10 text-red-700" />
-              <h1 className="text-3xl font-bold text-white font-mono">
-                VulnEx
-              </h1>
-            </div>
-
-            {/* Navigation Buttons */}
-            <nav className="absolute left-1/2 -translate-x-1/2 flex space-x-4">
-              <button
-                onClick={() => setActiveTab("explore")}
-                className={`px-6 py-2 rounded-lg font-medium transition-colors ${
-                  activeTab === "explore"
-                    ? "bg-red-800 text-white"
-                    : "bg-gray-100 text-gray-700 hover:bg-red-200"
-                }`}
-              >
-                Explore
-              </button>
-              <button
-                onClick={() => setActiveTab("analyze")}
-                className={`px-6 py-2 rounded-lg font-medium transition-colors ${
-                  activeTab === "analyze"
-                    ? "bg-red-800 text-white"
-                    : "bg-gray-100 text-gray-700 hover:bg-red-200"
-                }`}
-              >
-                Analyze
-              </button>
-            </nav>
-
-            {/* User Auth login/logout buttons: */}
-            <div>
-              {/* if user login session token exists, show logout button */}
-              {userLoginSessionToken ? (
-                <button
-                  onClick={doLogoutAndClearSessionToken}
-                  className="flex items-center text-white space-x-2"
-                >
-                  {/* using lucide-react logout icon: */}
-                  <LogOut size={20} />
-                  <span>Logout</span>
-                </button>
-              ) : (
-                // if the user has not logged in yet, show the login button
-                <button
-                  onClick={() => setDoAuthModel(true)}
-                  className="flex items-center text-white space-x-2"
-                >
-                  {/* using lucide-react user icon: */}
-                  <User size={20} />
-                  <span>Login</span>
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      </header>
+      <Header
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        userLoginSessionToken={userLoginSessionToken}
+        setDoAuthModel={setDoAuthModel}
+        doLogoutAndClearSessionToken={doLogoutAndClearSessionToken}
+      />
 
       {/* Enable the Auth Model if doAuthModel is true */}
       {doAuthModel && (
