@@ -7,6 +7,7 @@ import {
   CheckCircle,
   Loader2,
   Package,
+  X,
 } from "lucide-react";
 import { useFileAnalysis } from "../hooks/useFileAnalysis";
 import CVECard from "./CVECard";
@@ -36,18 +37,19 @@ function AnalyzeView() {
 
     const results = [];
 
-    // Simple sequential fetch to avoid rate limiting
     for (const dep of dependencies) {
       try {
         const params = new URLSearchParams({
           productName: dep.name,
           version: dep.version,
-          limit: "5", // Limit to top 5 most relevant CVEs per package
+          limit: "10",
         });
 
+        // Updated to use your ENDPOINTS constant
         const response = await fetch(
           `${API_BASE_URL}${ENDPOINTS.CVES}?${params}`,
         );
+
         if (response.ok) {
           const data = await response.json();
           if (Array.isArray(data) && data.length > 0) {
@@ -67,6 +69,24 @@ function AnalyzeView() {
     setScanning(false);
   };
 
+  // Logic to remove a specific CVE from the list
+  const handleDismiss = (packageIndex, cveIdToRemove) => {
+    setScanResults((prevResults) => {
+      // Create a shallow copy of the array
+      const newResults = [...prevResults];
+      // Create a shallow copy of the specific package object
+      const targetPackage = { ...newResults[packageIndex] };
+      // Filter out the dismissed CVE
+      targetPackage.cves = targetPackage.cves.filter(
+        (cve) => cve.cveId !== cveIdToRemove && cve.id !== cveIdToRemove,
+      );
+
+      // Update the array
+      newResults[packageIndex] = targetPackage;
+      return newResults;
+    });
+  };
+
   const handleClear = () => {
     clearAnalysis();
     setScanResults(null);
@@ -80,8 +100,8 @@ function AnalyzeView() {
           Analyze Your Project
         </h2>
 
-        {/* --- UPLOAD SECTION --- */}
         {!analysisResult ? (
+          /* --- UPLOAD SECTION (Unchanged) --- */
           <div
             className={`border-2 border-dashed rounded-lg p-12 text-center transition-colors ${
               analysisError
@@ -142,7 +162,7 @@ function AnalyzeView() {
               </button>
             </div>
 
-            {/* 2. Scan Button (If not scanned yet) */}
+            {/* 2. Scan Button */}
             {!scanResults && !scanning && (
               <div className="text-center py-8">
                 <button
@@ -191,11 +211,10 @@ function AnalyzeView() {
                     </p>
                   </div>
                 ) : (
-                  // Render Groups
                   <div className="space-y-10">
                     {scanResults.map((result, idx) => (
                       <div key={idx} className="relative">
-                        {/* GROUP HEADER: Package Name */}
+                        {/* GROUP HEADER */}
                         <div className="flex items-center gap-3 mb-4 sticky top-0 bg-white/95 backdrop-blur z-10 py-2 border-b border-gray-100">
                           <div className="p-2 bg-red-50 rounded-lg text-red-700">
                             <Package size={20} />
@@ -215,10 +234,33 @@ function AnalyzeView() {
                           </div>
                         </div>
 
-                        {/* CARD GRID: Render Standard CVECards here */}
+                        {/* CARD GRID */}
                         <div className="space-y-4 pl-4 border-l-2 border-gray-100 ml-4">
+                          {result.cves.length === 0 && (
+                            <p className="text-sm text-gray-400 italic">
+                              All CVEs dismissed for this package.
+                            </p>
+                          )}
+
                           {result.cves.map((cve) => (
-                            <CVECard key={cve.id || cve.cveId} cve={cve} />
+                            /* WRAPPER DIV for positioning the X button */
+                            <div
+                              key={cve.id || cve.cveId}
+                              className="relative group"
+                            >
+                              <CVECard cve={cve} />
+
+                              {/* DISMISS BUTTON */}
+                              <button
+                                onClick={() =>
+                                  handleDismiss(idx, cve.id || cve.cveId)
+                                }
+                                className="absolute top-4 right-4 p-1.5 bg-white border border-gray-200 text-gray-400 hover:text-red-600 hover:border-red-200 rounded-lg shadow-sm opacity-0 group-hover:opacity-100 transition-all z-20"
+                                title="Dismiss this CVE as irrelevant"
+                              >
+                                <X size={18} />
+                              </button>
+                            </div>
                           ))}
                         </div>
                       </div>
