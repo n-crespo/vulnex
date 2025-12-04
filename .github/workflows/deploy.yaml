@@ -45,7 +45,7 @@ jobs:
         run: npm ci
       - name: Build
         env:
-          VITE_API_BASE_URL: "https://vulnex-cpckbefubudnhab6.eastus2-01.azurewebsites.net"
+          VITE_API_BASE_URL: "https://vulnex-api.onrender.com"
         run: npm run build:frontend
       - name: Setup Pages
         uses: actions/configure-pages@v5
