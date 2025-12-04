@@ -1,70 +1,74 @@
-import { useState } from 'react';
-import { Search, Filter, X, AlertCircle } from 'lucide-react';
+import { useState } from "react";
+import { Search, Filter, X, AlertCircle } from "lucide-react";
 
 function FilterPanel({ onApplyFilters }) {
   // --- States --- (updated names to match backend variables)
-  const [cveId, setCveId] = useState('');
-  const [productName, setProductName] = useState(''); 
-  const [version, setVersion] = useState('');
-  const [severityLevel, setSeverityLevel] = useState(''); 
-  const [keyword, setKeyword] = useState('');
-  
+  const [cveId, setCveId] = useState("");
+  const [productName, setProductName] = useState("");
+  const [version, setVersion] = useState("");
+  const [severityLevel, setSeverityLevel] = useState("");
+  const [keyword, setKeyword] = useState("");
+
   // Date states
-  const [dateOption, setDateOption] = useState('all');
-  const [customStartDate, setCustomStartDate] = useState('');
-  const [customEndDate, setCustomEndDate] = useState('');
-  const [dateError, setDateError] = useState('');
-  const [versionError, setVersionError] = useState('');
+  const [dateOption, setDateOption] = useState("all");
+  const [customStartDate, setCustomStartDate] = useState("");
+  const [customEndDate, setCustomEndDate] = useState("");
+  const [dateError, setDateError] = useState("");
+  const [versionError, setVersionError] = useState("");
 
   // Date Presets
   const dateOptions = [
-    { label: 'Any Time', value: 'all' },
-    { label: 'Past 24 Hours', value: 'day' },
-    { label: 'Past Week', value: 'week' },
-    { label: 'Past Month', value: 'month' },
-    { label: 'Custom Range', value: 'custom' }
+    { label: "Any Time", value: "all" },
+    { label: "Past 24 Hours", value: "day" },
+    { label: "Past Week", value: "week" },
+    { label: "Past Month", value: "month" },
+    { label: "Custom Range", value: "custom" },
   ];
 
-  // Severity Options 
-  const severityOptions = ['NONE', 'LOW', 'MEDIUM', 'HIGH', 'CRITICAL'];
+  // Severity Options
+  const severityOptions = ["NONE", "LOW", "MEDIUM", "HIGH", "CRITICAL"];
 
   // --- Handlers ---
 
   const handleApply = () => {
-    // 1. Validation: Version requires Product 
-    if (version.trim() !== '' && productName.trim() === '') {
-      setVersionError('Product Name is required when searching by Version');
+    // 1. Validation: Version requires Product
+    if (version.trim() !== "" && productName.trim() === "") {
+      setVersionError("Product Name is required when searching by Version");
       return;
     } else {
-      setVersionError('');
+      setVersionError("");
     }
 
     // 2. Validation: Custom Date logic
     let publishedStart = null;
     let publishedEnd = null;
 
-    if (dateOption === 'custom') {
+    if (dateOption === "custom") {
       if (!customStartDate && !customEndDate) {
-        setDateError('Select at least one date for custom range');
+        setDateError("Select at least one date for custom range");
         return;
       }
-      if (customStartDate && customEndDate && new Date(customEndDate) < new Date(customStartDate)) {
-        setDateError('End date cannot be before start date');
+      if (
+        customStartDate &&
+        customEndDate &&
+        new Date(customEndDate) < new Date(customStartDate)
+      ) {
+        setDateError("End date cannot be before start date");
         return;
       }
       publishedStart = customStartDate;
       publishedEnd = customEndDate;
-      setDateError('');
-    } else if (dateOption !== 'all') {
+      setDateError("");
+    } else if (dateOption !== "all") {
       // Calculate date for presets
       const now = new Date();
-      if (dateOption === 'day') now.setDate(now.getDate() - 1);
-      if (dateOption === 'week') now.setDate(now.getDate() - 7);
-      if (dateOption === 'month') now.setMonth(now.getMonth() - 1);
-      publishedStart = now.toISOString().split('T')[0]; // Format YYYY-MM-DD
+      if (dateOption === "day") now.setDate(now.getDate() - 1);
+      if (dateOption === "week") now.setDate(now.getDate() - 7);
+      if (dateOption === "month") now.setMonth(now.getMonth() - 1);
+      publishedStart = now.toISOString().split("T")[0]; // Format YYYY-MM-DD
     }
 
-    // 3. Build Filter Object 
+    // 3. Build Filter Object
     const filters = {
       cveId: cveId.trim(),
       productName: productName.trim(),
@@ -72,24 +76,24 @@ function FilterPanel({ onApplyFilters }) {
       severityLevel: severityLevel,
       keyword: keyword.trim(),
       publishedStart: publishedStart,
-      publishedEnd: publishedEnd
+      publishedEnd: publishedEnd,
     };
 
-    console.log('Applied Filters:', filters);
+    console.log("Applied Filters:", filters);
     onApplyFilters(filters);
   };
 
   const handleClearAll = () => {
-    setCveId('');
-    setProductName('');
-    setVersion('');
-    setSeverityLevel('');
-    setKeyword('');
-    setDateOption('all');
-    setCustomStartDate('');
-    setCustomEndDate('');
-    setDateError('');
-    setVersionError('');
+    setCveId("");
+    setProductName("");
+    setVersion("");
+    setSeverityLevel("");
+    setKeyword("");
+    setDateOption("all");
+    setCustomStartDate("");
+    setCustomEndDate("");
+    setDateError("");
+    setVersionError("");
   };
 
   return (
@@ -110,12 +114,13 @@ function FilterPanel({ onApplyFilters }) {
       </div>
 
       <div className="space-y-6 mb-6">
-        
         {/* Row 1: CVE ID & Severity */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* CVE ID */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">CVE ID (Exact)</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              CVE ID (Exact)
+            </label>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
               <input
@@ -130,7 +135,9 @@ function FilterPanel({ onApplyFilters }) {
 
           {/* Severity Dropdown */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Severity Level</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Severity Level
+            </label>
             <select
               value={severityLevel}
               onChange={(e) => setSeverityLevel(e.target.value)}
@@ -138,7 +145,9 @@ function FilterPanel({ onApplyFilters }) {
             >
               <option value="">Any Severity</option>
               {severityOptions.map((opt) => (
-                <option key={opt} value={opt}>{opt}</option>
+                <option key={opt} value={opt}>
+                  {opt}
+                </option>
               ))}
             </select>
           </div>
@@ -148,14 +157,16 @@ function FilterPanel({ onApplyFilters }) {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Product Name */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Product Name (Regex supported)</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Product Name (Regex supported)
+            </label>
             <input
               type="text"
               placeholder="e.g. Chrome, Windows"
               value={productName}
               onChange={(e) => {
                 setProductName(e.target.value);
-                if(e.target.value) setVersionError(''); // clear error if user starts typing product
+                if (e.target.value) setVersionError(""); // clear error if user starts typing product
               }}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-600 focus:border-transparent text-sm"
             />
@@ -163,17 +174,19 @@ function FilterPanel({ onApplyFilters }) {
 
           {/* Version */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Version</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Version
+            </label>
             <input
               type="text"
               placeholder="e.g. 1.0.4"
               value={version}
               onChange={(e) => setVersion(e.target.value)}
-              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-red-600 focus:border-transparent text-sm ${versionError ? 'border-red-500 bg-red-50' : 'border-gray-300'}`}
+              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-red-600 focus:border-transparent text-sm ${versionError ? "border-red-500 bg-red-50" : "border-gray-300"}`}
             />
             {versionError && (
               <p className="mt-1 text-xs text-red-600 flex items-center">
-                <AlertCircle className="w-3 h-3 mr-1"/> {versionError}
+                <AlertCircle className="w-3 h-3 mr-1" /> {versionError}
               </p>
             )}
           </div>
@@ -183,7 +196,9 @@ function FilterPanel({ onApplyFilters }) {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Keyword */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Keyword Search</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Keyword Search
+            </label>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
               <input
@@ -198,41 +213,63 @@ function FilterPanel({ onApplyFilters }) {
 
           {/* Date Filter */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Published Date</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Published Date
+            </label>
             <select
               value={dateOption}
               onChange={(e) => setDateOption(e.target.value)}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-600 focus:border-transparent text-sm"
             >
               {dateOptions.map((opt) => (
-                <option key={opt.value} value={opt.value}>{opt.label}</option>
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
               ))}
             </select>
 
             {/* Custom Date Inputs */}
-            {dateOption === 'custom' && (
+            {dateOption === "custom" && (
               <div className="mt-3 grid grid-cols-2 gap-2">
                 <div>
                   <label className="text-xs text-gray-500">Start</label>
-                  <input type="date" value={customStartDate} onChange={(e)=>setCustomStartDate(e.target.value)} className="w-full p-1 border rounded text-sm"/>
+                  <input
+                    type="date"
+                    value={customStartDate}
+                    onChange={(e) => setCustomStartDate(e.target.value)}
+                    className="w-full p-1 border rounded text-sm"
+                  />
                 </div>
                 <div>
                   <label className="text-xs text-gray-500">End</label>
-                  <input type="date" value={customEndDate} onChange={(e)=>setCustomEndDate(e.target.value)} className="w-full p-1 border rounded text-sm"/>
+                  <input
+                    type="date"
+                    value={customEndDate}
+                    onChange={(e) => setCustomEndDate(e.target.value)}
+                    className="w-full p-1 border rounded text-sm"
+                  />
                 </div>
               </div>
             )}
-            {dateError && <p className="text-xs text-red-600 mt-1">{dateError}</p>}
+            {dateError && (
+              <p className="text-xs text-red-600 mt-1">{dateError}</p>
+            )}
           </div>
         </div>
       </div>
 
       {/* Footer Buttons */}
       <div className="flex justify-end space-x-3">
-        <button onClick={handleClearAll} className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium">
+        <button
+          onClick={handleClearAll}
+          className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+        >
           Reset
         </button>
-        <button onClick={handleApply} className="px-6 py-2 bg-red-700 text-white rounded-lg hover:bg-red-800 transition-colors font-medium">
+        <button
+          onClick={handleApply}
+          className="px-6 py-2 bg-red-700 text-white rounded-lg hover:bg-red-800 transition-colors font-medium"
+        >
           Apply Filters
         </button>
       </div>
@@ -241,3 +278,4 @@ function FilterPanel({ onApplyFilters }) {
 }
 
 export default FilterPanel;
+

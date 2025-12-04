@@ -1,21 +1,27 @@
-// CVE Feed Component (displays feed of CVE cards, receives CVE obejcts as props)
-import CVECard from './CVECard';
-import FilterPanel from './FilterPanel';
-import { ArrowRight, ArrowLeft } from 'lucide-react';
+// CVE Feed Component (displays feed of CVE cards, receives CVE objects as props)
+import CVECard from "./CVECard";
+import FilterPanel from "./FilterPanel";
+import { ArrowRight, ArrowLeft } from "lucide-react";
 
-function CVEFeed({ cves, onApplyFilters, totalCount, onNextPage, onPrevPage, page }) { 
-  
+function CVEFeed({
+  cves,
+  onApplyFilters,
+  totalCount,
+  onNextPage,
+  onPrevPage,
+  page,
+}) {
   // Logic to show buttons
   const itemsPerPage = 25;
 
   // Show Next Page if we have a full page of items
   // (We check length === 25 to see if there might be more)
-  const showNextPage = cves.length === itemsPerPage; 
+  const showNextPage = cves.length === itemsPerPage;
   // Show Prev Page if we are not on page 0
   const showPrevPage = page > 0;
 
   // Calculate Range logic (Showing start-end of total)
-  const startRange = (page * itemsPerPage) + 1;
+  const startRange = page * itemsPerPage + 1;
   const endRange = startRange + cves.length - 1;
 
   return (
@@ -23,7 +29,7 @@ function CVEFeed({ cves, onApplyFilters, totalCount, onNextPage, onPrevPage, pag
       {/* Filter Panel */}
       <FilterPanel onApplyFilters={onApplyFilters} />
 
-      {/* CVE Cards */}    
+      {/* CVE Cards */}
       <div className="space-y-4">
         {/* Section Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -31,7 +37,7 @@ function CVEFeed({ cves, onApplyFilters, totalCount, onNextPage, onPrevPage, pag
             <h2 className="text-2xl font-bold text-gray-900">
               {cves.length > 0 ? "Vulnerabilities" : "No Vulnerabilities Found"}
             </h2>
-          
+
             {/* Display CVEs "Showing X-Y of Z" */}
             {totalCount > 0 && (
               <span className="text-lg text-gray-500 font-medium">
@@ -42,8 +48,8 @@ function CVEFeed({ cves, onApplyFilters, totalCount, onNextPage, onPrevPage, pag
 
           {/* Top Page Button (Prev/Next) */}
           <div className="flex space-x-2">
-             {showPrevPage && (
-              <button 
+            {showPrevPage && (
+              <button
                 onClick={onPrevPage}
                 className="flex items-center px-4 py-1.5 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 rounded-lg text-sm font-medium transition-colors"
               >
@@ -52,7 +58,7 @@ function CVEFeed({ cves, onApplyFilters, totalCount, onNextPage, onPrevPage, pag
               </button>
             )}
             {showNextPage && (
-              <button 
+              <button
                 onClick={onNextPage}
                 className="flex items-center px-4 py-1.5 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 rounded-lg text-sm font-medium transition-colors"
               >
@@ -62,7 +68,7 @@ function CVEFeed({ cves, onApplyFilters, totalCount, onNextPage, onPrevPage, pag
             )}
           </div>
         </div>
-        
+
         {/* Render CVEs */}
         {cves.map((cve) => (
           <CVECard key={cve.id || cve.cveId} cve={cve} />
@@ -76,10 +82,9 @@ function CVEFeed({ cves, onApplyFilters, totalCount, onNextPage, onPrevPage, pag
 
         {/* BOTTOM Buttons Area */}
         <div className="flex justify-center pt-4 pb-8 space-x-4">
-          
           {/* PREVIOUS PAGE BUTTON */}
           {showPrevPage && (
-            <button 
+            <button
               onClick={onPrevPage}
               className="flex items-center px-6 py-2 bg-red-700 hover:bg-red-800 text-white rounded-full font-medium transition-colors shadow-sm"
             >
@@ -90,7 +95,7 @@ function CVEFeed({ cves, onApplyFilters, totalCount, onNextPage, onPrevPage, pag
 
           {/* NEXT PAGE BUTTON (Fetches new batch) */}
           {showNextPage && (
-            <button 
+            <button
               onClick={onNextPage}
               className="flex items-center px-6 py-2 bg-red-700 hover:bg-red-800 text-white rounded-full font-medium transition-colors shadow-sm"
             >
@@ -98,12 +103,11 @@ function CVEFeed({ cves, onApplyFilters, totalCount, onNextPage, onPrevPage, pag
               <ArrowRight className="w-4 h-4 ml-2" />
             </button>
           )}
-          
         </div>
-
       </div>
     </div>
   );
 }
 
 export default CVEFeed;
+

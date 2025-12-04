@@ -6,11 +6,11 @@ import AuthModel from "./components/AuthModel";
 export default function App() {
   const [activeTab, setActiveTab] = useState("explore");
   const [jsonLocalDataUploaded, setJsonLocalDataUploaded] = useState(null);
-  
+
   // Auth States
   const [doAuthModel, setDoAuthModel] = useState(false);
   const [userLoginSessionToken, setUserLoginSessionToken] = useState(null); // null = not logged in
-  const [user, setUser] = useState(null); // null = not logged in
+  // const [user, setUser] = useState(null); // null = not logged in
 
   // CVE Data States
   const [cves, setCves] = useState([]); // Stores the fetched CVEs
@@ -18,14 +18,16 @@ export default function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // Page States 
+  // Page States
   const [page, setPage] = useState(0);
   const [currentFilters, setCurrentFilters] = useState({});
 
   // API Base URL (Dynamic based on environment)
-  const API_BASE_URL = (import.meta.env.DEV 
-    ? "http://localhost:3000" 
-    : "https://vulnex-cpckbefubudnhab6.eastus2-01.azurewebsites.net").replace(/\/$/, "");
+  const API_BASE_URL = (
+    import.meta.env.DEV
+      ? "http://localhost:3000"
+      : "https://vulnex-cpckbefubudnhab6.eastus2-01.azurewebsites.net"
+  ).replace(/\/$/, "");
 
   // Initial fetch on mount
   useEffect(() => {
@@ -39,7 +41,7 @@ export default function App() {
 
     try {
       let url = `${API_BASE_URL}/api/cves`;
-      
+
       // LOGIC: If a specific CVE ID is provided, use the ID endpoint: /api/cves/:id
       // Otherwise use the general query parameters
       if (filters.cveId) {
@@ -47,16 +49,20 @@ export default function App() {
       } else {
         // Construct Query Parameters for general search
         const params = new URLSearchParams();
-        
+
         // filters
-        if (filters.productName) params.append("productName", filters.productName);
+        if (filters.productName)
+          params.append("productName", filters.productName);
         if (filters.version) params.append("version", filters.version);
-        if (filters.severityLevel) params.append("severityLevel", filters.severityLevel);
+        if (filters.severityLevel)
+          params.append("severityLevel", filters.severityLevel);
         if (filters.keyword) params.append("keyword", filters.keyword);
-        if (filters.publishedStart) params.append("publishedStart", filters.publishedStart);
-        if (filters.publishedEnd) params.append("publishedEnd", filters.publishedEnd);
-        
-        // Fetch 25 at a time 
+        if (filters.publishedStart)
+          params.append("publishedStart", filters.publishedStart);
+        if (filters.publishedEnd)
+          params.append("publishedEnd", filters.publishedEnd);
+
+        // Fetch 25 at a time
         params.append("limit", "25");
         params.append("skip", (pageNumber * 25).toString());
 
@@ -69,31 +75,30 @@ export default function App() {
       if (!response.ok) {
         // If 404, it means no results found. We clear the list.
         if (response.status === 404) {
-             setCves([]); 
-             setTotalCount(0); // Reset count if 404
-             return; 
+          setCves([]);
+          setTotalCount(0); // Reset count if 404
+          return;
         }
         throw new Error("Failed to fetch CVEs");
       }
 
       // Extract Total Count from Headers
       const totalHeader = response.headers.get("X-Total-Count");
-      
+
       const data = await response.json();
 
       if (Array.isArray(data)) {
         setCves(data);
         // If header exists use it, otherwise use array length
         setTotalCount(totalHeader ? parseInt(totalHeader, 10) : data.length);
-      } else if (data && typeof data === 'object') {
-        setCves([data]); 
+      } else if (data && typeof data === "object") {
+        setCves([data]);
         // Single ID lookup implies 1 result
-        setTotalCount(1); 
+        setTotalCount(1);
       } else {
         setCves([]);
         setTotalCount(0);
       }
-
     } catch (err) {
       console.error("Fetch error:", err);
       setError(err.message);
@@ -114,7 +119,7 @@ export default function App() {
     const nextPage = page + 1;
     setPage(nextPage);
     fetchCVEs(currentFilters, nextPage);
-    window.scrollTo({ top: 0, behavior: 'smooth' }); // Optional: Scroll to top
+    window.scrollTo({ top: 0, behavior: "smooth" }); // Optional: Scroll to top
   };
 
   // [NEW] Wrapper for Previous Page (Decrements page)
@@ -123,7 +128,7 @@ export default function App() {
       const prevPage = page - 1;
       setPage(prevPage);
       fetchCVEs(currentFilters, prevPage);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      window.scrollTo({ top: 0, behavior: "smooth" });
     }
   };
 
@@ -131,19 +136,19 @@ export default function App() {
   const doLoginSuccess = (newToken) => {
     setUserLoginSessionToken(newToken);
     setDoAuthModel(false);
-  }
+  };
 
   // function for logging out/nulling the token:
   const doLogoutAndClearSessionToken = () => {
     setUserLoginSessionToken(null);
     setActiveTab("explore"); // switch back to the explore tab after logging out
-  }
+  };
 
   // a function to upload a local json file:
   const uploadJSONFile = (event) => {
     const jsonFile = event.target.files[0];
     if (!jsonFile) return;
-    
+
     const fileReader = new FileReader();
     fileReader.onload = () => {
       try {
@@ -154,7 +159,7 @@ export default function App() {
       }
     };
     fileReader.readAsText(jsonFile);
-  }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -200,23 +205,24 @@ export default function App() {
               {userLoginSessionToken ? (
                 <button
                   onClick={doLogoutAndClearSessionToken}
-                  className="flex items-center text-white space-x-2">
-                    {/* using lucide-react logout icon: */}
-                    <LogOut size={20} />
-                    <span>Logout</span>
-                  </button>
+                  className="flex items-center text-white space-x-2"
+                >
+                  {/* using lucide-react logout icon: */}
+                  <LogOut size={20} />
+                  <span>Logout</span>
+                </button>
               ) : (
                 // if the user has not logged in yet, show the login button
                 <button
                   onClick={() => setDoAuthModel(true)}
-                  className="flex items-center text-white space-x-2">
-                    {/* using lucide-react user icon: */}
-                    <User size={20} />
-                    <span>Login</span>
-                  </button>
+                  className="flex items-center text-white space-x-2"
+                >
+                  {/* using lucide-react user icon: */}
+                  <User size={20} />
+                  <span>Login</span>
+                </button>
               )}
             </div>
-
           </div>
         </div>
       </header>
@@ -226,28 +232,33 @@ export default function App() {
         <AuthModel
           closeTheAuthForm={() => setDoAuthModel(false)}
           whenUserLoginIsSuccessful={doLoginSuccess}
-          />
+        />
       )}
-
 
       {/* Explore Content (Padding) */}
       <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-        {activeTab === 'explore' ? (
+        {activeTab === "explore" ? (
           <div className="space-y-4">
-
             {/* Error States */}
             {error && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded relative" role="alert">
+              <div
+                className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded relative"
+                role="alert"
+              >
                 <strong className="font-bold">Error: </strong>
                 <span className="block sm:inline">{error}</span>
               </div>
             )}
 
             {/* Loading State - Animate pulse instead of hiding content */}
-            {isLoading && <p className="text-center text-gray-500 mt-4 animate-pulse">Updating results...</p>}
+            {isLoading && (
+              <p className="text-center text-gray-500 mt-4 animate-pulse">
+                Updating results...
+              </p>
+            )}
 
             {/* Always render CVEFeed so FilterPanel doesn't reset */}
-            <CVEFeed 
+            <CVEFeed
               cves={cves} // pass the real fetched data
               totalCount={totalCount} // pass the count prop
               onApplyFilters={handleApplyFilters}
@@ -255,7 +266,6 @@ export default function App() {
               onPrevPage={handlePrevPage} // pass prev page handler
               page={page} // pass current page number
             />
-
           </div>
         ) : (
           <div className="space-y-6">
@@ -275,11 +285,11 @@ export default function App() {
                   file
                 </p>
                 <label className="inline-block">
-                  <input 
-                    type="file" 
-                    accept=".json,application/json" 
-                    onChange={uploadJSONFile} 
-                    className="hidden" 
+                  <input
+                    type="file"
+                    accept=".json,application/json"
+                    onChange={uploadJSONFile}
+                    className="hidden"
                   />
                   <span className="px-6 py-2 bg-red-400 text-white rounded-lg hover:bg-red-800 transition-colors cursor-pointer inline-block">
                     Choose File
@@ -292,7 +302,8 @@ export default function App() {
               {jsonLocalDataUploaded ? (
                 // display the result if something was uploaded
                 <pre className="text-left bg-gray-100 p-4 rounded overflow-auto">
-                {JSON.stringify(jsonLocalDataUploaded, null, 2)}</pre>
+                  {JSON.stringify(jsonLocalDataUploaded, null, 2)}
+                </pre>
               ) : (
                 <p>Upload a package.json file to see vulnerability analysis</p>
               )}
@@ -300,8 +311,6 @@ export default function App() {
           </div>
         )}
       </main>
-
     </div>
   );
 }
-
