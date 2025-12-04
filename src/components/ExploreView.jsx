@@ -1,27 +1,22 @@
 import CVEFeed from "./CVEFeed";
+import { useCveDataContext } from "../context/CveDataContext";
 
 /**
- * Renders the main CVE exploration interface, including loading and error states.
- *
- * @param {object[]} cves - List of CVE objects to display.
- * @param {number} totalCount - Total number of CVEs matching the current filters.
- * @param {boolean} isLoading - Loading state indicator.
- * @param {string|null} error - Error message string, if any.
- * @param {number} page - Current page number (0-indexed).
- * @param {function} onApplyFilters - Handler to apply new filters and reset page.
- * @param {function} onNextPage - Handler to load the next page.
- * @param {function} onPrevPage - Handler to load the previous page.
+ * Renders the main CVE exploration interface.
+ * Consumes data directly from CveDataContext.
  */
-export default function ExploreView({
-  cves,
-  totalCount,
-  isLoading,
-  error,
-  page,
-  onApplyFilters,
-  onNextPage,
-  onPrevPage,
-}) {
+export default function ExploreView() {
+  const {
+    cves,
+    totalCount,
+    isLoading,
+    error,
+    page,
+    handleApplyFilters,
+    handleNextPage,
+    handlePrevPage,
+  } = useCveDataContext();
+
   return (
     <div className="space-y-4">
       {/* Error States */}
@@ -42,13 +37,12 @@ export default function ExploreView({
         </p>
       )}
 
-      {/* Always render CVEFeed so FilterPanel doesn't reset */}
       <CVEFeed
         cves={cves}
         totalCount={totalCount}
-        onApplyFilters={onApplyFilters}
-        onNextPage={onNextPage}
-        onPrevPage={onPrevPage}
+        onApplyFilters={handleApplyFilters}
+        onNextPage={handleNextPage}
+        onPrevPage={handlePrevPage}
         page={page}
       />
     </div>
