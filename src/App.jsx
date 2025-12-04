@@ -18,6 +18,10 @@ export default function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  // Page States 
+  const [page, setPage] = useState(0);
+  const [currentFilters, setCurrentFilters] = useState({});
+
   // API Base URL (Dynamic based on environment)
   const API_BASE_URL = (import.meta.env.DEV 
     ? "http://localhost:3000" 
@@ -25,11 +29,11 @@ export default function App() {
 
   // Initial fetch on mount
   useEffect(() => {
-    handleApplyFilters({}); // Fetch all (default limit: 100) on load
+    handleApplyFilters({}); // Fetch all (default limit: 50) on load
   }, []);
 
   // --- API Fetching Logic ---
-  const handleApplyFilters = async (filters) => {
+  const fetchCVEs = async (filters, pageNumber) => {
     setIsLoading(true);
     setError(null);
 
@@ -52,8 +56,9 @@ export default function App() {
         if (filters.publishedStart) params.append("publishedStart", filters.publishedStart);
         if (filters.publishedEnd) params.append("publishedEnd", filters.publishedEnd);
         
-        // Default limit to 100 results
-        params.append("limit", "100");
+        // Fetch 50 at a time
+        params.append("limit", "50");
+        params.append("skip", (pageNumber * 50).toString());
 
         url = `${url}?${params.toString()}`;
       }
@@ -95,7 +100,32 @@ export default function App() {
     } finally {
       setIsLoading(false);
     }
-  }
+  };
+
+  // Wrapper for Filter Panel (Resets page to 0)
+  const handleApplyFilters = (filters) => {
+    setCurrentFilters(filters);
+    setPage(0);
+    fetchCVEs(filters, 0);
+  };
+
+  // Wrapper for Next Page (Increments page)
+  const handleNextPage = () => {
+    const nextPage = page + 1;
+    setPage(nextPage);
+    fetchCVEs(currentFilters, nextPage);
+    window.scrollTo({ top: 0, behavior: 'smooth' }); // Optional: Scroll to top
+  };
+
+  // [NEW] Wrapper for Previous Page (Decrements page)
+  const handlePrevPage = () => {
+    if (page > 0) {
+      const prevPage = page - 1;
+      setPage(prevPage);
+      fetchCVEs(currentFilters, prevPage);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
 
   // successful login function:
   const doLoginSuccess = (newToken) => {
@@ -221,6 +251,9 @@ export default function App() {
               cves={cves} // pass the real fetched data
               totalCount={totalCount} // pass the count prop
               onApplyFilters={handleApplyFilters}
+              onNextPage={handleNextPage} // pass next page handler
+              onPrevPage={handlePrevPage} // pass prev page handler
+              page={page} // pass current page number
             />
 
           </div>
