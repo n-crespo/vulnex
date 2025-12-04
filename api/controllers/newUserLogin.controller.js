@@ -4,6 +4,10 @@ import jwt from "jsonwebtoken";
 // this secret is for signing JWT tokens and should be stored in env variables
 const JWT_SECRET = process.env.JWT_SECRET;
 
+if (!JWT_SECRET) {
+  console.error("FATAL ERROR: JWT_SECRET is not defined.");
+}
+
 // this is the main controller for new user registration
 export const newUserRegister = async (req, res) => {
   try {
