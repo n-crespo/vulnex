@@ -26,7 +26,7 @@ export default function App() {
   const API_BASE_URL = (
     import.meta.env.DEV
       ? "http://localhost:3000"
-      : "https://vulnex-cpckbefubudnhab6.eastus2-01.azurewebsites.net"
+      : "https://vulnex-api.onrender.com"
   ).replace(/\/$/, "");
 
   // Initial fetch on mount

@@ -19,7 +19,7 @@ export default function AuthModel({
     // the API path either has "" in front for local debugging or the Azure path when deployed
     let LOCAL_VS_AZURE_ONLINE_PATH = import.meta.env.DEV
       ? ""
-      : "https://vulnex-cpckbefubudnhab6.eastus2-01.azurewebsites.net";
+      : "https://vulnex-api.onrender.com";
 
     LOCAL_VS_AZURE_ONLINE_PATH = LOCAL_VS_AZURE_ONLINE_PATH.replace(/\/$/, ""); // ensure / is not trailing
 
