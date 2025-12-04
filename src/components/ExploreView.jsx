@@ -12,7 +12,6 @@ export default function ExploreView() {
     isLoading,
     error,
     page,
-    handleApplyFilters,
     handleNextPage,
     handlePrevPage,
   } = useCveDataContext();
@@ -40,7 +39,6 @@ export default function ExploreView() {
       <CVEFeed
         cves={cves}
         totalCount={totalCount}
-        onApplyFilters={handleApplyFilters}
         onNextPage={handleNextPage}
         onPrevPage={handlePrevPage}
         page={page}
