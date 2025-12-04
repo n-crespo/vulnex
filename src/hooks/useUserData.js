@@ -1,12 +1,13 @@
 import { useState, useCallback } from "react";
 import { useAuthContext } from "../context/AuthContext";
-import { API_BASE_URL } from "../constants/api";
+import { API_BASE_URL, ENDPOINTS } from "../constants/api"; // Using your api.js constants
 
 export const useUserData = () => {
   const { userLoginSessionToken } = useAuthContext();
   
-  const [savedCveIds, setSavedCveIds] = useState([]); // Bookmarks (IDs)
-  const [foundHistory, setFoundHistory] = useState([]); // Upload History
+  // Data States for the two "buckets" of user data
+  const [savedCveIds, setSavedCveIds] = useState([]); // Bookmarks (Array of strings from DB)
+  const [foundHistory, setFoundHistory] = useState([]); // Upload History (Array of objects from DB)
   const [loadingUser, setLoadingUser] = useState(false);
 
   // Helper for authenticated fetch calls
@@ -25,21 +26,23 @@ export const useUserData = () => {
     });
 
     if (!res.ok) {
+      // Silently fail/throw depending on preference, throwing for now
       throw new Error("Request failed");
     }
     return res.json();
   }, [userLoginSessionToken]);
 
   // Fetch all user data (Call this on login or profile load)
+  // Endpoints based on newUserLogin.controller.js
   const refreshUserData = useCallback(async () => {
     if (!userLoginSessionToken) return;
     setLoadingUser(true);
     try {
-      // Fetch Bookmarks (savedCVEs)
+      // Fetch Bookmarks (GET /me/savedCVEs)
       const saved = await authFetch("/api/users/me/savedCVEs");
       setSavedCveIds(saved || []);
 
-      // Fetch Upload History (foundCVEs)
+      // Fetch Upload History (GET /me/foundCVEs)
       const found = await authFetch("/api/users/me/foundCVEs");
       setFoundHistory(found || []);
     } catch (err) {
@@ -49,7 +52,7 @@ export const useUserData = () => {
     }
   }, [authFetch, userLoginSessionToken]);
 
-  // Add Bookmark (saveCVEs)
+  // Add Bookmark (POST /me/savedCVEs)
   const addBookmark = useCallback(async (cveId) => {
     try {
       await authFetch("/api/users/me/savedCVEs", {
@@ -57,15 +60,19 @@ export const useUserData = () => {
         body: JSON.stringify({ cveId }),
       });
       // Update local state immediately
-      setSavedCveIds(prev => [...prev, cveId]);
+      setSavedCveIds(prev => {
+        if (prev.includes(cveId)) return prev;
+        return [...prev, cveId];
+      });
     } catch (err) {
       console.error("Failed to bookmark:", err);
     }
   }, [authFetch]);
 
-  // Save Upload Result (foundCVEs)
+  // Save Upload Result (POST /me/foundCVEs)
   const saveUploadResult = useCallback(async (filename, cveIds) => {
     try {
+      // Controller expects: { ids, timestamp, filename }
       const payload = {
         ids: cveIds,
         timestamp: new Date().toISOString(),

@@ -1,8 +1,14 @@
 import CVECard from "./CVECard";
 import FilterPanel from "./FilterPanel";
 import { ArrowRight, ArrowLeft } from "lucide-react";
+import { useUserDataContext } from "../context/UserDataContext"; 
+import { useAuthContext } from "../context/AuthContext"; 
 
 function CVEFeed({ cves, totalCount, onNextPage, onPrevPage, page }) {
+
+  const { isBookmarked, addBookmark } = useUserDataContext();
+  const { userLoginSessionToken } = useAuthContext();
+
   // Logic to show buttons
   const itemsPerPage = 25;
 
@@ -14,6 +20,8 @@ function CVEFeed({ cves, totalCount, onNextPage, onPrevPage, page }) {
   // Calculate Range logic
   const startRange = page * itemsPerPage + 1;
   const endRange = startRange + cves.length - 1;
+
+  const isLoggedIn = !!userLoginSessionToken;
 
   return (
     <div className="space-y-8">
@@ -59,9 +67,15 @@ function CVEFeed({ cves, totalCount, onNextPage, onPrevPage, page }) {
           </div>
         </div>
 
-        {/* Render CVEs */}
+        {/* Render CVEs with Bookmark Props */}
         {cves.map((cve) => (
-          <CVECard key={cve.id || cve.cveId} cve={cve} />
+          <CVECard
+            key={cve.id || cve.cveId}
+            cve={cve}
+            showBookmarkBtn={isLoggedIn}
+            isBookmarked={isBookmarked(cve.cveId)}
+            onToggleBookmark={addBookmark} 
+          />
         ))}
 
         {cves.length === 0 && (
