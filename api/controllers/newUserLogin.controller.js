@@ -78,7 +78,7 @@ export const returningUserLogin = async (req, res) => {
   }
 };
 
-// New Controller for GET /me/foundCVEs route
+// Controller for GET /me/foundCVEs route
 // This function runs AFTER the 'protect' middleware has verified the token
 // and attached the user object to the request (req.user)
 export const getFoundCVEs = async (req, res) => {
@@ -93,7 +93,7 @@ export const getFoundCVEs = async (req, res) => {
   }
 };
 
-// New Controller for POST /me/foundCVEs route
+// Controller for POST /me/foundCVEs route
 // This function adds a new found CVE record to the user's document.
 export const addFoundCVE = async (req, res) => {
   // We expect the body to contain the data needed for the sub-document:
@@ -133,6 +133,62 @@ export const addFoundCVE = async (req, res) => {
     // 500 status for database or server-side issues
     res.status(500).json({
       message: "Failed to add found CVE data due to a server error.",
+    });
+  }
+};
+
+// Controller for GET /me/savedCVEs route
+// This function retrieves the simple array of saved CVE IDs from the user's document.
+export const getSavedCVEs = async (req, res) => {
+  // The 'protect' middleware guarantees that req.user is the authenticated user's document
+  // (without the password hash).
+  try {
+    // Send back only the savedCVEs array from the user object.
+    res.status(200).json(req.user.savedCVEs);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Failed to retrieve saved CVE data." });
+  }
+};
+
+// Controller for POST /me/savedCVEs route
+// This function adds a new CVE ID to the user's saved CVEs array.
+export const addSavedCVE = async (req, res) => {
+  // We expect the body to contain the CVE ID to be saved:
+  // { cveId: 'CVE-2024-1234' }
+  const { cveId } = req.body;
+  const user = req.user; // req.user is populated by the 'protect' middleware
+
+  // Basic validation
+  if (!cveId || typeof cveId !== "string") {
+    return res.status(400).json({
+      message: "Missing required field: cveId (must be a string).",
+    });
+  }
+
+  try {
+    // Check if the CVE ID is already in the saved list to prevent duplicates
+    if (user.savedCVEs.includes(cveId)) {
+      return res.status(409).json({
+        message: `${cveId} is already in the saved list.`,
+      });
+    }
+
+    // Add the new CVE ID to the simple array
+    user.savedCVEs.push(cveId);
+
+    // Save the updated user document back to the database
+    await user.save();
+
+    res.status(201).json({
+      message: `CVE ID ${cveId} successfully added to saved list.`,
+      currentSavedCVEsCount: user.savedCVEs.length,
+    });
+  } catch (error) {
+    console.error("Error adding saved CVE:", error);
+    // 500 status for database or server-side issues
+    res.status(500).json({
+      message: "Failed to add saved CVE data due to a server error.",
     });
   }
 };
