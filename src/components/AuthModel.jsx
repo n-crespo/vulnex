@@ -19,7 +19,7 @@ export default function AuthModel({
     // the API path either has "" in front for local debugging or the Azure path when deployed
     let LOCAL_VS_AZURE_ONLINE_PATH = import.meta.env.DEV
       ? ""
-      : "http://localhost:3000";
+      : "https://vulnex-cpckbefubudnhab6.eastus2-01.azurewebsites.net";
 
     LOCAL_VS_AZURE_ONLINE_PATH = LOCAL_VS_AZURE_ONLINE_PATH.replace(/\/$/, ""); // ensure / is not trailing
 
@@ -124,4 +124,3 @@ export default function AuthModel({
     </div>
   );
 }
-

@@ -14,6 +14,7 @@ app.use(
   cors({
     origin: ["http://localhost:5173", "https://n-crespo.github.io"],
     credentials: true,
+    exposedHeaders: ["X-Total-Count", "X-Page-Count", "X-Initial-Offset"],
   }),
 );
 
