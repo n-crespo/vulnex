@@ -1,11 +1,5 @@
 import { useRef, useState, useEffect, useCallback, useMemo } from "react";
-
-// API Base URL (Dynamic based on environment)
-const API_BASE_URL = (
-  import.meta.env.DEV
-    ? "http://localhost:3000"
-    : "https://vulnex-api.onrender.com"
-).replace(/\/$/, "");
+import { API_BASE_URL, ENDPOINTS } from "../constants/api";
 
 /**
  * Custom hook for managing all CVE data fetching, state, and pagination logic.
@@ -39,7 +33,7 @@ export const useCveData = () => {
     setError(null);
 
     try {
-      let url = `${API_BASE_URL}/api/cves`;
+      let url = `${API_BASE_URL}${ENDPOINTS.CVES}`;
 
       // LOGIC: If a specific CVE ID is provided, use the ID endpoint: /api/cves/:id
       if (filters.cveId) {
