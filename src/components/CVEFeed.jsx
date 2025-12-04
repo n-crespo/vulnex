@@ -1,8 +1,8 @@
-// CVE Feed Component (displays feed of CVE cards, receives CVE objects as props)
+// CVE Feed Component (displays feed of CVE cards, receives CVE obejcts as props)
 import CVECard from './CVECard';
 import FilterPanel from './FilterPanel';
 
-function CVEFeed({ cves, onApplyFilters }) {
+function CVEFeed({ cves, onApplyFilters, totalCount }) { // Accept totalCount prop
   return (
     <div className="space-y-8">
       {/* Filter Panel */}
@@ -11,11 +11,19 @@ function CVEFeed({ cves, onApplyFilters }) {
       {/* CVE Cards */}    
       <div className="space-y-4">
         {/* Section Header */}
-        <h2 className="text-2xl font-bold text-gray-900">
-          {cves.length > 0 ? "Recent Vulnerabilities" : "No Vulnerabilities Found"}
-        </h2>
+        <div className="flex items-center space-x-2">
+          <h2 className="text-2xl font-bold text-gray-900">
+            {cves.length > 0 ? "Vulnerabilities" : "No Vulnerabilities Found"}
+          </h2>
         
-        {/* CHANGED: Removed .slice(0,4) so it shows ALL fetched CVEs */}
+          {/* Display Total Count if we have results */}
+          {totalCount > 0 && (
+            <span className="text-lg text-gray-500 font-medium">
+              ({totalCount} found)
+            </span>
+          )}
+        </div>
+        
         {cves.map((cve) => (
           <CVECard key={cve.id || cve.cveId} cve={cve} />
         ))}

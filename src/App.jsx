@@ -14,6 +14,7 @@ export default function App() {
 
   // CVE Data States
   const [cves, setCves] = useState([]); // Stores the fetched CVEs
+  const [totalCount, setTotalCount] = useState(0); // Store the total count of CVEs
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -43,7 +44,7 @@ export default function App() {
         // Construct Query Parameters for general search
         const params = new URLSearchParams();
         
-        // Add filters if they exist (keys match cve.controller.js)
+        // filters
         if (filters.productName) params.append("productName", filters.productName);
         if (filters.version) params.append("version", filters.version);
         if (filters.severityLevel) params.append("severityLevel", filters.severityLevel);
@@ -64,23 +65,28 @@ export default function App() {
         // If 404, it means no results found. We clear the list.
         if (response.status === 404) {
              setCves([]); 
+             setTotalCount(0); // Reset count if 404
              return; 
         }
         throw new Error("Failed to fetch CVEs");
       }
 
+      // Extract Total Count from Headers
+      const totalHeader = response.headers.get("X-Total-Count");
+      
       const data = await response.json();
 
-      // NORMALIZATION: 
-      // The ID endpoint returns a single object { ... }
-      // The Search endpoint returns an array [ { ... }, { ... } ]
-      // We enforce an array in state so .map() in CVEFeed always works.
       if (Array.isArray(data)) {
         setCves(data);
+        // If header exists use it, otherwise use array length
+        setTotalCount(totalHeader ? parseInt(totalHeader, 10) : data.length);
       } else if (data && typeof data === 'object') {
-        setCves([data]); // Wrap single object in array
+        setCves([data]); 
+        // Single ID lookup implies 1 result
+        setTotalCount(1); 
       } else {
         setCves([]);
+        setTotalCount(0);
       }
 
     } catch (err) {
@@ -198,7 +204,7 @@ export default function App() {
       <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
         {activeTab === 'explore' ? (
           <div className="space-y-4">
-            
+
             {/* Error States */}
             {error && (
               <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded relative" role="alert">
@@ -213,6 +219,7 @@ export default function App() {
             {/* Always render CVEFeed so FilterPanel doesn't reset */}
             <CVEFeed 
               cves={cves} // pass the real fetched data
+              totalCount={totalCount} // pass the count prop
               onApplyFilters={handleApplyFilters}
             />
 
@@ -234,15 +241,12 @@ export default function App() {
                   Drag and drop your package.json file here, or click to choose
                   file
                 </p>
-                {/* <button className="px-6 py-2 bg-red-400 text-white rounded-lg hover:bg-red-800 transition-colors">
-                  Choose File
-                </button> */}
                 <label className="inline-block">
-                  <input
-                    type="file"
-                    accept=".json,application/json"
-                    onChange={uploadJSONFile}
-                    className="hidden"
+                  <input 
+                    type="file" 
+                    accept=".json,application/json" 
+                    onChange={uploadJSONFile} 
+                    className="hidden" 
                   />
                   <span className="px-6 py-2 bg-red-400 text-white rounded-lg hover:bg-red-800 transition-colors cursor-pointer inline-block">
                     Choose File

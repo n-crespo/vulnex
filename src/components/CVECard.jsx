@@ -1,46 +1,66 @@
 // CVE Vulnerability Card Component 
 function CVECard({ cve }) {
   
-  // Severity Color
+  // Severity Color Mapping
   const getSeverityColor = (severity) => {
+    const level = severity ? severity.toUpperCase() : 'UNKNOWN';  // Default to Unknown if missing
+    
     const colors = {
-      Critical: 'bg-red-100 text-red-800 border-red-300',
-      High: 'bg-orange-100 text-orange-800 border-orange-300',
-      Medium: 'bg-yellow-100 text-yellow-800 border-yellow-300',
-      Low: 'bg-green-100 text-green-800 border-green-300'
+      CRITICAL: 'bg-red-100 text-red-800 border-red-300',
+      HIGH: 'bg-orange-100 text-orange-800 border-orange-300',
+      MEDIUM: 'bg-yellow-100 text-yellow-800 border-yellow-300',
+      LOW: 'bg-green-100 text-green-800 border-green-300',
+      NONE: 'bg-gray-100 text-gray-800 border-gray-300',
+      UNKNOWN: 'bg-gray-100 text-gray-800 border-gray-300'
     };
-    return colors[severity] || colors.Medium;
+    return colors[level] || colors.UNKNOWN;
+  };
+
+  // Helper to format the version range from the array
+  const getVersionDisplay = (versions) => {
+    if (!versions || versions.length === 0) return 'Not specified';
+    // Just show the first range as an example, or "Multiple"
+    const v = versions[0];
+    return `${v.start || '?'} - ${v.end || '?'}`;
+  };
+
+  // Helper to format date
+  const formatDate = (dateString) => {
+    if (!dateString) return 'Unknown';
+    return new Date(dateString).toLocaleDateString();
   };
 
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow cursor-pointer">
       <div className="flex items-start justify-between">
         <div className="flex-1">
-          {/* CVE Header: ID, Severity, and CVSS Score */}
+          {/* CVE Header: ID and Severity */}
           <div className="flex items-center space-x-3 mb-2">
-            <h3 className="text-lg font-semibold text-gray-900">{cve.id}</h3>
-            <span className={`px-3 py-1 rounded-full text-sm font-medium border ${getSeverityColor(cve.severity)}`}>
-              {cve.severity}
+            <h3 className="text-lg font-semibold text-gray-900">{cve.cveId}</h3>
+            
+            <span className={`px-3 py-1 rounded-full text-xs font-bold border ${getSeverityColor(cve.severityLevel)}`}>
+              {cve.severityLevel}
             </span>
-            <span className="text-sm text-gray-500">CVSS {cve.score}</span>
           </div>
-          
-          {/* CVE Title */}
-          <h4 className="text-md font-medium text-gray-800 mb-2">{cve.title}</h4>
-          
+                    
           {/* CVE Description */}
-          <p className="text-gray-600 mb-3">{cve.description}</p>
+          <p className="text-gray-600 mb-3 text-sm line-clamp-3">
+            {cve.description}
+          </p>
           
-          {/* CVE Package, Version, Published Date */}
-          <div className="flex items-center space-x-4 text-sm">
+          {/* CVE Details Footer */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm mt-4 pt-4 border-t border-gray-100">
             <span className="text-gray-700">
-              <span className="font-medium">Package:</span> {cve.package}
+              <span className="font-semibold text-gray-900">Product:</span> {cve.productName}
             </span>
+            
             <span className="text-gray-700">
-              <span className="font-medium">Affected:</span> {cve.version}
+              <span className="font-semibold text-gray-900">Versions:</span> {getVersionDisplay(cve.productVersions)}
             </span>
+            
             <span className="text-gray-500">
-              Published: {cve.published}
+              {/* CHANGED: Date formatting */}
+              Published: {formatDate(cve.published)}
             </span>
           </div>
         </div>
