@@ -78,6 +78,21 @@ export const returningUserLogin = async (req, res) => {
   }
 };
 
+// Controller for GET /me route
+// This function runs AFTER the 'protect' middleware has verified the token
+// and attached the user object to the request (req.user).
+export const getLoggedInUser = async (req, res) => {
+  try {
+    // req.user is populated by the 'protect' middleware and contains the
+    // user's data from the database, excluding the password hash.
+    // We send this object back to the client.
+    res.status(200).json(req.user);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Failed to retrieve user data." });
+  }
+};
+
 // Controller for GET /me/foundCVEs route
 // This function runs AFTER the 'protect' middleware has verified the token
 // and attached the user object to the request (req.user)
