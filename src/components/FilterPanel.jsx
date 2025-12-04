@@ -33,7 +33,7 @@ function FilterPanel() {
   // --- Handlers ---
 
   const handleApply = () => {
-    // 1. Validation: Version requires Product
+    // Validation: Version requires Product
     if (version.trim() !== "" && productName.trim() === "") {
       setVersionError("Product Name is required when searching by Version");
       return;
@@ -41,7 +41,6 @@ function FilterPanel() {
       setVersionError("");
     }
 
-    // 2. Validation: Custom Date logic
     let publishedStart = null;
     let publishedEnd = null;
 
@@ -70,7 +69,6 @@ function FilterPanel() {
       publishedStart = now.toISOString().split("T")[0]; // Format YYYY-MM-DD
     }
 
-    // 3. Build Filter Object
     const filters = {
       cveId: cveId.trim(),
       productName: productName.trim(),

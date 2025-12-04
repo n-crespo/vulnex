@@ -58,7 +58,7 @@ function AnalyzeView() {
 
       const results = await response.json();
 
-      // 3. Filter out results that have NO cves (optional, keeps UI clean)
+      // filter out results that have NO cves (optional, keeps UI clean)
       // or keep them if you want to show "Safe" packages
       const vulnerablePackages = results.filter(
         (r) => r.cves && r.cves.length > 0,
