@@ -457,3 +457,87 @@ export const bulkDeleteCVEs = async (req, res) => {
     });
   }
 };
+
+/**
+ * Bulk Scan CVEs via POST /api/cves/bulk-scan
+ * Used by the frontend to check a list of dependencies against the database.
+ * Request Body:
+ * ```
+ * {
+ *   "dependencies": [
+ *     { "name": "react", "version": "18.2.0" },
+ *     { "name": "express", "version": "4.17.1" }
+ *   ]
+ * }
+ * ```
+ * Response JSON:
+ * ```
+ * [
+ *   {
+ *     "package": "react",
+ *     "version": "18.2.0",
+ *     "cves": [ ... ] // List of matching CVE objects
+ *   },
+ * ...
+ * ]
+ */
+export const bulkScanCVEs = async (req, res) => {
+  const { dependencies } = req.body;
+  console.log(
+    `--- [POST] Bulk Scan: ${dependencies ? dependencies.length : 0} items ---`,
+  );
+
+  if (!dependencies || !Array.isArray(dependencies)) {
+    return res
+      .status(400)
+      .json({ message: "Invalid payload. 'dependencies' must be an array." });
+  }
+
+  if (dependencies.length === 0) {
+    return res.status(200).json([]);
+  }
+
+  try {
+    // use a Set to avoid querying "react" twice if it appears twice
+    const uniqueNames = [...new Set(dependencies.map((d) => d.name))];
+
+    // case-insensitive exact match
+    const regexList = uniqueNames.map((name) => {
+      // Escape special regex characters to prevent crashing on names like "c++"
+      const escapedName = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      return new RegExp(`^${escapedName}$`, "i");
+    });
+
+    // fetch all matches
+    // .lean() converts Mongoose docs to plain JS objects (faster for read-only)
+    const allCandidates = await CVE.find({
+      productName: { $in: regexList },
+    }).lean();
+
+    console.log(
+      `Database found ${allCandidates.length} potential CVE matches for these products.`,
+    );
+
+    // filter candidates by version for each dependency
+    const results = dependencies.map((dep) => {
+      const productCandidates = allCandidates.filter(
+        (cve) => cve.productName.toLowerCase() === dep.name.toLowerCase(),
+      );
+
+      const confirmedCVEs = filterCvesByVersion(productCandidates, dep.version);
+
+      return {
+        package: dep.name,
+        version: dep.version,
+        cves: confirmedCVEs,
+      };
+    });
+
+    res.status(200).json(results);
+  } catch (error) {
+    console.error("Bulk scan failed:", error);
+    res
+      .status(500)
+      .json({ message: "Internal server error during bulk scan." });
+  }
+};
