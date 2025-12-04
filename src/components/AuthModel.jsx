@@ -1,9 +1,8 @@
 import { useState } from "react";
-import { X, Lock, Mail, UserPlus, LogIn } from "lucide-react"; // Added icons for better UX
+import { X, Lock, Mail, UserPlus, LogIn } from "lucide-react";
 import { useAuthContext } from "../context/AuthContext";
 
-// Ensure you have this file created as discussed, or replace with logic below
-import { API_BASE_URL } from "../constants/api";
+import { API_BASE_URL, ENDPOINTS } from "../constants/api";
 
 export default function AuthModel() {
   const { setDoAuthModel, doLoginSuccess } = useAuthContext();
@@ -20,11 +19,9 @@ export default function AuthModel() {
     setIsLoading(true);
 
     // Fallback if constants file isn't made yet
-    const BASE = API_BASE_URL || "https://vulnex-api.onrender.com";
+    const BASE = API_BASE_URL;
 
-    const endpoint = newUserRegistering
-      ? "/api/users/register"
-      : "/api/users/login";
+    const endpoint = newUserRegistering ? ENDPOINTS.REGISTER : ENDPOINTS.LOGIN;
 
     const fullPath = BASE + endpoint;
 
@@ -57,9 +54,7 @@ export default function AuthModel() {
   };
 
   return (
-    // 1. Overlay: Full screen, semi-transparent black background, centered content
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-      {/* 2. Modal Card: White background, shadow, max-width */}
       <div className="relative w-full max-w-md bg-white rounded-xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
         {/* Close Button */}
         <button
