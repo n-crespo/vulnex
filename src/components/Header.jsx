@@ -1,21 +1,19 @@
 import { ShieldAlert, User, LogOut } from "lucide-react";
+import { useAuthContext } from "../context/AuthContext";
 
 /**
  * Header component handling navigation tabs and authentication buttons.
  *
  * @param {string} activeTab - The currently active tab ('explore' or 'analyze').
  * @param {function} setActiveTab - Function to change the active tab.
- * @param {boolean} userLoginSessionToken - True if the user is logged in (has a token).
- * @param {function} setDoAuthModel - Function to open the authentication modal.
- * @param {function} doLogoutAndClearSessionToken - Function to log the user out.
  */
-export default function Header({
-  activeTab,
-  setActiveTab,
-  userLoginSessionToken,
-  setDoAuthModel,
-  doLogoutAndClearSessionToken,
-}) {
+export default function Header({ activeTab, setActiveTab }) {
+  const {
+    userLoginSessionToken,
+    setDoAuthModel,
+    doLogoutAndClearSessionToken,
+  } = useAuthContext();
+
   // Function to handle logout and ensure we switch back to the 'explore' tab
   const handleLogout = () => {
     doLogoutAndClearSessionToken();
@@ -68,7 +66,9 @@ export default function Header({
               </button>
             ) : (
               <button
-                onClick={() => setDoAuthModel(true)}
+                onClick={() => {
+                  setDoAuthModel(true);
+                }}
                 className="flex items-center text-white hover:text-gray-300 space-x-2 transition-colors"
               >
                 <User size={20} />
