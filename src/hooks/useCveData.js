@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useRef, useState, useEffect, useCallback, useMemo } from "react";
 
 // API Base URL (Dynamic based on environment)
 const API_BASE_URL = (
@@ -22,9 +22,19 @@ export const useCveData = () => {
   const [page, setPage] = useState(0);
   const [currentFilters, setCurrentFilters] = useState({});
 
+  const abortControllerRef = useRef(null);
+
   // --- API Fetching Logic ---
   // We wrap this in useCallback so it doesn't get recreated on every render
   const fetchCVEs = useCallback(async (filters, pageNumber) => {
+    // abort previous request if it exists
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     setIsLoading(true);
     setError(null);
 
@@ -83,10 +93,16 @@ export const useCveData = () => {
         setTotalCount(0);
       }
     } catch (err) {
+      if (err.name === "AbortError") {
+        console.log("Fetch aborted");
+        return;
+      }
       console.error("Fetch error:", err);
       setError(err.message);
     } finally {
-      setIsLoading(false);
+      if (abortControllerRef.current === controller) {
+        setIsLoading(false);
+      }
     }
   }, []); // No dependencies needed as it uses params passed to it
 
