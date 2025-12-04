@@ -67,6 +67,7 @@ export const returningUserLogin = async (req, res) => {
     );
     res.json({ loginSessionToken });
   } catch (error) {
+    console.log(error);
     res
       .status(500)
       .json({ message: "Returning user login failed!...API/developer issue." });
