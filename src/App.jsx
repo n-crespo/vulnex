@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
-import CVEFeed from "./components/CVEFeed";
 import AuthModel from "./components/AuthModel";
 import Header from "./components/Header";
 import AnalyzeView from "./components/AnalyzeView";
+import ExploreView from "./components/ExploreView";
 
 export default function App() {
   const [activeTab, setActiveTab] = useState("explore");
@@ -165,35 +165,16 @@ export default function App() {
       {/* Explore Content (Padding) */}
       <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
         {activeTab === "explore" ? (
-          <div className="space-y-4">
-            {/* Error States */}
-            {error && (
-              <div
-                className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded relative"
-                role="alert"
-              >
-                <strong className="font-bold">Error: </strong>
-                <span className="block sm:inline">{error}</span>
-              </div>
-            )}
-
-            {/* Loading State - Animate pulse instead of hiding content */}
-            {isLoading && (
-              <p className="text-center text-gray-500 mt-4 animate-pulse">
-                Updating results...
-              </p>
-            )}
-
-            {/* Always render CVEFeed so FilterPanel doesn't reset */}
-            <CVEFeed
-              cves={cves} // pass the real fetched data
-              totalCount={totalCount} // pass the count prop
-              onApplyFilters={handleApplyFilters}
-              onNextPage={handleNextPage} // pass next page handler
-              onPrevPage={handlePrevPage} // pass prev page handler
-              page={page} // pass current page number
-            />
-          </div>
+          <ExploreView
+            cves={cves}
+            totalCount={totalCount}
+            isLoading={isLoading}
+            error={error}
+            page={page}
+            onApplyFilters={handleApplyFilters}
+            onNextPage={handleNextPage}
+            onPrevPage={handlePrevPage}
+          />
         ) : (
           <AnalyzeView />
         )}
