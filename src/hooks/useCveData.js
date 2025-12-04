@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 
 // API Base URL (Dynamic based on environment)
 const API_BASE_URL = (
@@ -9,20 +9,22 @@ const API_BASE_URL = (
 
 /**
  * Custom hook for managing all CVE data fetching, state, and pagination logic.
+ * optimized with useCallback and useMemo to prevent unnecessary Context re-renders.
  */
 export const useCveData = () => {
   // CVE Data States
-  const [cves, setCves] = useState([]); // Stores the fetched CVEs
-  const [totalCount, setTotalCount] = useState(0); // Store the total count of CVEs
+  const [cves, setCves] = useState([]);
+  const [totalCount, setTotalCount] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
 
   // Page and Filter States
-  const [page, setPage] = useState(0); // Current page number (0-indexed)
+  const [page, setPage] = useState(0);
   const [currentFilters, setCurrentFilters] = useState({});
 
   // --- API Fetching Logic ---
-  const fetchCVEs = async (filters, pageNumber) => {
+  // We wrap this in useCallback so it doesn't get recreated on every render
+  const fetchCVEs = useCallback(async (filters, pageNumber) => {
     setIsLoading(true);
     setError(null);
 
@@ -86,47 +88,75 @@ export const useCveData = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []); // No dependencies needed as it uses params passed to it
 
-  // Wrapper for Filter Panel (Resets page to 0)
-  const handleApplyFilters = (filters) => {
-    setCurrentFilters(filters);
-    setPage(0);
-    fetchCVEs(filters, 0);
-  };
+  // Wrapper for Filter Panel
+  const handleApplyFilters = useCallback(
+    (filters) => {
+      setCurrentFilters(filters);
+      setPage(0);
+      fetchCVEs(filters, 0);
+    },
+    [fetchCVEs],
+  );
 
-  // Wrapper for Next Page (Increments page)
-  const handleNextPage = () => {
-    const nextPage = page + 1;
-    setPage(nextPage);
-    fetchCVEs(currentFilters, nextPage);
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
-
-  // Wrapper for Previous Page (Decrements page)
-  const handlePrevPage = () => {
-    if (page > 0) {
-      const prevPage = page - 1;
-      setPage(prevPage);
-      fetchCVEs(currentFilters, prevPage);
+  // Wrapper for Next Page
+  const handleNextPage = useCallback(() => {
+    // We use functional state update (p => p + 1) to avoid depending on 'page'
+    setPage((prevPage) => {
+      const nextPage = prevPage + 1;
+      fetchCVEs(currentFilters, nextPage);
       window.scrollTo({ top: 0, behavior: "smooth" });
-    }
-  };
+      return nextPage;
+    });
+  }, [fetchCVEs, currentFilters]);
+
+  // Wrapper for Previous Page
+  const handlePrevPage = useCallback(() => {
+    setPage((prevPage) => {
+      if (prevPage > 0) {
+        const newPage = prevPage - 1;
+        fetchCVEs(currentFilters, newPage);
+        window.scrollTo({ top: 0, behavior: "smooth" });
+        return newPage;
+      }
+      return prevPage;
+    });
+  }, [fetchCVEs, currentFilters]);
 
   // Initial fetch on mount
   useEffect(() => {
-    handleApplyFilters({}); // Fetch all (default limit: 25) on load
+    // We only want this to run once on mount
+    handleApplyFilters({});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  return {
-    cves,
-    totalCount,
-    isLoading,
-    error,
-    page,
-    currentFilters,
-    handleApplyFilters,
-    handleNextPage,
-    handlePrevPage,
-  };
+  // MEMOIZE the return value
+  // This ensures the object reference stays the same unless data actually changes
+  const contextValue = useMemo(
+    () => ({
+      cves,
+      totalCount,
+      isLoading,
+      error,
+      page,
+      currentFilters,
+      handleApplyFilters,
+      handleNextPage,
+      handlePrevPage,
+    }),
+    [
+      cves,
+      totalCount,
+      isLoading,
+      error,
+      page,
+      currentFilters,
+      handleApplyFilters,
+      handleNextPage,
+      handlePrevPage,
+    ],
+  );
+
+  return contextValue;
 };

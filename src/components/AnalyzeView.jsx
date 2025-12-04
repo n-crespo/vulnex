@@ -1,11 +1,12 @@
 import { Upload, FileJson, Trash2 } from "lucide-react";
 import { useFileAnalysis } from "../hooks/useFileAnalysis";
+import { memo } from "react";
 
 /**
  * Renders the file upload and dependency analysis interface.
  * Uses useFileAnalysis hook to abstract file reading logic.
  */
-export default function AnalyzeView() {
+function AnalyzeView() {
   const { analysisResult, analysisError, analyzeFile, clearAnalysis } =
     useFileAnalysis();
 
@@ -91,3 +92,5 @@ export default function AnalyzeView() {
     </div>
   );
 }
+
+export default memo(AnalyzeView);

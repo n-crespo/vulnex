@@ -1,3 +1,4 @@
+import { memo } from "react";
 // CVE Vulnerability Card Component
 function CVECard({ cve }) {
   // Severity Color Mapping
@@ -83,5 +84,4 @@ function CVECard({ cve }) {
   );
 }
 
-export default CVECard;
-
+export default memo(CVECard);

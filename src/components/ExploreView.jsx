@@ -1,11 +1,12 @@
 import CVEFeed from "./CVEFeed";
 import { useCveDataContext } from "../context/CveDataContext";
+import { memo } from "react";
 
 /**
  * Renders the main CVE exploration interface.
  * Consumes data directly from CveDataContext.
  */
-export default function ExploreView() {
+function ExploreView() {
   const {
     cves,
     totalCount,
@@ -46,3 +47,5 @@ export default function ExploreView() {
     </div>
   );
 }
+
+export default memo(ExploreView);
