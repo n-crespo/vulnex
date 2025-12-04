@@ -8,4 +8,5 @@ export const ENDPOINTS = {
   LOGIN: "/api/users/login",
   REGISTER: "/api/users/register",
   CVES: "/api/cves",
+  BULK_SCAN: "/api/cves/bulk-scan",
 };
