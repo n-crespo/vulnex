@@ -19,9 +19,9 @@ function AnalyzeView() {
 
   return (
     <div className="space-y-6">
-      {/* Header Section */}
-      <div className="bg-white rounded-lg shadow-sm p-8">
-        <h2 className="text-2xl font-bold text-gray-900 mb-6">
+      {/* Container - Standardized to match FilterPanel */}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <h2 className="text-lg font-semibold text-gray-900 mb-6">
           Analyze Your Project
         </h2>
 
@@ -55,13 +55,13 @@ function AnalyzeView() {
                 type="file"
                 accept=".json,application/json"
                 onChange={handleFileChange}
-                // allow selecting the same file again if needed
                 onClick={(e) => {
                   e.target.value = null;
                 }}
                 className="hidden"
               />
-              <span className="px-6 py-2 bg-red-400 text-white rounded-lg hover:bg-red-800 transition-colors cursor-pointer inline-block">
+              {/* Standardized Button Color (red-700) */}
+              <span className="px-6 py-2 bg-red-700 text-white rounded-lg hover:bg-red-800 transition-colors cursor-pointer inline-block font-medium">
                 Choose File
               </span>
             </label>
@@ -76,7 +76,7 @@ function AnalyzeView() {
               </div>
               <button
                 onClick={clearAnalysis}
-                className="flex items-center gap-2 text-sm text-red-600 hover:text-red-800"
+                className="flex items-center gap-2 text-sm text-red-600 hover:text-red-800 font-medium"
               >
                 <Trash2 size={16} />
                 Clear & Upload New
