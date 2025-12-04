@@ -488,9 +488,7 @@ export const bulkScanCVEs = async (req, res) => {
   );
 
   if (!dependencies || !Array.isArray(dependencies)) {
-    return res
-      .status(400)
-      .json({ message: "Invalid payload. 'dependencies' must be an array." });
+    return res.status(400).json({ message: "Invalid payload." });
   }
 
   if (dependencies.length === 0) {
@@ -498,32 +496,62 @@ export const bulkScanCVEs = async (req, res) => {
   }
 
   try {
-    // use a Set to avoid querying "react" twice if it appears twice
-    const uniqueNames = [...new Set(dependencies.map((d) => d.name))];
+    // process dependencies to handle Scopes (@org/pkg) and duplicates
+    const searchTerms = new Set();
 
-    // case-insensitive exact match
-    const regexList = uniqueNames.map((name) => {
-      // Escape special regex characters to prevent crashing on names like "c++"
-      const escapedName = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-      return new RegExp(`^${escapedName}$`, "i");
+    dependencies.forEach((dep) => {
+      // add the exact name (e.g., "react")
+      searchTerms.add(dep.name);
+
+      // handle scoped packages (e.g., "@babel/core" -> search for "core")
+      if (dep.name.startsWith("@") && dep.name.includes("/")) {
+        const cleanName = dep.name.split("/")[1];
+        searchTerms.add(cleanName);
+      }
     });
 
-    // fetch all matches
-    // .lean() converts Mongoose docs to plain JS objects (faster for read-only)
+    const uniqueNames = [...searchTerms];
+
+    // Match "react" OR "facebook:react" OR "any_vendor:react"
+    // Regex Logic: /(^|:)<package_name>$/i
+    const regexList = uniqueNames.map((name) => {
+      const escapedName = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      // Matches matching start of string OR after a colon, ending at end of string
+      return new RegExp(`(^|:)${escapedName}$`, "i");
+    });
+
+    // fetch candidates (One big query)
     const allCandidates = await CVE.find({
       productName: { $in: regexList },
     }).lean();
 
-    console.log(
-      `Database found ${allCandidates.length} potential CVE matches for these products.`,
-    );
+    console.log(`Found ${allCandidates.length} candidate CVEs.`);
 
-    // filter candidates by version for each dependency
+    // results back to the original dependencies
     const results = dependencies.map((dep) => {
-      const productCandidates = allCandidates.filter(
-        (cve) => cve.productName.toLowerCase() === dep.name.toLowerCase(),
-      );
+      const depName = dep.name.toLowerCase();
+      let unscopedName = null;
+      if (depName.startsWith("@")) unscopedName = depName.split("/")[1];
 
+      const productCandidates = allCandidates.filter((cve) => {
+        const dbProduct = cve.productName.toLowerCase();
+
+        // exact match (e.g. "react" == "react")
+        if (dbProduct === depName) return true;
+
+        // CPE suffix match (e.g. "facebook:react" ends with ":react")
+        if (dbProduct.endsWith(":" + depName)) return true;
+
+        // scoped match (e.g. input "@babel/core" matches db "babel:core" or "core")
+        if (unscopedName) {
+          if (dbProduct === unscopedName) return true;
+          if (dbProduct.endsWith(":" + unscopedName)) return true;
+        }
+
+        return false;
+      });
+
+      // apply version filter
       const confirmedCVEs = filterCvesByVersion(productCandidates, dep.version);
 
       return {
@@ -536,8 +564,6 @@ export const bulkScanCVEs = async (req, res) => {
     res.status(200).json(results);
   } catch (error) {
     console.error("Bulk scan failed:", error);
-    res
-      .status(500)
-      .json({ message: "Internal server error during bulk scan." });
+    res.status(500).json({ message: "Internal server error." });
   }
 };
