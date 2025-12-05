@@ -46,6 +46,9 @@ npm run test:api
 
 [Project Plan and Proposal](https://docs.google.com/document/d/1iviznrFmZiiG2GUe3oLPzbtLUC5X77XqRDzyYNCOCEE/edit?usp=sharing)
 
+## Diagrams
+The Web_Application_Architecture_Diagram.pdf in the diagrams folder shows the high level relationship between our website's client to server connections, including the user's frontend UI running React, the backend server running Node.js on Render, and the MongoDB Atlas database cloud that store's our user's data securely.
+
 ## Disclaimer
 
 This product uses data from the NVD API but is not endorsed or certified by the NVD.
