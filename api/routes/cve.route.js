@@ -7,6 +7,7 @@ import {
   deleteCVE,
   bulkDeleteCVEs,
   bulkUpdateCVEs,
+  bulkScanCVEs,
 } from "../controllers/cve.controller.js";
 
 // import auth middleware
@@ -22,6 +23,9 @@ const router = Router();
 // Allows fetching a limited, paginated list of CVEs.
 router.get("/", getCVEs); // all CVEs
 router.get("/:cveId", getCVE); // read by ID
+
+//  sending large JSON request as body
+router.post("/bulk-scan", bulkScanCVEs);
 
 // --- protected write access (post/put/delete) ---
 
