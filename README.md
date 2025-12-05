@@ -53,6 +53,14 @@ npm run test:api
 This diagram shows the high level relationship between our website's client to server connections, including the user's frontend UI running React, the backend server running Node.js on Render, and the MongoDB Atlas database cloud that store's our user's data securely.
 
 
+### Frontend Class Diagram
+![Frontend Class Diagram](diagrams/Frontend_Class_Diagram.png)
+This class diagram shows the structral architecture of the React frontend. It shows the separation between State Management (Context Providers) and UI Presentation (Views and Components).
+- Context Providers (Top): AuthProvider, UserDataProvider, and CveDataProvider act as the global state managers, exposing methods and data to the component tree.
+- Composition: Shows the render hierachy, e.g. the App component composes the main views (ExploreView, AnalyzeView, ProfileView), and ProfileView has reusable UI elements like CVECard and HistoryItem.
+- Dependencies (Dotted-Arrows): Indicates which components consume which contexts. An example being: Header depends on AuthProvider to determine if the "Login" or "Logout" button should be displayed. 
+
+
 ### CVE Filter & Page Flow Sequence Diagram:
 ![CVE Search and Pagination Sequence](diagrams/CVE_Filtering_Flow_Sequence_Diagram.png)
 This diagram shows the data flow for the "Explore" feature. The React frontend uses the useCveData custom hook to manage state and construct query parameters. The backend cve.controller.js handles these parameters to perform efficient MongoDB queries using .skip() and .limit() for the page feature, while also returning a total document count in the custom X-Total-Count header to support the frontend UI.
