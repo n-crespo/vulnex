@@ -2,7 +2,7 @@ import { Schema, model } from "mongoose";
 import bcrypt from "bcryptjs";
 
 // create a basic schema for new or returning users for registration/login
-const newReturningUserSchema = new Schema({
+const User = new Schema({
   email: { type: String, required: true, unique: true },
   passwordHash: { type: String, required: true },
 
@@ -24,7 +24,7 @@ const newReturningUserSchema = new Schema({
 });
 
 // store the password in a hashed format for user security protection
-newReturningUserSchema.pre("save", async function (next) {
+User.pre("save", async function (next) {
   // if the password wasn't modified, don't hash it again
   if (!this.isModified("passwordHash")) {
     return next();
@@ -35,9 +35,9 @@ newReturningUserSchema.pre("save", async function (next) {
 });
 
 // this can compare the user's entered password to the true stored hash
-newReturningUserSchema.methods.comparePassword = function (tryUserPassword) {
+User.methods.comparePassword = function (tryUserPassword) {
   return bcrypt.compare(tryUserPassword, this.passwordHash);
 };
 
 // expose the model for use
-export default model("NewReturningUser", newReturningUserSchema);
+export default model("User", User);
