@@ -2,6 +2,7 @@
 
 [![deploy status](https://github.com/n-crespo/vulnex/actions/workflows/deploy.yaml/badge.svg)](https://github.com/n-crespo/vulnex/actions/workflows/deploy.yaml)
 [![Playwright Tests](https://github.com/n-crespo/vulnex/actions/workflows/playwright.yml/badge.svg)](https://github.com/n-crespo/vulnex/actions/workflows/playwright.yml)
+[![API Integration Tests](https://github.com/n-crespo/vulnex/actions/workflows/api.yaml/badge.svg)](https://github.com/n-crespo/vulnex/actions/workflows/api.yaml)
 
 ## Development Setup
 
