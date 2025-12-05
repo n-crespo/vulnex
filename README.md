@@ -49,7 +49,8 @@ npm run test:api
 ## Diagrams
 
 ### Web Application Architecture Diagram:
-![Web Application Architecture Diagram](diagrams/Tech_Stach_Overview.png)
+<img src="diagrams/Tech_Stach_Overview.png" width="300" alt="Web Application Architecture Diagram">
+
 This diagram shows the high level relationship between our website's client to server connections, including the user's frontend UI running React, the backend server running Node.js on Render, and the MongoDB Atlas database cloud that store's our user's data securely.
 
 
