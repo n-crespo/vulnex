@@ -253,7 +253,7 @@ function AnalyzeView() {
                                 onClick={() =>
                                   handleDismiss(idx, cve.id || cve.cveId)
                                 }
-                                className="absolute top-4 right-4 p-1.5 bg-white border border-gray-200 text-gray-400 hover:text-red-600 hover:border-red-200 rounded-lg shadow-sm opacity-0 group-hover:opacity-100 transition-all z-20"
+                                className="absolute bottom-4 right-4 p-1.5 bg-white border border-gray-200 text-gray-400 hover:text-red-600 hover:border-red-200 rounded-lg shadow-sm opacity-100 group-hover:opacity-100 transition-all z-20"
                               >
                                 <X size={18} />
                               </button>
