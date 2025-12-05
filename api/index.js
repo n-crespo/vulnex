@@ -31,12 +31,11 @@ app.get("/", (_, res) => {
   res.send("hello from node API");
 });
 
-const stableOptions = {
+const options = {
   serverApi: { version: "1", strict: true, depreciationErrors: true },
 };
 
-// connection to real database
-connect(MONGO_DB_URI, stableOptions)
+connect(MONGO_DB_URI, options)
   .then(() => {
     console.log("connected to the db!");
     app.listen(port, () => {
