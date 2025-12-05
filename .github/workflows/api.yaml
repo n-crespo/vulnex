@@ -44,11 +44,11 @@ jobs:
           API_SECRET_KEY: ${{ secrets.API_SECRET_KEY }}
           PORT: 3000
         run: |
-          npm run start:api:action &
+          npm run start:api &
           npx wait-on http://localhost:3000
 
       - name: Run tests
         env:
           MONGO_DB_URI: "mongodb://localhost:27017/test_db"
           API_SECRET_KEY: ${{ secrets.API_SECRET_KEY }}
-        run: npm run test:api
+        run: npm run test:api:action
