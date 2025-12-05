@@ -76,11 +76,11 @@ function AnalyzeView() {
       // Save to History if user is logged in & vulnerabilities found
       if (userLoginSessionToken && vulnerablePackages.length > 0) {
         // Extract all CVE IDs from the packages into a flat array
-        const allCveIds = vulnerablePackages.flatMap((pkg) => 
-          pkg.cves.map((cve) => cve.cveId || cve.id)
+        const allCveIds = vulnerablePackages.flatMap((pkg) =>
+          pkg.cves.map((cve) => cve.cveId || cve.id),
         );
 
-        // Remove duplicates 
+        // Remove duplicates
         const uniqueIds = [...new Set(allCveIds)];
 
         // Send to backend
@@ -88,7 +88,6 @@ function AnalyzeView() {
         saveUploadResult(filename, uniqueIds);
         console.log("Saved scan results to profile history.");
       }
-
     } catch (err) {
       console.error("Bulk scan error:", err);
       // Optional: Add a UI error state here

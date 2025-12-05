@@ -1,5 +1,5 @@
 import { memo } from "react";
-import { Bookmark, Check } from "lucide-react"; // [NEW] Icons
+import { Bookmark, Check } from "lucide-react";
 
 // CVE Vulnerability Card Component
 function CVECard({ cve, isBookmarked, onBookmarkAction }) {
@@ -34,12 +34,11 @@ function CVECard({ cve, isBookmarked, onBookmarkAction }) {
 
   return (
     <div className="relative bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow cursor-pointer">
-      
       {/* Bookmark Button (Always Visible) */}
       <button
         onClick={(e) => {
           e.stopPropagation(); // Stop card click
-          // Simply call the parent handler. 
+          // Simply call the parent handler.
           // The parent (CVEFeed/ProfileView) will decide if it's Add, Remove, or Login.
           if (onBookmarkAction) {
             onBookmarkAction(cve.cveId);
@@ -55,7 +54,7 @@ function CVECard({ cve, isBookmarked, onBookmarkAction }) {
         {isBookmarked ? (
           <Check className="w-5 h-5 text-blue-600" />
         ) : (
-           <Bookmark className="w-5 h-5 text-gray-400" />
+          <Bookmark className="w-5 h-5 text-gray-400" />
         )}
       </button>
 

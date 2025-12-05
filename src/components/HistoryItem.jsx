@@ -31,7 +31,7 @@ const HistoryItem = memo(({ entry }) => {
           <a
             key={id}
             href={`https://nvd.nist.gov/vuln/detail/${id}`}
-            target="_blank" 
+            target="_blank"
             rel="noopener noreferrer"
             title={`View ${id} on NVD`}
             // Added hover effects (underline, darker red) to indicate clickability
@@ -40,7 +40,7 @@ const HistoryItem = memo(({ entry }) => {
             {id}
           </a>
         ))}
-        
+
         {/* Toggle Button */}
         {showToggle && (
           <button
@@ -64,3 +64,4 @@ const HistoryItem = memo(({ entry }) => {
 });
 
 export default HistoryItem;
+

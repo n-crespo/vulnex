@@ -18,22 +18,34 @@ export default function App() {
     switch (activeTab) {
       case "explore":
         return <ExploreView />;
-      
+
       case "analyze":
         return (
-          <Suspense fallback={<div className="p-12 text-center text-gray-500">Loading Analysis...</div>}>
+          <Suspense
+            fallback={
+              <div className="p-12 text-center text-gray-500">
+                Loading Analysis...
+              </div>
+            }
+          >
             <AnalyzeView />
           </Suspense>
         );
-        
+
       case "profile":
         return (
           // Render Profile View
-          <Suspense fallback={<div className="p-12 text-center text-gray-500">Loading Profile...</div>}>
+          <Suspense
+            fallback={
+              <div className="p-12 text-center text-gray-500">
+                Loading Profile...
+              </div>
+            }
+          >
             <ProfileView />
           </Suspense>
         );
-        
+
       default:
         return <ExploreView />;
     }
@@ -42,7 +54,7 @@ export default function App() {
   return (
     <div className="min-h-screen bg-gray-50">
       <Header activeTab={activeTab} setActiveTab={setActiveTab} />
-      
+
       {/* Login Modal */}
       {doAuthModel && <AuthModel />}
 

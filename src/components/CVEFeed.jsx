@@ -82,9 +82,9 @@ function CVEFeed({ cves, totalCount, onNextPage, onPrevPage, page }) {
 
         {/* Render CVEs */}
         {cves.map((cve) => (
-          <CVECard 
-            key={cve.id || cve.cveId} 
-            cve={cve} 
+          <CVECard
+            key={cve.id || cve.cveId}
+            cve={cve}
             // Pass Bookmark Props
             isBookmarked={isBookmarked(cve.cveId)}
             onBookmarkAction={() => handleBookmarkAction(cve.cveId)}

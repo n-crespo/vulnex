@@ -63,7 +63,7 @@ export default function Header({ activeTab, setActiveTab }) {
             >
               Analyze
             </button>
-            
+
             {/* Profile Button (Always visible) */}
             <button
               onClick={handleProfileClick}
