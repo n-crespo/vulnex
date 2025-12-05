@@ -54,21 +54,21 @@ This diagram shows the high level relationship between our website's client to s
 ### Frontend Class Diagram
 
 ![Frontend Class Diagram](diagrams/Frontend_Class_Diagram.png)
-This class diagram shows the structral architecture of the React frontend. It shows the separation between State Management (Context Providers) and UI Presentation (Views and Components).
+This class diagram shows the structural architecture of the React frontend. It shows the separation between State Management (Context Providers) and UI Presentation (Views and Components).
 
-- Context Providers (Top): AuthProvider, UserDataProvider, and CveDataProvider act as the global state managers, exposing methods and data to the component tree.
-- Composition: Shows the render hierachy, e.g. the App component composes the main views (ExploreView, AnalyzeView, ProfileView), and ProfileView has reusable UI elements like CVECard and HistoryItem.
+- Context Providers (Top): `AuthProvider,` `UserDataProvider,` and `CveDataProvider` act as the global state managers, exposing methods and data to the component tree.
+- Composition: Shows the render hierarchy, e.g. the App component composes the main views (`ExploreView`, `AnalyzeView`, `ProfileView`), and `ProfileView` has reusable UI elements like `CVECard` and `HistoryItem`.
 - Dependencies (Dotted-Arrows): Indicates which components consume which contexts. An example being: Header depends on AuthProvider to determine if the "Login" or "Logout" button should be displayed.
 
 ### CVE Filter & Page Flow Sequence Diagram:
 
 ![CVE Search and Pagination Sequence](diagrams/CVE_Filtering_Flow_Sequence_Diagram.png)
-This diagram shows the data flow for the "Explore" feature. The React frontend uses the useCveData custom hook to manage state and construct query parameters. The backend cve.controller.js handles these parameters to perform efficient MongoDB queries using .skip() and .limit() for the page feature, while also returning a total document count in the custom X-Total-Count header to support the frontend UI.
+This diagram shows the data flow for the "Explore" feature. The React frontend uses the `useCveData` custom hook to manage state and construct query parameters. The backend `cve.controller.js` handles these parameters to perform efficient MongoDB queries using `.skip()` and `.limit()` for the page feature, while also returning a total document count in the custom `X-Total-Count` header to support the frontend UI.
 
 ### User Auth Flow Sequence Diagram:
 
 ![User Auth Sequence](diagrams/User_Auth_Flow_Sequence_Diagram.png)
-This diagram shows the secure login process. The frontend AuthModel.jsx captures user credentials and communicates with the backend authentication endpoints. On the server, newUserLogin.controller.js retrieves the user record from MongoDB and uses bcrypt to validate the password hash. Upon success, a JSON Web Token (JWT) is signed and returned to the client. The frontend AuthContext then stores this token in localStorage to persist the session and updates the application state to unlock protected features like Bookmarking and the Profile view.
+This diagram shows the secure login process. The frontend `AuthModel.jsx` captures user credentials and communicates with the backend authentication endpoints. On the server, `newUserLogin.controller.js` retrieves the user record from MongoDB and uses `bcrypt` to validate the password hash. Upon success, a JSON Web Token (JWT) is signed and returned to the client. The frontend `AuthContext` then stores this token in localStorage to persist the session and updates the application state to unlock protected features like Bookmarking and the Profile view.
 
 ## Disclaimer
 
