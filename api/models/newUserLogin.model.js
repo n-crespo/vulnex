@@ -6,13 +6,11 @@ const newReturningUserSchema = new Schema({
   email: { type: String, required: true, unique: true },
   passwordHash: { type: String, required: true },
 
-  // TODO: add GET/POST functionality for this field
   savedCVEs: {
     type: [String],
     default: [],
   }, // an array of CVE IDs
 
-  // TODO: add GET/POST functionality for this field
   foundCVEs: {
     type: [
       {
