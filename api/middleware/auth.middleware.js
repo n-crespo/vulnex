@@ -4,7 +4,8 @@ import User from "../models/user.model.js";
 // note: since requests are sent via HTTPS the API key is secure
 const API_SECRET_KEY = process.env.API_SECRET_KEY;
 
-export const requireDbWriteAccess = (req, res, next) => {
+// ensures client has write access to VulnEx CVE database
+export const requireWriteAccess = (req, res, next) => {
   // check for api key in 'x-api-key'
   const apiKey = req.header("x-api-key");
 

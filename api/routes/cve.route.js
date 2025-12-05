@@ -11,7 +11,7 @@ import {
 } from "../controllers/cve.controller.js";
 
 // import auth middleware
-import { requireDbWriteAccess } from "../middleware/auth.middleware.js";
+import { requireWriteAccess } from "../middleware/auth.middleware.js";
 
 const router = Router();
 
@@ -30,18 +30,18 @@ router.post("/bulk-scan", bulkScanCVEs);
 // --- protected write access (post/put/delete) ---
 
 // create a CVE
-router.post("/", requireDbWriteAccess, createCVE);
+router.post("/", requireWriteAccess, createCVE);
 
 // bulk update a CVE
-router.put("/", requireDbWriteAccess, bulkUpdateCVEs);
+router.put("/", requireWriteAccess, bulkUpdateCVEs);
 
 // update a CVE by ID. Deprecated in favor of PUT to /api/cves (above)
 // router.put("/:cveId", authenticateWriteAccess, updateCVE);
 
 // bulk delete CVEs
-router.delete("/bulk-delete", requireDbWriteAccess, bulkDeleteCVEs);
+router.delete("/bulk-delete", requireWriteAccess, bulkDeleteCVEs);
 
 // delete a CVE by ID
-router.delete("/:cveId", requireDbWriteAccess, deleteCVE);
+router.delete("/:cveId", requireWriteAccess, deleteCVE);
 
 export default router;
