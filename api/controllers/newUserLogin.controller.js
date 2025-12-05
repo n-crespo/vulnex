@@ -182,17 +182,13 @@ export const addSavedCVE = async (req, res) => {
   }
 
   try {
-    // Check if the CVE ID is already in the saved list to prevent duplicates
     if (user.savedCVEs.includes(cveId)) {
       return res.status(409).json({
         message: `${cveId} is already in the saved list.`,
       });
     }
 
-    // Add the new CVE ID to the simple array
     user.savedCVEs.push(cveId);
-
-    // Save the updated user document back to the database
     await user.save();
 
     res.status(201).json({
@@ -201,9 +197,46 @@ export const addSavedCVE = async (req, res) => {
     });
   } catch (error) {
     console.error("Error adding saved CVE:", error);
-    // 500 status for database or server-side issues
     res.status(500).json({
       message: "Failed to add saved CVE data due to a server error.",
+    });
+  }
+};
+
+// Controller for DELETE /me/savedCVEs route
+export const removeSavedCVE = async (req, res) => {
+  // body should contain the CVE ID to be removed:
+  // { cveId: 'CVE-2024-1234' }
+  const { cveId } = req.body;
+  const user = req.user; // req.user is populated by the 'protect' middleware
+
+  // basic validation
+  if (!cveId || typeof cveId !== "string") {
+    return res.status(400).json({
+      message: "Missing required field: cveId (must be a string).",
+    });
+  }
+
+  try {
+    // ignore if CVE is already in there
+    if (!user.savedCVEs.includes(cveId)) {
+      return res.status(404).json({
+        message: `${cveId} not found in the saved list.`,
+      });
+    }
+
+    // remove the CVE otherwise
+    user.savedCVEs = user.savedCVEs.filter((id) => id !== cveId);
+    await user.save();
+
+    res.status(200).json({
+      message: `CVE ID ${cveId} successfully removed from saved list.`,
+      currentSavedCVEsCount: user.savedCVEs.length,
+    });
+  } catch (error) {
+    console.error("Error removing saved CVE:", error);
+    res.status(500).json({
+      message: "Failed to remove saved CVE data due to a server error.",
     });
   }
 };
