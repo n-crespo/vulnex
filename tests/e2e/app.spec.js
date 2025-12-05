@@ -128,13 +128,11 @@ test.describe("Vulnex UI E2E", () => {
     // we need to hover the card first to make the button visible (opacity-0 -> 100)
     const card = page.locator(".relative.group").first();
     await card.hover();
-    await card.locator("button.absolute").click();
+    await page.click("button.absolute.bottom-4.right-4");
 
     // verify cve is gone
     await expect(page.getByText("CVE-2020-0000")).not.toBeVisible();
-    await expect(
-      page.getByText("All CVEs dismissed for this package"),
-    ).toBeVisible();
+    await expect(page.getByText("0 CVEs Found")).toBeVisible();
   });
 
   // pagination (user pages through multiple pages of data)
