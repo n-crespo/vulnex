@@ -1,11 +1,6 @@
 import { test, expect } from "@playwright/test";
 
 test.describe("Vulnex UI E2E", () => {
-  test.beforeEach(async ({ page }) => {
-    // go to the home page before each test
-    await page.goto("/");
-  });
-
   test("should display mock data", async ({ page }) => {
     // intercept API call
     await page.route("*/**/api/cves*", async (route) => {
@@ -34,6 +29,7 @@ test.describe("Vulnex UI E2E", () => {
   });
 
   test("should load the home page and display CVEs", async ({ page }) => {
+    await page.goto("/");
     // check for the main title
     await expect(
       page.getByRole("heading", { name: /Vulnerabilities/i }),
@@ -45,6 +41,7 @@ test.describe("Vulnex UI E2E", () => {
   });
 
   test("should open and close the Login modal", async ({ page }) => {
+    await page.goto("/");
     // click the Login button in Header
     await page.getByRole("button", { name: /Login/i }).click();
 
@@ -58,6 +55,7 @@ test.describe("Vulnex UI E2E", () => {
   });
 
   test("should filter CVEs when search terms are applied", async ({ page }) => {
+    await page.goto("/");
     // type "Chrome" into the Product Name input
     await page.getByPlaceholder("e.g. Chrome, Windows").fill("Chrome");
     await page.getByRole("button", { name: /Apply Filters/i }).click();
@@ -69,6 +67,7 @@ test.describe("Vulnex UI E2E", () => {
   });
 
   test("should switch to Analyze tab", async ({ page }) => {
+    await page.goto("/");
     // click "Analyze" in the header
     await page.getByRole("button", { name: /Analyze/i }).click();
 
@@ -92,6 +91,7 @@ test.describe("Vulnex UI E2E", () => {
       await route.fulfill({ json });
     });
 
+    await page.goto("/");
     // navigate to analyze tab
     await page.getByRole("button", { name: /Analyze/i }).click();
 
@@ -143,8 +143,7 @@ test.describe("Vulnex UI E2E", () => {
       const skip = url.searchParams.get("skip") || "0";
 
       // generate 30 fake items total
-      // if skip is 0, return items 0-25. if skip is 25, return items 25-30
-      const totalItems = 60;
+      const totalItems = 30;
       const mockData = Array.from({ length: totalItems }).map((_, i) => ({
         cveId: `CVE-PAGE-${i}`,
         severityLevel: "LOW",
@@ -159,10 +158,18 @@ test.describe("Vulnex UI E2E", () => {
 
       await route.fulfill({
         json: sliced,
-        headers: { "X-Total-Count": totalItems.toString() },
+        headers: {
+          // WARN: This line is needed for the client to see the headers! (ARE YOU SERIOUS I SPENT SO LONG DEBUGGING THIS BRO)
+          "access-control-expose-headers":
+            "x-total-count, x-page-count, x-initial-offset",
+          "x-total-count": totalItems.toString(), // 30
+          "x-page-count": sliced.length.toString(), // 25 or 5
+          "x-initial-offset": skip.toString(), // 0 or 25
+        },
       });
     });
 
+    // Navigate AFTER the mock is active
     await page.goto("/");
 
     // verify initial state (showing 1-25)
