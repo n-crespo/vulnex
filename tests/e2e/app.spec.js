@@ -136,52 +136,52 @@ test.describe("Vulnex UI E2E", () => {
   });
 
   // pagination (user pages through multiple pages of data)
-  // test("should handle pagination flow: next -> prev", async ({ page }) => {
-  //   // mock api to return enough items to trigger pagination (limit is 25)
-  //   await page.route("**/api/cves?*", async (route) => {
-  //     const url = new URL(route.request().url());
-  //     const skip = url.searchParams.get("skip") || "0";
-  //
-  //     // generate 30 fake items total
-  //     // if skip is 0, return items 0-25. if skip is 25, return items 25-30
-  //     const totalItems = 30;
-  //     const mockData = Array.from({ length: totalItems }).map((_, i) => ({
-  //       cveId: `CVE-PAGE-${i}`,
-  //       severityLevel: "LOW",
-  //       description: `Description ${i}`,
-  //       productName: "test",
-  //       productVersions: [],
-  //       published: new Date().toISOString(),
-  //     }));
-  //
-  //     const skipInt = parseInt(skip);
-  //     const sliced = mockData.slice(skipInt, skipInt + 25);
-  //
-  //     await route.fulfill({
-  //       json: sliced,
-  //       headers: { "X-Total-Count": totalItems.toString() },
-  //     });
-  //   });
-  //
-  //   await page.goto("/");
-  //
-  //   // verify initial state (showing 1-25)
-  //   await expect(page.getByText(/Showing 1-25 of 30/i)).toBeVisible();
-  //
-  //   // click next page
-  //   await page.getByRole("button", { name: /Next/i }).last().click();
-  //
-  //   // verify second page state (showing 26-30)
-  //   await expect(page.getByText(/Showing 26-30 of 30/i)).toBeVisible();
-  //   await expect(page.getByText("CVE-PAGE-29")).toBeVisible();
-  //
-  //   // ensure first page items are gone
-  //   await expect(page.getByText("CVE-PAGE-0")).not.toBeVisible();
-  //
-  //   // click prev page
-  //   await page.getByRole("button", { name: /Prev/i }).last().click();
-  //
-  //   // verify back to start
-  //   await expect(page.getByText(/Showing 1-25 of 30/i)).toBeVisible();
-  // });
+  test("should handle pagination flow: next -> prev", async ({ page }) => {
+    // mock api to return enough items to trigger pagination (limit is 25)
+    await page.route("**/api/cves?*", async (route) => {
+      const url = new URL(route.request().url());
+      const skip = url.searchParams.get("skip") || "0";
+
+      // generate 30 fake items total
+      // if skip is 0, return items 0-25. if skip is 25, return items 25-30
+      const totalItems = 60;
+      const mockData = Array.from({ length: totalItems }).map((_, i) => ({
+        cveId: `CVE-PAGE-${i}`,
+        severityLevel: "LOW",
+        description: `Description ${i}`,
+        productName: "test",
+        productVersions: [],
+        published: new Date().toISOString(),
+      }));
+
+      const skipInt = parseInt(skip);
+      const sliced = mockData.slice(skipInt, skipInt + 25);
+
+      await route.fulfill({
+        json: sliced,
+        headers: { "X-Total-Count": totalItems.toString() },
+      });
+    });
+
+    await page.goto("/");
+
+    // verify initial state (showing 1-25)
+    await expect(page.getByText(/Showing 1-25 of 30/i)).toBeVisible();
+
+    // click next page
+    await page.getByRole("button", { name: /Next/i }).last().click();
+
+    // verify second page state (showing 26-30)
+    await expect(page.getByText(/Showing 26-30 of 30/i)).toBeVisible();
+    await expect(page.getByText("CVE-PAGE-29")).toBeVisible();
+
+    // ensure first page items are gone
+    await expect(page.getByText("CVE-PAGE-0")).not.toBeVisible();
+
+    // click prev page
+    await page.getByRole("button", { name: /Prev/i }).last().click();
+
+    // verify back to start
+    await expect(page.getByText(/Showing 1-25 of 30/i)).toBeVisible();
+  });
 });
