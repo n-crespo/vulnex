@@ -207,6 +207,7 @@ export const addSavedCVE = async (req, res) => {
     user.savedCVEs.push(cveId);
     await user.save();
 
+    console.log(`--- Adding ${cveId} to saved list`);
     res.status(201).json({
       message: `CVE ID ${cveId} successfully added to saved list.`,
       currentSavedCVEsCount: user.savedCVEs.length,
@@ -245,6 +246,7 @@ export const removeSavedCVE = async (req, res) => {
     user.savedCVEs = user.savedCVEs.filter((id) => id !== cveId);
     await user.save();
 
+    console.log(`--- Removing ${cveId} from saved list`);
     res.status(200).json({
       message: `CVE ID ${cveId} successfully removed from saved list.`,
       currentSavedCVEsCount: user.savedCVEs.length,
