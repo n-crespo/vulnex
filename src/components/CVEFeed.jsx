@@ -1,8 +1,14 @@
 import CVECard from "./CVECard";
 import FilterPanel from "./FilterPanel";
 import { ArrowRight, ArrowLeft } from "lucide-react";
+import { useUserDataContext } from "../context/UserDataContext";
+import { useAuthContext } from "../context/AuthContext";
 
 function CVEFeed({ cves, totalCount, onNextPage, onPrevPage, page }) {
+  // Consume removeBookmark from Context
+  const { isBookmarked, addBookmark, removeBookmark } = useUserDataContext();
+  const { userLoginSessionToken, setDoAuthModel } = useAuthContext();
+
   // Logic to show buttons
   const itemsPerPage = 25;
 
@@ -14,6 +20,21 @@ function CVEFeed({ cves, totalCount, onNextPage, onPrevPage, page }) {
   // Calculate Range logic
   const startRange = page * itemsPerPage + 1;
   const endRange = startRange + cves.length - 1;
+
+  // [UPDATED] Smart Handler for Bookmark Click (Toggle Add/Remove)
+  const handleBookmarkAction = (cveId) => {
+    if (!userLoginSessionToken) {
+      // User is NOT logged in -> Open Login Modal
+      setDoAuthModel(true);
+      return;
+    }
+
+    if (isBookmarked(cveId)) {
+      removeBookmark(cveId);
+    } else {
+      addBookmark(cveId);
+    }
+  };
 
   return (
     <div className="space-y-8">
@@ -61,7 +82,13 @@ function CVEFeed({ cves, totalCount, onNextPage, onPrevPage, page }) {
 
         {/* Render CVEs */}
         {cves.map((cve) => (
-          <CVECard key={cve.id || cve.cveId} cve={cve} />
+          <CVECard 
+            key={cve.id || cve.cveId} 
+            cve={cve} 
+            // Pass Bookmark Props
+            isBookmarked={isBookmarked(cve.cveId)}
+            onBookmarkAction={() => handleBookmarkAction(cve.cveId)}
+          />
         ))}
 
         {cves.length === 0 && (

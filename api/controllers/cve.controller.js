@@ -224,7 +224,7 @@ export const getCVEs = async (req, res) => {
 export const getCVE = async (req, res) => {
   try {
     const { cveId } = req.params;
-    console.log("--- [GET] Get CVE: ---", cveId);
+    console.log("--- [GET] Get CVE: ---");
     const cve = await CVE.findOne({ cveId: cveId });
 
     if (!cve) {

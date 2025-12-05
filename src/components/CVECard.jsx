@@ -1,6 +1,8 @@
 import { memo } from "react";
+import { Bookmark, Check } from "lucide-react"; // [NEW] Icons
+
 // CVE Vulnerability Card Component
-function CVECard({ cve }) {
+function CVECard({ cve, isBookmarked, onBookmarkAction }) {
   // Severity Color Mapping
   const getSeverityColor = (severity) => {
     const level = severity ? severity.toUpperCase() : "UNKNOWN"; // Default to Unknown if missing
@@ -31,9 +33,35 @@ function CVECard({ cve }) {
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow cursor-pointer">
+    <div className="relative bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow cursor-pointer">
+      
+      {/* Bookmark Button (Always Visible) */}
+      <button
+        onClick={(e) => {
+          e.stopPropagation(); // Stop card click
+          // Simply call the parent handler. 
+          // The parent (CVEFeed/ProfileView) will decide if it's Add, Remove, or Login.
+          if (onBookmarkAction) {
+            onBookmarkAction(cve.cveId);
+          } else {
+            console.log("Action not bound");
+          }
+        }}
+        className={`absolute top-4 right-4 p-2 rounded-full transition-colors z-10 ${
+          isBookmarked ? "bg-blue-50 cursor-default" : "hover:bg-gray-100"
+        }`}
+        title={isBookmarked ? "Saved" : "Save to Profile"}
+      >
+        {isBookmarked ? (
+          <Check className="w-5 h-5 text-blue-600" />
+        ) : (
+           <Bookmark className="w-5 h-5 text-gray-400" />
+        )}
+      </button>
+
+      {/* Main Content */}
       <div className="flex items-start justify-between">
-        <div className="flex-1">
+        <div className="flex-1 pr-8">
           {/* CVE Header: ID and Severity */}
           <div className="flex items-center space-x-3 mb-2">
             {/* LINK TO NIST DATABASE */}
@@ -74,7 +102,7 @@ function CVECard({ cve }) {
             </span>
 
             <span className="text-gray-500">
-              {/* CHANGED: Date formatting */}
+              {/* Date formatting */}
               Published: {formatDate(cve.published)}
             </span>
           </div>
