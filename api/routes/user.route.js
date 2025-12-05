@@ -2,7 +2,7 @@
 import { Router } from "express";
 import {
   createUser,
-  returningUserLogin,
+  loginUser,
   getLoggedInUser,
   getFoundCVEs,
   addFoundCVE,
@@ -17,7 +17,7 @@ const router = Router();
 
 // list the routes for login/register
 router.post("/register", createUser);
-router.post("/login", returningUserLogin);
+router.post("/login", loginUser);
 
 // protected user routes
 

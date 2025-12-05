@@ -36,7 +36,7 @@ export const createUser = async (req, res) => {
 };
 
 // main controller for returning user logins
-export const returningUserLogin = async (req, res) => {
+export const loginUser = async (req, res) => {
   try {
     // email and password will be in the user's request body
     const { email, password } = req.body;
