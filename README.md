@@ -61,6 +61,18 @@ This class diagram shows the structural architecture of the React frontend. It s
 - Composition: Shows the render hierarchy, e.g. the App component composes the main views (`ExploreView`, `AnalyzeView`, `ProfileView`), and `ProfileView` has reusable UI elements like `CVECard` and `HistoryItem`.
 - Dependencies (Dotted-Arrows): Indicates which components consume which contexts. An example being: Header depends on AuthProvider to determine if the "Login" or "Logout" button should be displayed.
 
+### Backend Class Diagram
+
+![Backend Class Diagram](./diagrams/Backend_Database_Objects_Class_Diagram.png)
+
+This diagram shows the structure and relationships within the MongoDB database, including use of embedding and array referencing in the NoSQL models.
+
+- Core Entities (Documents): User and CVE are the two main document collections.
+- User embeds multiple instances of the FoundCVE object, which tracks details of user uploads.
+- CVE embeds multiple instances of the ProductVersion object, which defines affected software version ranges.
+- The User.savedCVEs field, an array of cveId strings, acts as a foreign key reference to the primary key (cveId) in the CVE document.
+- The FoundCVE.ids field, also an array of cveId strings, provides a reference to multiple CVE documents found within a single file upload event.
+
 ### CVE Filter & Page Flow Sequence Diagram:
 
 ![CVE Search and Pagination Sequence](diagrams/CVE_Filtering_Flow_Sequence_Diagram.png)
