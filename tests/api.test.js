@@ -6,7 +6,7 @@ import net from "net";
 const PORT = process.env.PORT || 3000;
 const LOCAL_URL_BASE = `http://localhost:${PORT}`;
 const VALID_API_KEY = process.env.API_SECRET_KEY;
-const REMOTE_TIMEOUT = 15000;
+const TIMEOUT = 15000;
 
 const BAD_REQUEST_STATUS = 400;
 const SUCCESS_STATUS = 200;
@@ -75,6 +75,45 @@ const bulkUpdatesToCVEs = [
     },
   },
 ];
+
+// for dompurify filtering
+const filteringTestCveIds = ["CVE-2090-DOM-1", "CVE-2090-DOM-2"];
+
+// Sample data for pre-populating the database for filtering tests
+// This data MUST match the CVEs assumed to exist in the FILTERING TESTS describe block
+const filteringTestData = [
+  {
+    cveId: filteringTestCveIds[0],
+    published: "2024-10-05T04:07:00.000Z",
+    description: "dompurify library: XSS vulnerability related to SVG.", // has keyword 'svg'
+    severityLevel: "CRITICAL",
+    productName: "dompurify",
+    productVersions: [
+      { start: "2.0.0", end: "3.5.0", s_type: "i", e_type: "e" },
+    ],
+  },
+  {
+    cveId: filteringTestCveIds[1],
+    published: "2024-10-15T04:07:00.000Z",
+    description: "Another dompurify vulnerability.",
+    severityLevel: "MEDIUM",
+    productName: "dompurify",
+    productVersions: [
+      { start: "1.0.0", end: "2.5.0", s_type: "i", e_type: "e" },
+    ],
+  },
+];
+
+/**
+ * Checks if the MONGO_DB_URI indicates a local or CI environment.
+ * @returns {boolean} True if the URI is local (localhost, 127.0.0.1, or test DB name), false otherwise.
+ */
+function isLocalDatabase() {
+  const uri = process.env.MONGO_DB_URI;
+  if (!uri) return false;
+  // check for common localhost/CI identifiers
+  return uri.includes("localhost") || uri.includes("127.0.0.1");
+}
 
 // helper function to check if a specific version falls within a CVE's version ranges
 const isVersionApplicable = (cve, targetVersion) => {
@@ -195,8 +234,47 @@ const runApiTests = (baseUrl, environmentName) => {
     headers: { "x-api-key": VALID_API_KEY, "Content-Type": "application/json" },
   });
 
-  describe(`---------------------------------\n${environmentName} SERVER TESTS | (${baseUrl})`, function () {
-    this.timeout(REMOTE_TIMEOUT); // Extended timeout for remote server
+  describe(`---------------------------------\n${environmentName} API TESTS | (${baseUrl})`, function () {
+    this.timeout(TIMEOUT);
+
+    // SETUP: Insert data needed for filtering tests
+    before(async function () {
+      console.log("[INFO] Inserting prerequisite data for filtering tests...");
+      try {
+        await protectedClient.post("/", filteringTestData);
+      } catch (error) {
+        console.error(
+          "failed to insert test data in setup hook:",
+          error.message,
+        );
+        throw error;
+      }
+    });
+
+    // TEARDOWN: Delete all data created during the tests
+    after(async function () {
+      console.log("[INFO] Deleting all test data...");
+      try {
+        const cveIdsToDelete = [
+          ...filteringTestCveIds, // data for filtering tests
+          singleNewCVE.cveId, // data created in the single POST test (if not deleted by its test)
+          ...bulkCveIds.cveIds, // data created in bulk POST test
+        ].filter(Boolean); // remove any null/undefined entries
+
+        if (cveIdsToDelete.length > 0) {
+          // use the bulk delete endpoint for clean-up
+          await protectedClient.delete("/bulk-delete", {
+            data: { cveIds: cveIdsToDelete },
+          });
+        }
+      } catch (error) {
+        // Log error but don't fail the test suite on teardown failure
+        console.error(
+          "warning: failed to clean up all test data:",
+          error.message,
+        );
+      }
+    });
 
     describe(`PUBLIC READ ACCESS TESTS`, function () {
       // --- PUBLIC READ ACCESS TESTS ---
@@ -802,7 +880,18 @@ const runApiTests = (baseUrl, environmentName) => {
   });
 };
 
-describe("Full Security and CRUD Workflow Tests", function () {
+describe("API Integration Test Suite", function () {
+  // only run on local database
+  if (!isLocalDatabase()) {
+    console.error(
+      "[FATAL ERROR]: Refusing to run integration tests against a non-local database.",
+    );
+    console.error(
+      "Please ensure MONGO_DB_URI is set to a local/CI address (e.g., localhost:27017/test_db).",
+    );
+    process.exit(1);
+  }
+
   // skip tests if api key isn't set
   if (!VALID_API_KEY) {
     console.log(`[ERROR]: Skipping tests, invalid API KEY: ${VALID_API_KEY}`);
