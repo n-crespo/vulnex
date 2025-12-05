@@ -1,6 +1,8 @@
 name: API Integration Tests
 
 on:
+  # can run manually from actions tab
+  workflow_dispatch:
   push:
     paths:
       - "api/**"
