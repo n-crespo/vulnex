@@ -2,12 +2,12 @@ import { useState, useEffect, memo } from "react";
 import CVECard from "./CVECard";
 import HistoryItem from "./HistoryItem";
 import { useUserDataContext } from "../context/UserDataContext";
-import { FileCode, Bookmark, Loader2, ArrowLeft, ArrowRight } from "lucide-react";
+import { FileCode, Bookmark, Loader2, ArrowLeft, ArrowRight, User } from "lucide-react"; // [NEW] Added User Icon
 import { API_BASE_URL, ENDPOINTS } from "../constants/api"; 
 
 function ProfileView() {
-  // Consume removeBookmark
-  const { savedCveIds, foundHistory, loadingUser, removeBookmark } = useUserDataContext();
+  // Consume removeBookmark and userEmail
+  const { savedCveIds, foundHistory, loadingUser, removeBookmark, userEmail } = useUserDataContext();
   
   const [hydratedBookmarks, setHydratedBookmarks] = useState([]);
   const [loadingDetails, setLoadingDetails] = useState(false);
@@ -66,7 +66,7 @@ function ProfileView() {
   const showHistoryPrev = historyPage > 0;
   const showHistoryNext = (historyPage + 1) * ITEMS_PER_PAGE < historyCount;
 
-  // [NEW] Helper to render the Top Mini Controls
+  // Helper to render the Top Mini Controls
   const renderPaginationControls = (page, setPage, showPrev, showNext) => (
     <div className="flex items-center gap-1">
       <button
@@ -106,6 +106,17 @@ function ProfileView() {
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
       
+      {/* User Info Header */}
+      <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 flex items-center gap-4">
+        <div className="bg-red-100 p-3 rounded-full">
+          <User className="w-8 h-8 text-red-700" />
+        </div>
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Profile</h1>
+          <p className="text-gray-600 font-medium">{userEmail || "Guest User"}</p>
+        </div>
+      </div>
+
       {/* --- SECTION 1: SAVED BOOKMARKS --- */}
       <div className="space-y-4">
         <div className="flex items-center justify-between border-b border-gray-200 pb-2">
@@ -117,7 +128,7 @@ function ProfileView() {
             </span>
           </div>
           
-          {/* [NEW] Top Pagination Controls */}
+          {/* Top Pagination Controls */}
           {savedCveIds.length > 0 && 
             renderPaginationControls(bookmarkPage, setBookmarkPage, showBookmarkPrev, showBookmarkNext)
           }
@@ -176,7 +187,7 @@ function ProfileView() {
             <h2 className="text-2xl font-bold text-gray-900">Analysis History</h2>
           </div>
           
-          {/* [NEW] Top Pagination Controls */}
+          {/* Top Pagination Controls */}
           {foundHistory.length > 0 && 
              renderPaginationControls(historyPage, setHistoryPage, showHistoryPrev, showHistoryNext)
           }

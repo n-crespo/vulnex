@@ -7,6 +7,7 @@ export const useUserData = () => {
   
   const [savedCveIds, setSavedCveIds] = useState([]); 
   const [foundHistory, setFoundHistory] = useState([]); 
+  const [userEmail, setUserEmail] = useState(""); 
   const [loadingUser, setLoadingUser] = useState(false);
 
   // Helper for authenticated fetch calls
@@ -33,15 +34,22 @@ export const useUserData = () => {
 
   // --- ACTIONS ---
 
+  // Fetch all user data
   const refreshUserData = useCallback(async () => {
     if (!userLoginSessionToken) return;
     setLoadingUser(true);
     try {
-      // Fetch Bookmarks (GET /me/savedCVEs)
+      // Fetch Basic User Info (Email)
+      const userProfile = await authFetch("/api/users/me");
+      if (userProfile && userProfile.email) {
+        setUserEmail(userProfile.email);
+      }
+
+      // Fetch Bookmarks
       const saved = await authFetch("/api/users/me/savedCVEs");
       setSavedCveIds(saved || []);
 
-      // Fetch Upload History (GET /me/foundCVEs)
+      // Fetch Upload History
       const found = await authFetch("/api/users/me/foundCVEs");
       setFoundHistory(found || []);
     } catch (err) {
@@ -64,7 +72,7 @@ export const useUserData = () => {
         return [...prev, cveId];
       });
     } catch (err) {
-      console.error("Failed to add bookmark:", err);
+      console.error("Failed to bookmark:", err);
     }
   }, [authFetch]);
 
@@ -110,6 +118,7 @@ export const useUserData = () => {
   }, [savedCveIds]);
 
   return {
+    userEmail, 
     savedCveIds,
     foundHistory,
     loadingUser,
