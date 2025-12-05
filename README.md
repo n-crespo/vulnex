@@ -1,6 +1,7 @@
 # [VulnEx (Vulnerability Explorer)](https://n-crespo.github.io/vulnex)
 
 [![deploy status](https://github.com/n-crespo/vulnex/actions/workflows/deploy.yaml/badge.svg)](https://github.com/n-crespo/vulnex/actions/workflows/deploy.yaml)
+[![Playwright Tests](https://github.com/n-crespo/vulnex/actions/workflows/playwright.yml/badge.svg)](https://github.com/n-crespo/vulnex/actions/workflows/playwright.yml)
 
 ## Development Setup
 
