@@ -9,11 +9,6 @@ export default defineConfig({
   workers: process.env.CI ? 1 : undefined,
   reporter: "html",
 
-  use: {
-    baseURL: "http://localhost:5173",
-    trace: "on-first-retry",
-  },
-
   projects: [
     {
       name: "chromium",
@@ -29,11 +24,25 @@ export default defineConfig({
     },
   ],
 
-  /* Run your local dev server before starting the tests */
-  webServer: {
-    command: "npm run dev",
-    url: "http://localhost:3000",
-    reuseExistingServer: !process.env.CI,
-    timeout: 120 * 1000,
+  webServer: [
+    {
+      // Start the API backend
+      command: "npm run start:api",
+      url: "http://localhost:3000",
+      timeout: 120 * 1000,
+      reuseExistingServer: !process.env.CI,
+    },
+    {
+      // Start the Frontend
+      command: "npm run dev -- --host",
+      url: "http://localhost:5173",
+      timeout: 120 * 1000,
+      reuseExistingServer: !process.env.CI,
+    },
+  ],
+
+  use: {
+    baseURL: "http://localhost:5173",
+    trace: "on-first-retry",
   },
 });
