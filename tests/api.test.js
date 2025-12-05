@@ -77,7 +77,10 @@ const bulkUpdatesToCVEs = [
 ];
 
 // for dompurify filtering
-const filteringTestCveIds = ["CVE-2090-DOM-1", "CVE-2090-DOM-2"];
+const filteringTestCveIds = [
+  "CVE-2090-9998", // for dompurify filtering (CRITICAL, SVG, 3.0.0 applicable)
+  "CVE-2090-9999", // for dompurify filtering (MEDIUM, general test)
+];
 
 // Sample data for pre-populating the database for filtering tests
 // This data MUST match the CVEs assumed to exist in the FILTERING TESTS describe block
