@@ -11,7 +11,7 @@ import {
 } from "../controllers/cve.controller.js";
 
 // import auth middleware
-import requireDbWriteAccess from "../middleware/auth.middleware.js";
+import { requireDbWriteAccess } from "../middleware/auth.middleware.js";
 
 const router = Router();
 

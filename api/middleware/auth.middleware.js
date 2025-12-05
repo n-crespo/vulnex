@@ -63,5 +63,3 @@ export const requireAuth = async (req, res, next) => {
     return res.status(401).json({ message: "Not authorized, token failed" });
   }
 };
-
-export default requireDbWriteAccess;
