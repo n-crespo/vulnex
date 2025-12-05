@@ -12,6 +12,9 @@ import {
 import { useFileAnalysis } from "../hooks/useFileAnalysis";
 import CVECard from "./CVECard";
 import { API_BASE_URL, ENDPOINTS } from "../constants/api";
+// Imports for saving history
+import { useUserDataContext } from "../context/UserDataContext";
+import { useAuthContext } from "../context/AuthContext";
 
 function AnalyzeView() {
   const {
@@ -21,6 +24,10 @@ function AnalyzeView() {
     analyzeFile,
     clearAnalysis,
   } = useFileAnalysis();
+
+  //  Hooks to access User Data logic
+  const { saveUploadResult } = useUserDataContext();
+  const { userLoginSessionToken } = useAuthContext();
 
   const [scanning, setScanning] = useState(false);
   const [scanResults, setScanResults] = useState(null);
@@ -65,6 +72,23 @@ function AnalyzeView() {
       );
 
       setScanResults(vulnerablePackages);
+
+      // Save to History if user is logged in & vulnerabilities found
+      if (userLoginSessionToken && vulnerablePackages.length > 0) {
+        // Extract all CVE IDs from the packages into a flat array
+        const allCveIds = vulnerablePackages.flatMap((pkg) => 
+          pkg.cves.map((cve) => cve.cveId || cve.id)
+        );
+
+        // Remove duplicates 
+        const uniqueIds = [...new Set(allCveIds)];
+
+        // Send to backend
+        const filename = analysisResult.name || "package.json";
+        saveUploadResult(filename, uniqueIds);
+        console.log("Saved scan results to profile history.");
+      }
+
     } catch (err) {
       console.error("Bulk scan error:", err);
       // Optional: Add a UI error state here
