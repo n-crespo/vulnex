@@ -33,11 +33,6 @@ const singleBadCVE = {
   productVersions: [{ start: "0.5", end: "5.1", s_type: "i", e_type: "e" }],
 };
 
-// Data for the update operation
-const singleUpdateToCVE = {
-  severityLevel: "CRITICAL",
-};
-
 // Sample data for bulk actions
 const bulkNewCVEs = [
   {
