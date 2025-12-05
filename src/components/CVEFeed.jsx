@@ -5,8 +5,8 @@ import { useUserDataContext } from "../context/UserDataContext";
 import { useAuthContext } from "../context/AuthContext";
 
 function CVEFeed({ cves, totalCount, onNextPage, onPrevPage, page }) {
-  // Consume Contexts
-  const { isBookmarked, addBookmark } = useUserDataContext();
+  // Consume removeBookmark from Context
+  const { isBookmarked, addBookmark, removeBookmark } = useUserDataContext();
   const { userLoginSessionToken, setDoAuthModel } = useAuthContext();
 
   // Logic to show buttons
@@ -21,14 +21,18 @@ function CVEFeed({ cves, totalCount, onNextPage, onPrevPage, page }) {
   const startRange = page * itemsPerPage + 1;
   const endRange = startRange + cves.length - 1;
 
-  // Smart Handler for Bookmark Click
+  // [UPDATED] Smart Handler for Bookmark Click (Toggle Add/Remove)
   const handleBookmarkAction = (cveId) => {
-    if (userLoginSessionToken) {
-      // User is logged in -> Save it
-      addBookmark(cveId);
-    } else {
+    if (!userLoginSessionToken) {
       // User is NOT logged in -> Open Login Modal
       setDoAuthModel(true);
+      return;
+    }
+
+    if (isBookmarked(cveId)) {
+      removeBookmark(cveId);
+    } else {
+      addBookmark(cveId);
     }
   };
 

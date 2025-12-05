@@ -15,7 +15,6 @@ export const useUserData = () => {
 
     const headers = {
       "Content-Type": "application/json",
-      // (fix): Changed process.env to import.meta.env for Vite
       "x-api-key": import.meta.env.VITE_API_KEY || "", 
       "Authorization": `Bearer ${userLoginSessionToken}` 
     };
@@ -65,7 +64,21 @@ export const useUserData = () => {
         return [...prev, cveId];
       });
     } catch (err) {
-      console.error("Failed to bookmark:", err);
+      console.error("Failed to add bookmark:", err);
+    }
+  }, [authFetch]);
+
+  // Remove Bookmark
+  const removeBookmark = useCallback(async (cveId) => {
+    try {
+      await authFetch("/api/users/me/savedCVEs", {
+        method: "DELETE",
+        body: JSON.stringify({ cveId }),
+      });
+      // Update local state immediately
+      setSavedCveIds(prev => prev.filter(id => id !== cveId));
+    } catch (err) {
+      console.error("Failed to remove bookmark:", err);
     }
   }, [authFetch]);
 
@@ -102,6 +115,7 @@ export const useUserData = () => {
     loadingUser,
     refreshUserData,
     addBookmark,
+    removeBookmark,
     saveUploadResult,
     isBookmarked
   };

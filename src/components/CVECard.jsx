@@ -39,11 +39,13 @@ function CVECard({ cve, isBookmarked, onBookmarkAction }) {
       <button
         onClick={(e) => {
           e.stopPropagation(); // Stop card click
-          // Call parent handler (checks auth status)
-          if(!isBookmarked && onBookmarkAction) onBookmarkAction(cve.cveId);
-          else if (!onBookmarkAction) console.log("Action not bound"); // fallback
-          // If not logged in, parent handler will open modal
-          if (onBookmarkAction && isBookmarked === undefined) onBookmarkAction(cve.cveId); 
+          // Simply call the parent handler. 
+          // The parent (CVEFeed/ProfileView) will decide if it's Add, Remove, or Login.
+          if (onBookmarkAction) {
+            onBookmarkAction(cve.cveId);
+          } else {
+            console.log("Action not bound");
+          }
         }}
         className={`absolute top-4 right-4 p-2 rounded-full transition-colors z-10 ${
           isBookmarked ? "bg-blue-50 cursor-default" : "hover:bg-gray-100"

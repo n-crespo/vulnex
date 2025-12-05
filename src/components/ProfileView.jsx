@@ -6,7 +6,8 @@ import { FileCode, Bookmark, Loader2 } from "lucide-react";
 import { API_BASE_URL, ENDPOINTS } from "../constants/api"; 
 
 function ProfileView() {
-  const { savedCveIds, foundHistory, loadingUser } = useUserDataContext();
+  // Consume removeBookmark
+  const { savedCveIds, foundHistory, loadingUser, removeBookmark } = useUserDataContext();
   
   const [hydratedBookmarks, setHydratedBookmarks] = useState([]);
   const [loadingDetails, setLoadingDetails] = useState(false);
@@ -71,8 +72,8 @@ function ProfileView() {
                 key={cve.cveId}
                 cve={cve}
                 isBookmarked={true} // Always true in this list
-                showBookmarkBtn={true} 
-                onToggleBookmark={() => {}} // No-op: Cannot remove yet based on backend limitations
+                // Pass function to remove item
+                onBookmarkAction={() => removeBookmark(cve.cveId)} 
               />
             ))}
           </div>
