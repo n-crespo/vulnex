@@ -1,5 +1,6 @@
 import { useState, useEffect, memo } from "react";
 import CVECard from "./CVECard";
+import HistoryItem from "./HistoryItem";
 import { useUserDataContext } from "../context/UserDataContext";
 import { FileCode, Bookmark, Loader2 } from "lucide-react";
 import { API_BASE_URL, ENDPOINTS } from "../constants/api"; 
@@ -40,14 +41,7 @@ function ProfileView() {
     fetchDetails();
   }, [savedCveIds]);
 
-  if (loadingUser) {
-    return (
-      <div className="flex flex-col items-center justify-center py-20 text-gray-500">
-        <Loader2 className="w-8 h-8 animate-spin mb-4 text-red-700" />
-        <p>Loading Profile...</p>
-      </div>
-    );
-  }
+  if (loadingUser) return <div className="p-8 text-center text-gray-500">Loading Profile...</div>;
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -100,33 +94,7 @@ function ProfileView() {
           <div className="space-y-3">
              {/* Reverse array to show newest first */}
              {[...foundHistory].reverse().map((entry, idx) => (
-               <div key={idx} className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
-                  <div className="flex justify-between items-start mb-2">
-                     <div>
-                        <span className="font-bold text-gray-900 block">{entry.filename || "Unknown File"}</span>
-                        <span className="text-xs text-gray-500">
-                          {new Date(entry.timestamp).toLocaleString()}
-                        </span>
-                     </div>
-                     <span className="text-xs font-bold bg-gray-100 text-gray-700 px-2 py-1 rounded">
-                       {entry.ids.length} Found
-                     </span>
-                  </div>
-                  
-                  {/* List IDs found in this upload */}
-                  <div className="flex flex-wrap gap-2 mt-3">
-                    {entry.ids.slice(0, 10).map(id => (
-                      <span key={id} className="text-xs bg-red-50 text-red-700 px-2 py-1 rounded border border-red-100 font-mono">
-                        {id}
-                      </span>
-                    ))}
-                    {entry.ids.length > 10 && (
-                      <span className="text-xs text-gray-500 px-2 py-1">
-                        +{entry.ids.length - 10} more
-                      </span>
-                    )}
-                  </div>
-               </div>
+               <HistoryItem key={idx} entry={entry} />
              ))}
           </div>
         )}
