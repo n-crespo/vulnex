@@ -43,7 +43,7 @@ jobs:
           API_SECRET_KEY: ${{ secrets.API_SECRET_KEY }}
           PORT: 3000
         run: |
-          npm run start:api &
+          npm run start:api:action &
           npx wait-on http://localhost:3000
 
       - name: Run tests
