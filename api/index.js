@@ -2,7 +2,7 @@ import express, { json } from "express";
 import cors from "cors"; // needed so the github pages can talk to Azure on the backend
 import { connect } from "mongoose";
 import cveRoute from "./routes/cve.route.js";
-import userRoute from "./routes/userRegisterLogin.route.js";
+import userRoute from "./routes/user.route.js";
 
 const app = express();
 
@@ -31,12 +31,11 @@ app.get("/", (_, res) => {
   res.send("hello from node API");
 });
 
-const stableOptions = {
+const options = {
   serverApi: { version: "1", strict: true, depreciationErrors: true },
 };
 
-// connection to real database
-connect(MONGO_DB_URI, stableOptions)
+connect(MONGO_DB_URI, options)
   .then(() => {
     console.log("connected to the db!");
     app.listen(port, () => {
