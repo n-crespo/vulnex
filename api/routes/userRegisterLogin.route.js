@@ -9,7 +9,7 @@ import {
   getSavedCVEs,
   addSavedCVE,
   removeSavedCVE,
-} from "../controllers/newUserLogin.controller.js";
+} from "../controllers/user.controller.js";
 import { protect } from "../middleware/auth.middleware.js"; // Import the protection middleware
 
 // create a router
