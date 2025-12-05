@@ -36,10 +36,10 @@ jobs:
         run: npm ci
 
       - name: Start API server
-        # env vars set here are visible to the process
         env:
           # force the app to look at the temporary ci database
           MONGO_DB_URI: "mongodb://localhost:27017/test_db"
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
           API_SECRET_KEY: ${{ secrets.API_SECRET_KEY }}
           PORT: 3000
         run: |
