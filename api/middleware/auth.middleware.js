@@ -1,10 +1,10 @@
 import jwt from "jsonwebtoken";
-import newUserLoginModel from "../models/newUserLogin.model.js";
+import User from "../models/user.model.js";
 
 // note: since requests are sent via HTTPS the API key is secure
 const API_SECRET_KEY = process.env.API_SECRET_KEY;
 
-export const authenticateWriteAccess = (req, res, next) => {
+export const requireDbWriteAccess = (req, res, next) => {
   // check for api key in 'x-api-key'
   const apiKey = req.header("x-api-key");
 
@@ -50,9 +50,7 @@ export const protect = async (req, res, next) => {
 
       // attach the user object to the request (excluding the password hash)
       // this ensures req.user is available in the next controller (like getLoggedInUser)
-      req.user = await newUserLoginModel
-        .findById(decoded.id)
-        .select("-passwordHash");
+      req.user = await User.findById(decoded.id).select("-passwordHash");
 
       if (!req.user) {
         return res
@@ -73,4 +71,4 @@ export const protect = async (req, res, next) => {
   }
 };
 
-export default authenticateWriteAccess;
+export default requireDbWriteAccess;

@@ -1,4 +1,4 @@
-import newUserLoginModel from "../models/newUserLogin.model.js";
+import User from "../models/user.model.js";
 import jwt from "jsonwebtoken";
 
 // this secret is for signing JWT tokens and should be stored in env variables
@@ -20,12 +20,12 @@ export const createUser = async (req, res) => {
     }
 
     // if email and password were given, ensure this email isn't already in use:
-    const isUserEmailExisting = await newUserLoginModel.findOne({ email });
+    const isUserEmailExisting = await User.findOne({ email });
     if (isUserEmailExisting) {
       return res.status(409).json({ message: "User already exists" });
     }
     // if password exists and email is unique, save the new user info the the database
-    const newUserReg = new newUserLoginModel({ email, passwordHash: password });
+    const newUserReg = new User({ email, passwordHash: password });
     await newUserReg.save();
     res.status(201).json({ message: "Successful new user registration" });
   } catch (error) {
@@ -42,7 +42,7 @@ export const loginUser = async (req, res) => {
     const { email, password } = req.body;
 
     // check if the email was provided
-    const returningUserEmailProvided = await newUserLoginModel.findOne({
+    const returningUserEmailProvided = await User.findOne({
       email,
     });
     if (!returningUserEmailProvided) {
