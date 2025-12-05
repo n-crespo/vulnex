@@ -1,13 +1,12 @@
 import { useState, useCallback } from "react";
 import { useAuthContext } from "../context/AuthContext";
-import { API_BASE_URL, ENDPOINTS } from "../constants/api"; // Using your api.js constants
+import { API_BASE_URL } from "../constants/api"; 
 
 export const useUserData = () => {
   const { userLoginSessionToken } = useAuthContext();
   
-  // Data States for the two "buckets" of user data
-  const [savedCveIds, setSavedCveIds] = useState([]); // Bookmarks (Array of strings from DB)
-  const [foundHistory, setFoundHistory] = useState([]); // Upload History (Array of objects from DB)
+  const [savedCveIds, setSavedCveIds] = useState([]); 
+  const [foundHistory, setFoundHistory] = useState([]); 
   const [loadingUser, setLoadingUser] = useState(false);
 
   // Helper for authenticated fetch calls
@@ -16,7 +15,8 @@ export const useUserData = () => {
 
     const headers = {
       "Content-Type": "application/json",
-      "x-api-key": process.env.VITE_API_KEY || "", 
+      // (fix): Changed process.env to import.meta.env for Vite
+      "x-api-key": import.meta.env.VITE_API_KEY || "", 
       "Authorization": `Bearer ${userLoginSessionToken}` 
     };
 
@@ -32,8 +32,8 @@ export const useUserData = () => {
     return res.json();
   }, [userLoginSessionToken]);
 
-  // Fetch all user data (Call this on login or profile load)
-  // Endpoints based on newUserLogin.controller.js
+  // --- ACTIONS ---
+
   const refreshUserData = useCallback(async () => {
     if (!userLoginSessionToken) return;
     setLoadingUser(true);
@@ -59,7 +59,7 @@ export const useUserData = () => {
         method: "POST",
         body: JSON.stringify({ cveId }),
       });
-      // Update local state immediately
+      
       setSavedCveIds(prev => {
         if (prev.includes(cveId)) return prev;
         return [...prev, cveId];

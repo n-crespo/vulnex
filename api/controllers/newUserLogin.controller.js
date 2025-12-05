@@ -100,8 +100,10 @@ export const getFoundCVEs = async (req, res) => {
   // The 'protect' middleware ensures req.user is available here and contains the
   // user data (excluding passwordHash) from the database.
   try {
+    // Ensure we return an empty array if the field is missing (Legacy data)
+    const found = req.user.foundCVEs || [];
     // Send back only the foundCVEs array from the user object
-    res.status(200).json(req.user.foundCVEs);
+    res.status(200).json(found);
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Failed to retrieve found CVE data." });
@@ -131,6 +133,11 @@ export const addFoundCVE = async (req, res) => {
       filename,
     };
 
+    // Initialize array if it doesn't exist (Legacy User Data)
+    if (!user.foundCVEs) {
+      user.foundCVEs = [];
+    }
+
     // Add the new entry to the foundCVEs array
     user.foundCVEs.push(newFoundEntry);
 
@@ -158,8 +165,10 @@ export const getSavedCVEs = async (req, res) => {
   // The 'protect' middleware guarantees that req.user is the authenticated user's document
   // (without the password hash).
   try {
+    // Ensure we return an empty array if the field is missing (Legacy data)
+    const saved = req.user.savedCVEs || [];
     // Send back only the savedCVEs array from the user object.
-    res.status(200).json(req.user.savedCVEs);
+    res.status(200).json(saved);
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Failed to retrieve saved CVE data." });
@@ -182,6 +191,12 @@ export const addSavedCVE = async (req, res) => {
   }
 
   try {
+    // Initialize array if it doesn't exist (Legacy User Data)
+    // This prevents "Cannot read properties of undefined (reading 'includes')"
+    if (!user.savedCVEs) {
+      user.savedCVEs = [];
+    }
+
     // Check if the CVE ID is already in the saved list to prevent duplicates
     if (user.savedCVEs.includes(cveId)) {
       return res.status(409).json({
