@@ -2,7 +2,7 @@ import express, { json } from "express";
 import cors from "cors"; // needed so the github pages can talk to Azure on the backend
 import { connect } from "mongoose";
 import cveRoute from "./routes/cve.route.js";
-import userRoute from "./routes/userRegisterLogin.route.js";
+import userRoute from "./routes/user.route.js";
 
 const app = express();
 
