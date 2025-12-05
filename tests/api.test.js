@@ -7,7 +7,6 @@ const PORT = process.env.PORT || 3000;
 const LOCAL_URL_BASE = `http://localhost:${PORT}`;
 const VALID_API_KEY = process.env.API_SECRET_KEY;
 const REMOTE_TIMEOUT = 15000;
-// const REMOTE_URL_BASE = `https://vulnex-api.onrender.com`;
 
 const BAD_REQUEST_STATUS = 400;
 const SUCCESS_STATUS = 200;
@@ -819,5 +818,4 @@ describe("Full Security and CRUD Workflow Tests", function () {
       runApiTests(LOCAL_URL_BASE, "LOCAL");
     }
   });
-  // runApiTests(REMOTE_URL_BASE, "REMOTE");
 });
