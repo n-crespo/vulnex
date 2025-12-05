@@ -8,6 +8,7 @@ import {
   addFoundCVE,
   getSavedCVEs,
   addSavedCVE,
+  removeSavedCVE,
 } from "../controllers/newUserLogin.controller.js";
 import { protect } from "../middleware/auth.middleware.js"; // Import the protection middleware
 
@@ -32,5 +33,6 @@ router.post("/me/foundCVEs", protect, addFoundCVE);
 router.get("/me/savedCVEs", protect, getSavedCVEs);
 // POST /me/savedCVEs - Add a single CVE ID to the saved CVEs list
 router.post("/me/savedCVEs", protect, addSavedCVE);
+router.delete("/me/savedCVEs", protect, removeSavedCVE);
 
 export default router;
