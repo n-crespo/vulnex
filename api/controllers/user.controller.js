@@ -9,7 +9,7 @@ if (!JWT_SECRET) {
 }
 
 // this is the main controller for new user registration
-export const newUserRegister = async (req, res) => {
+export const createUser = async (req, res) => {
   try {
     // get the email and password from the body of the request
     const { email, password } = req.body;

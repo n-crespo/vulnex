@@ -1,7 +1,7 @@
 // bring in router from express and the new/returning user controllers
 import { Router } from "express";
 import {
-  newUserRegister,
+  createUser,
   returningUserLogin,
   getLoggedInUser,
   getFoundCVEs,
@@ -16,7 +16,7 @@ import { protect } from "../middleware/auth.middleware.js"; // Import the protec
 const router = Router();
 
 // list the routes for login/register
-router.post("/register", newUserRegister);
+router.post("/register", createUser);
 router.post("/login", returningUserLogin);
 
 // protected user routes
