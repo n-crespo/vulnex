@@ -47,7 +47,21 @@ npm run test:api
 [Project Plan and Proposal](https://docs.google.com/document/d/1iviznrFmZiiG2GUe3oLPzbtLUC5X77XqRDzyYNCOCEE/edit?usp=sharing)
 
 ## Diagrams
-The Web_Application_Architecture_Diagram.pdf in the diagrams folder shows the high level relationship between our website's client to server connections, including the user's frontend UI running React, the backend server running Node.js on Render, and the MongoDB Atlas database cloud that store's our user's data securely.
+
+### Web Application Architecture Diagram:
+![Web Application Architecture Diagram](diagrams/Tech_Stach_Overview.png)
+This diagram shows the high level relationship between our website's client to server connections, including the user's frontend UI running React, the backend server running Node.js on Render, and the MongoDB Atlas database cloud that store's our user's data securely.
+
+
+### CVE Filter & Page Flow Sequence Diagram:
+![CVE Search and Pagination Sequence](diagrams/CVE_Filtering_Flow_Sequence_Diagram.png)
+This diagram shows the data flow for the "Explore" feature. The React frontend uses the useCveData custom hook to manage state and construct query parameters. The backend cve.controller.js handles these parameters to perform efficient MongoDB queries using .skip() and .limit() for the page feature, while also returning a total document count in the custom X-Total-Count header to support the frontend UI.
+
+
+### User Auth Flow Sequence Diagram:
+![User Auth Sequence](diagrams/User_Auth_Flow_Sequence_Diagram.png)
+This diagram shows the secure login process. The frontend AuthModel.jsx captures user credentials and communicates with the backend authentication endpoints. On the server, newUserLogin.controller.js retrieves the user record from MongoDB and uses bcrypt to validate the password hash. Upon success, a JSON Web Token (JWT) is signed and returned to the client. The frontend AuthContext then stores this token in localStorage to persist the session and updates the application state to unlock protected features like Bookmarking and the Profile view.
+
 
 ## Disclaimer
 
