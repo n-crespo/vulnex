@@ -2,17 +2,33 @@ name: Playwright Tests
 on:
   push:
     branches: [main, master]
+    paths:
+      - "src/**"
+      - "index.html"
+      - "vite.config.js"
+      - "package.json"
+      - ".github/workflows/playwright.yml"
+      - "!README.md"
+      - "!LICENSE"
+      - "!.gitignore"
+      - "playwright.config.js"
+      - "."
+
   pull_request:
     branches: [main, master]
+
+  # can run manually from actions tab
+  workflow_dispatch:
+
+# stop previously running workflows on new commit push
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test:
     timeout-minutes: 60
     runs-on: ubuntu-latest
-
-    # stop previously running workflows on new commit push
-    concurrency:
-      group: ${{ github.workflow }}-${{ github.ref }}
-      cancel-in-progress: true
 
     steps:
       - uses: actions/checkout@v4
