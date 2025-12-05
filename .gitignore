@@ -32,3 +32,10 @@ data-sync/output.jsonl
 data-sync/badCVEs.jsonl
 .git.bfg-report/2025-12-01
 secrets.txt
+
+# Playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+/playwright/.auth/
