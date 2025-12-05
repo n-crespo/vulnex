@@ -1,8 +1,8 @@
 import { memo } from "react";
-import { Bookmark, Check } from "lucide-react"; 
-// CVE Vulnerability Card Component
+import { Bookmark, Check } from "lucide-react"; // [NEW] Icons
 
-function CVECard({ cve, isBookmarked, onToggleBookmark, showBookmarkBtn }) {
+// CVE Vulnerability Card Component
+function CVECard({ cve, isBookmarked, onBookmarkAction }) {
   // Severity Color Mapping
   const getSeverityColor = (severity) => {
     const level = severity ? severity.toUpperCase() : "UNKNOWN"; // Default to Unknown if missing
@@ -35,27 +35,27 @@ function CVECard({ cve, isBookmarked, onToggleBookmark, showBookmarkBtn }) {
   return (
     <div className="relative bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow cursor-pointer">
       
-      {/* Bookmark Button */}
-      {showBookmarkBtn && (
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            if (!isBookmarked) {
-               onToggleBookmark(cve.cveId);
-            }
-          }}
-          className={`absolute top-4 right-4 p-2 rounded-full transition-colors z-10 ${
-            isBookmarked ? "bg-blue-50 cursor-default" : "hover:bg-gray-100"
-          }`}
-          title={isBookmarked ? "Saved" : "Save to Profile"}
-        >
-          {isBookmarked ? (
-            <Check className="w-5 h-5 text-blue-600" />
-          ) : (
-             <Bookmark className="w-5 h-5 text-gray-400" />
-          )}
-        </button>
-      )}
+      {/* Bookmark Button (Always Visible) */}
+      <button
+        onClick={(e) => {
+          e.stopPropagation(); // Stop card click
+          // Call parent handler (checks auth status)
+          if(!isBookmarked && onBookmarkAction) onBookmarkAction(cve.cveId);
+          else if (!onBookmarkAction) console.log("Action not bound"); // fallback
+          // If not logged in, parent handler will open modal
+          if (onBookmarkAction && isBookmarked === undefined) onBookmarkAction(cve.cveId); 
+        }}
+        className={`absolute top-4 right-4 p-2 rounded-full transition-colors z-10 ${
+          isBookmarked ? "bg-blue-50 cursor-default" : "hover:bg-gray-100"
+        }`}
+        title={isBookmarked ? "Saved" : "Save to Profile"}
+      >
+        {isBookmarked ? (
+          <Check className="w-5 h-5 text-blue-600" />
+        ) : (
+           <Bookmark className="w-5 h-5 text-gray-400" />
+        )}
+      </button>
 
       {/* Main Content */}
       <div className="flex items-start justify-between">
