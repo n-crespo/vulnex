@@ -21,14 +21,13 @@ function CVEFeed({ cves, totalCount, onNextPage, onPrevPage, page }) {
   const startRange = page * itemsPerPage + 1;
   const endRange = startRange + cves.length - 1;
 
-  // [UPDATED] Smart Handler for Bookmark Click (Toggle Add/Remove)
+  //  toggle add/remove bookmark
   const handleBookmarkAction = (cveId) => {
+    // if user isn't logged in, ask them to
     if (!userLoginSessionToken) {
-      // User is NOT logged in -> Open Login Modal
       setDoAuthModel(true);
       return;
     }
-
     if (isBookmarked(cveId)) {
       removeBookmark(cveId);
     } else {

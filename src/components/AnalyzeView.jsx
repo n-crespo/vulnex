@@ -26,11 +26,26 @@ function AnalyzeView() {
   } = useFileAnalysis();
 
   //  Hooks to access User Data logic
-  const { saveUploadResult } = useUserDataContext();
-  const { userLoginSessionToken } = useAuthContext();
+  const { saveUploadResult, isBookmarked, addBookmark, removeBookmark } =
+    useUserDataContext();
+  const { userLoginSessionToken, setDoAuthModel } = useAuthContext();
 
   const [scanning, setScanning] = useState(false);
   const [scanResults, setScanResults] = useState(null);
+
+  //  toggle add/remove bookmark
+  const handleBookmarkAction = (cveId) => {
+    // if user isn't logged in, ask them to
+    if (!userLoginSessionToken) {
+      setDoAuthModel(true);
+      return;
+    }
+    if (isBookmarked(cveId)) {
+      removeBookmark(cveId);
+    } else {
+      addBookmark(cveId);
+    }
+  };
 
   const handleFileChange = (event) => {
     const file = event.target.files[0];
@@ -248,7 +263,13 @@ function AnalyzeView() {
                               key={cve.id || cve.cveId}
                               className="relative group"
                             >
-                              <CVECard cve={cve} />
+                              <CVECard
+                                cve={cve}
+                                isBookmarked={isBookmarked(cve.cveId)}
+                                onBookmarkAction={() =>
+                                  handleBookmarkAction(cve.cveId)
+                                }
+                              />
                               <button
                                 title="Dismiss"
                                 onClick={() =>
