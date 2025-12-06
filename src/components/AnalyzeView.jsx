@@ -25,7 +25,7 @@ function AnalyzeView() {
     clearAnalysis,
   } = useFileAnalysis();
 
-  //  Hooks to access User Data logic
+  // Hooks to access User Data logic
   const { saveUploadResult, isBookmarked, addBookmark, removeBookmark } =
     useUserDataContext();
   const { userLoginSessionToken, setDoAuthModel } = useAuthContext();
@@ -33,18 +33,12 @@ function AnalyzeView() {
   const [scanning, setScanning] = useState(false);
   const [scanResults, setScanResults] = useState(null);
 
-  //  toggle add/remove bookmark
+  // toggle add/remove bookmark
   const handleBookmarkAction = (cveId) => {
     // if user isn't logged in, ask them to
-    if (!userLoginSessionToken) {
-      setDoAuthModel(true);
-      return;
-    }
-    if (isBookmarked(cveId)) {
-      removeBookmark(cveId);
-    } else {
-      addBookmark(cveId);
-    }
+    if (!userLoginSessionToken) return setDoAuthModel(true);
+
+    isBookmarked(cveId) ? removeBookmark(cveId) : addBookmark(cveId);
   };
 
   const handleFileChange = (event) => {

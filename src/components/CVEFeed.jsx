@@ -21,18 +21,12 @@ function CVEFeed({ cves, totalCount, onNextPage, onPrevPage, page }) {
   const startRange = page * itemsPerPage + 1;
   const endRange = startRange + cves.length - 1;
 
-  //  toggle add/remove bookmark
+  // toggle add/remove bookmark
   const handleBookmarkAction = (cveId) => {
     // if user isn't logged in, ask them to
-    if (!userLoginSessionToken) {
-      setDoAuthModel(true);
-      return;
-    }
-    if (isBookmarked(cveId)) {
-      removeBookmark(cveId);
-    } else {
-      addBookmark(cveId);
-    }
+    if (!userLoginSessionToken) return setDoAuthModel(true);
+
+    isBookmarked(cveId) ? removeBookmark(cveId) : addBookmark(cveId);
   };
 
   return (
