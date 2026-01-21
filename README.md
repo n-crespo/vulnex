@@ -4,6 +4,23 @@
 [![Playwright Tests](https://github.com/n-crespo/vulnex/actions/workflows/playwright.yml/badge.svg)](https://github.com/n-crespo/vulnex/actions/workflows/playwright.yml)
 [![API Integration Tests](https://github.com/n-crespo/vulnex/actions/workflows/api.yaml/badge.svg)](https://github.com/n-crespo/vulnex/actions/workflows/api.yaml)
 
+> [!WARNING]
+> This project operates on Render's free tier infrastructure. To conserve
+> resources, the backend services automatically spin down when inactive. Please
+> allow ~50 seconds for the initial load while the backend services wake up.
+>
+> For instant performance, we recommend running the instance locally using the
+> setup steps below.
+
+> [!NOTE]
+> VulnEx aggregates publicly available cybersecurity data from the [NIST
+> National Vulnerability Database (NVD)](https://nvd.nist.gov/).
+>
+> Please note that database synchronization is currently a manual process. As of
+> the last update in **December 2025**, recent CVE records may not yet be
+> reflected in the system. If you require a data refresh, please submit an issue
+> requesting an update.
+
 ## Development Setup
 
 First clone the repository:
