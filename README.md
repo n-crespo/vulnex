@@ -7,10 +7,9 @@
 > [!WARNING]
 > This project operates on Render's free tier infrastructure. To conserve
 > resources, the backend services automatically spin down when inactive. Please
-> allow ~50 seconds for the initial load while the backend services wake up.
->
-> For instant performance, we recommend running the instance locally using the
-> setup steps below.
+> allow ~50 seconds for the initial load while the backend services wake up. For
+> instant performance, we recommend running the instance locally using the setup
+> steps below.
 
 > [!NOTE]
 > VulnEx aggregates publicly available cybersecurity data from the [NIST
