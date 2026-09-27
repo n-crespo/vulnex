@@ -42,7 +42,7 @@ jobs:
 
       - name: Run Playwright tests
         env:
-          MONGO_DB_URI: ${{ secrets.MONGO_DB_URI }}
+          MONGO_DB_URI: ${{ secrets.MONGO_DB_URI || 'mongodb://localhost:27017/test_db' }}
           JWT_SECRET: ${{ secrets.JWT_SECRET || 'dependabot_test_jwt_secret' }}
           NODE_ENV: test
           PORT: 3000
