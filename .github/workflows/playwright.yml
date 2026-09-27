@@ -43,7 +43,7 @@ jobs:
       - name: Run Playwright tests
         env:
           MONGO_DB_URI: ${{ secrets.MONGO_DB_URI }}
-          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET || 'dependabot_test_jwt_secret' }}
           NODE_ENV: test
           PORT: 3000
         run: npx playwright test
