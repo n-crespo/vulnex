@@ -30,6 +30,13 @@ jobs:
     timeout-minutes: 60
     runs-on: ubuntu-latest
 
+    # this block spins up a temporary mongodb instance specifically for this job
+    services:
+      mongodb:
+        image: mongo:latest
+        ports:
+          - 27017:27017
+
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -40,10 +47,18 @@ jobs:
       - name: Install Playwright Browsers
         run: npx playwright install --with-deps
 
+      # seed fake cves so the unmocked ui tests have something to render
+      - name: Seed test database
+        run: |
+          docker exec -i ${{ job.services.mongodb.id }} \
+            mongoimport --db test_db --collection cves --jsonArray \
+            < tests/e2e/fixtures/cves.json
+
       - name: Run Playwright tests
         env:
-          MONGO_DB_URI: ${{ secrets.MONGO_DB_URI || 'mongodb://localhost:27017/test_db' }}
-          JWT_SECRET: ${{ secrets.JWT_SECRET || 'dependabot_test_jwt_secret' }}
+          # always use the temporary ci database, never production
+          MONGO_DB_URI: "mongodb://localhost:27017/test_db"
+          JWT_SECRET: "ci_test_jwt_secret"
           NODE_ENV: test
           PORT: 3000
         run: npx playwright test

@@ -1,0 +1,87 @@
+[
+  {
+    "cveId": "CVE-2025-6167",
+    "published": {
+      "$date": "2025-06-17T07:15:18.330Z"
+    },
+    "description": "A vulnerability classified as critical has been found in themanojdesai python-a2a up to 0.5.5. Affected is the function create_workflow of the file python_a2a/agent_flow/server/api.py. The manipulation leads to path traversal. Upgrading to version 0.5.6 is able to address this issue. It is recommended to upgrade the affected component.",
+    "severityLevel": "MEDIUM",
+    "productName": "themanojdesai:python_a2a",
+    "productVersions": [
+      {
+        "start": "0",
+        "s_type": "i",
+        "end": "0.5.5",
+        "e_type": "i"
+      }
+    ]
+  },
+  {
+    "cveId": "CVE-2025-5291",
+    "published": {
+      "$date": "2025-06-17T12:15:27.747Z"
+    },
+    "description": "The Master Slider – Responsive Touch Slider plugin for WordPress is vulnerable to Stored Cross-Site Scripting via the plugin's masterslider_pb and ms_slide shortcodes in all versions up to, and including, 3.10.8 due to insufficient input sanitization and output escaping on user supplied attributes. This makes it possible for authenticated attackers, with contributor-level access and above, to inject arbitrary web scripts in pages that will execute whenever a user accesses an injected page.",
+    "severityLevel": "MEDIUM",
+    "productName": "averta:master_slider",
+    "productVersions": [
+      {
+        "start": "0",
+        "s_type": "i",
+        "end": "3.10.9",
+        "e_type": "e"
+      }
+    ]
+  },
+  {
+    "cveId": "CVE-2025-4879",
+    "published": {
+      "$date": "2025-06-17T14:15:33.170Z"
+    },
+    "description": "Local Privilege escalation allows a low-privileged user to gain SYSTEM privileges in Citrix Workspace app for Windows",
+    "severityLevel": "HIGH",
+    "productName": "citrix:workspace",
+    "productVersions": [
+      {
+        "start": "0",
+        "s_type": "i",
+        "end": "2409",
+        "e_type": "e"
+      }
+    ]
+  },
+  {
+    "cveId": "CVE-2025-45878",
+    "published": {
+      "$date": "2025-06-17T17:15:33.487Z"
+    },
+    "description": "A cross-site scripting (XSS) vulnerability in the report manager function of Miliaris Amigdala v2.2.6 allows attackers to execute arbitrary HTML in the context of a user's browser via a crafted payload.",
+    "severityLevel": "MEDIUM",
+    "productName": "miliaris:amygdala",
+    "productVersions": [
+      {
+        "start": "2.2.6",
+        "s_type": "i",
+        "end": "2.2.6",
+        "e_type": "i"
+      }
+    ]
+  },
+  {
+    "cveId": "CVE-2025-99999",
+    "published": {
+      "$date": "2025-07-01T12:00:00.000Z"
+    },
+    "description": "Fake Chrome vulnerability used only for CI end-to-end tests.",
+    "severityLevel": "HIGH",
+    "productName": "google:chrome",
+    "productVersions": [
+      {
+        "start": "0",
+        "s_type": "i",
+        "end": "138.0.0",
+        "e_type": "e"
+      }
+    ]
+  }
+]
