@@ -9,5 +9,8 @@
   "scripts": {
     "fetch": "node index.js",
     "delete": "node delete.js"
+  },
+  "dependencies": {
+    "axios": "^1.21.0"
   }
 }
